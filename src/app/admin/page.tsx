@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Upload, ArrowLeft, Loader2, Book, FileText, Image as ImageIcon, CheckCircle, Shield, Star } from "lucide-react";
+import { Upload, ArrowLeft, Loader2, Book, FileText, Image as ImageIcon, CheckCircle, Shield, Star, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +17,12 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState(1);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  
+  // Bulk Import States
+  const [bulkManhwaId, setBulkManhwaId] = useState("");
+  const [bulkPath, setBulkPath] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState("");
 
   // Manhwas list (for selection)
   const [manhwas, setManhwas] = useState<any[]>([]);
@@ -206,6 +212,86 @@ export default function AdminPage() {
     }
   };
 
+  const handleBulkImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkManhwaId || !bulkPath) return alert("Faltan datos");
+    
+    setBulkLoading(true);
+    setBulkProgress("Obteniendo árbol de archivos desde GitHub...");
+
+    try {
+      const res = await fetch("https://api.github.com/repos/Nexotvofficial/Nekumi-Catalog-02/git/trees/main?recursive=1");
+      const data = await res.json();
+
+      if (!data.tree) throw new Error("No se pudo obtener el repositorio.");
+
+      const basePath = bulkPath.replace(/^\/|\/$/g, '');
+      const files = data.tree.filter((f: any) => 
+        f.path.startsWith(basePath + '/') && 
+        f.type === 'blob' && 
+        /\.(jpg|jpeg|png|webp|gif)$/i.test(f.path)
+      );
+
+      setBulkProgress(`Encontradas ${files.length} imágenes. Agrupando capítulos...`);
+
+      const chaptersMap: Record<string, string[]> = {};
+      files.forEach((file: any) => {
+        const relPath = file.path.substring(basePath.length + 1);
+        const parts = relPath.split('/');
+        if (parts.length >= 2) {
+          const folderName = parts[0];
+          if (!chaptersMap[folderName]) chaptersMap[folderName] = [];
+          chaptersMap[folderName].push(file.path);
+        }
+      });
+
+      const folderNames = Object.keys(chaptersMap);
+      if (folderNames.length === 0) throw new Error("No se detectaron carpetas de capítulos dentro de esa ruta.");
+
+      let current = 0;
+      for (const folder of folderNames) {
+        current++;
+        setBulkProgress(`Procesando ${folder} (${current} de ${folderNames.length})...`);
+        
+        // Match numbers, e.g. "Capítulo 5", "cap5", "5", "Cap 5.5"
+        const match = folder.match(/\d+(\.\d+)?/);
+        const chapNum = match ? parseFloat(match[0]) : current;
+
+        // 1. Insert Chapter
+        const { data: chapData, error: chapErr } = await supabase.from("chapters").insert({
+          manhwa_id: bulkManhwaId,
+          chapter_number: chapNum,
+          title: folder
+        }).select().single();
+
+        if (chapErr || !chapData) {
+          console.error("Error creando capítulo", folder, chapErr);
+          continue;
+        }
+
+        // 2. Insert Pages
+        const chapFiles = chaptersMap[folder].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        const pagesToInsert = chapFiles.map((path, idx) => ({
+          chapter_id: chapData.id,
+          page_number: idx + 1,
+          image_url: `https://cdn.jsdelivr.net/gh/Nexotvofficial/Nekumi-Catalog-02@main/${path}`
+        }));
+
+        const { error: pagesErr } = await supabase.from("pages").insert(pagesToInsert);
+        if (pagesErr) console.error("Error insertando páginas para", folder, pagesErr);
+      }
+
+      setSuccessMsg(`¡Magia completa! Se importaron ${folderNames.length} capítulos exitosamente.`);
+      setTimeout(() => setSuccessMsg(""), 5000);
+      setBulkPath("");
+    } catch (err: any) {
+      alert("Error en la importación masiva: " + err.message);
+    } finally {
+      setBulkLoading(false);
+      setBulkProgress("");
+    }
+  };
+
   if (loadingUser) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   if (!user) return null; // router will redirect
 
@@ -241,6 +327,9 @@ export default function AdminPage() {
           </button>
           <button onClick={() => setActiveTab(5)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 5 ? "bg-[#ef4444] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
             <Book className="w-4 h-4 hidden sm:block" /> 5. Borrar
+          </button>
+          <button onClick={() => setActiveTab(6)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 6 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <Zap className="w-4 h-4 hidden sm:block" /> 6. Auto
           </button>
 
         </div>
@@ -562,6 +651,53 @@ export default function AdminPage() {
               <button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Book className="w-5 h-5" />}
                 Eliminar Manhwa y todo su contenido
+              </button>
+            </form>
+          )}
+
+          {activeTab === 6 && (
+            <form onSubmit={handleBulkImport} className="space-y-6 animate-in fade-in zoom-in-95">
+              <h2 className="text-xl font-bold border-b border-[#a855f7]/30 pb-4 text-[#c084fc] flex items-center gap-2">
+                <Zap className="w-6 h-6" /> Automatizador de Capítulos
+              </h2>
+              <p className="text-sm text-white/60 mb-4">
+                Escanea tu repositorio de GitHub completo y crea automáticamente decenas de capítulos y páginas en segundos.
+              </p>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-white/80 block">1. Selecciona el Manhwa destino</label>
+                <select required value={bulkManhwaId} onChange={(e) => setBulkManhwaId(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] outline-none transition-all">
+                  <option value="" className="bg-[#121216]">-- Elige un manhwa --</option>
+                  {manhwas.map(m => (
+                    <option key={m.id} value={m.id} className="bg-[#121216]">{m.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-white/80 block">2. Ruta raíz en GitHub</label>
+                <p className="text-xs text-white/40 mb-2">Ejemplo: <code className="bg-black/30 px-1 py-0.5 rounded">img/jefe-dame-a-tu-hija</code></p>
+                <input
+                  required
+                  type="text"
+                  placeholder="Carpeta principal que contiene todos los capítulos..."
+                  value={bulkPath}
+                  onChange={(e) => setBulkPath(e.target.value)}
+                  className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] outline-none transition-all"
+                />
+              </div>
+
+              {bulkProgress && (
+                <div className="p-4 bg-[#a855f7]/10 border border-[#a855f7]/30 rounded-xl">
+                  <p className="text-sm text-[#c084fc] font-mono flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> {bulkProgress}
+                  </p>
+                </div>
+              )}
+
+              <button type="submit" disabled={bulkLoading} className="w-full h-12 mt-6 rounded-xl bg-gradient-to-r from-[#a855f7] to-[#7c3aed] hover:from-[#9333ea] hover:to-[#6d28d9] text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#a855f7]/20">
+                {bulkLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                ¡Importar Masivamente!
               </button>
             </form>
           )}
