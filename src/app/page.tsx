@@ -84,6 +84,8 @@ const news = [
 
 
 import AuthModal from "@/components/AuthModal";
+import { LegalModal } from "@/components/LegalModal";
+import { getAvatarSvg } from "@/lib/avatars";
 import { createClient } from "@/lib/supabase";
 
 export default function Home() {
@@ -99,12 +101,14 @@ export default function Home() {
   const [showToast, setShowToast] = useState(false);
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [legalModal, setLegalModal] = useState<{isOpen: boolean, type: any}>({isOpen: false, type: ""});
   const [user, setUser] = useState<any>(null);
   const [manhwas, setManhwas] = useState<Manhwa[]>([]);
   const [trending, setTrending] = useState<Manhwa[]>([]);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
+  const [siteConfig, setSiteConfig] = useState<any>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -112,6 +116,11 @@ export default function Home() {
       const saved = new Set<string>(JSON.parse(localStorage.getItem('nekutoon:favorites') || '[]'));
       setFavorites(saved);
     } catch {}
+
+    // Fetch site config
+    supabase.from('site_config').select('*').eq('id', 1).single().then(({ data }) => {
+      if (data) setSiteConfig(data);
+    });
 
     // Fetch real manhwas
     supabase.from('manhwas').select('*').order('created_at', { ascending: false }).then(({ data }) => {
@@ -384,16 +393,22 @@ export default function Home() {
               <div className="review-list">
                 {recentReviews.length === 0 && <p className="text-sm text-center py-4 text-white/50">Aún no hay reseñas en la plataforma.</p>}
                 {recentReviews.map((item) => (
-                  <article key={item.id} className="review-item">
-                    <div className="review-main" style={{ marginLeft: 0 }}>
-                      <div className="review-head">
-                        <span className="review-user">{item.user_email?.split('@')[0] || "Usuario"}</span>
-                        <span className="review-stars">
-                          {[...Array(5)].map((_, i) => <Star key={i} className={i < item.rating ? 'fill-current' : 'opacity-20'} />)}
+                  <article key={item.id} className="review-item flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
+                    <div 
+                      className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 bg-black/40"
+                      dangerouslySetInnerHTML={{ __html: getAvatarSvg(item.avatar_key || "hunter") }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-sm text-white truncate pr-2">{item.user_email?.split('@')[0] || "Usuario"}</span>
+                        <span className="flex text-[#fbbf24] flex-shrink-0">
+                          {[...Array(5)].map((_, i) => <Star key={i} className={`w-3 h-3 ${i < item.rating ? 'fill-current' : 'opacity-20'}`} />)}
                         </span>
                       </div>
-                      <p className="review-text line-clamp-3 text-sm">“{item.content}”</p>
-                      <p className="review-work text-xs text-[#a855f7]"><Link href={`/manga/${item.manhwa_id}`}>Leer reseña en {item.manhwas?.title || 'este manhwa'}</Link></p>
+                      <p className="text-white/70 text-xs italic line-clamp-2 mb-2">"{item.content}"</p>
+                      <Link href={`/manga/${item.manhwa_id}`} className="text-[#a855f7] hover:text-[#c084fc] text-[11px] font-bold uppercase tracking-wider block truncate transition-colors">
+                        ↳ EN {item.manhwas?.title || 'MANHWA'}
+                      </Link>
                     </div>
                   </article>
                 ))}
@@ -420,11 +435,18 @@ export default function Home() {
                   <a
                     key={cat}
                     href="#recomendados"
-                    className={`category-card ${activeCategory === cat ? 'ring-2 ring-[#a855f7]' : ''}`}
+                    className={`category-card relative overflow-hidden group ${activeCategory === cat ? 'ring-2 ring-[#a855f7]' : ''}`}
                     onClick={(e) => { e.preventDefault(); setActiveCategory(cat); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   >
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#a855f7]/20 to-[#7c3aed]/40">
-                      <h3 className="text-lg font-black text-white drop-shadow-lg">{name}</h3>
+                    {siteConfig?.category_images?.[name] && (
+                      <img 
+                        src={siteConfig.category_images[name]} 
+                        alt={name} 
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0 opacity-50" 
+                      />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#a855f7]/40 to-[#7c3aed]/60 z-10">
+                      <h3 className="text-lg font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] z-20 relative px-2 text-center">{name}</h3>
                     </div>
                   </a>
                 ))}
@@ -509,17 +531,25 @@ export default function Home() {
             </div>
             <div>
               <h3>Cuenta</h3>
-              <a href="#" onClick={(e) => { e.preventDefault(); setIsAuthOpen(true); }}>Iniciar sesión</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setIsAuthOpen(true); }}>Registrarse</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Favoritos — Próximamente"); }}>Favoritos</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Perfil — Próximamente"); }}>Mi perfil</a>
+              {user ? (
+                <>
+                  <Link href="/profile">Mi perfil</Link>
+                  <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Favoritos en la próxima actualización"); }}>Mis Favoritos</a>
+                </>
+              ) : (
+                <>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setIsAuthOpen(true); }}>Iniciar sesión</a>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setIsAuthOpen(true); }}>Registrarse</a>
+                </>
+              )}
             </div>
             <div>
-              <h3>Legal</h3>
-              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Términos de servicio"); }}>Términos</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Política de privacidad"); }}>Privacidad</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Derechos de autor"); }}>Derechos de autor</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Política de cookies"); }}>Cookies</a>
+              <h3>Legal y Contacto</h3>
+              <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "terminos"}); }}>Términos</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "privacidad"}); }}>Privacidad</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "derechos"}); }}>Derechos de autor</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "cookies"}); }}>Cookies</a>
+              <a href="mailto:soporte@nekutoon.com">soporte@nekutoon.com</a>
             </div>
           </nav>
           <div className="store-buttons">
@@ -537,8 +567,8 @@ export default function Home() {
         <div className="shell footer-bottom">
           <span>© 2026 Nekutoon. Todos los derechos reservados.</span>
           <div>
-            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Política de privacidad"); }}>Política de Privacidad</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Términos de servicio"); }}>Términos de Servicio</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "privacidad"}); }}>Política de Privacidad</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "terminos"}); }}>Términos de Servicio</a>
           </div>
         </div>
       </footer>
@@ -548,6 +578,12 @@ export default function Home() {
         onClose={() => setIsAuthOpen(false)}
         onSuccess={(u) => setUser(u)}
         showToast={showToastMessage}
+      />
+
+      <LegalModal
+        isOpen={legalModal.isOpen}
+        type={legalModal.type}
+        onClose={() => setLegalModal({isOpen: false, type: ""})}
       />
 
       <div className={`toast ${showToast ? 'show' : ''}`} role="status" aria-live="polite">

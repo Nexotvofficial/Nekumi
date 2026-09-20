@@ -23,7 +23,9 @@ export default function AdminPage() {
   // Chapters list (for selection)
   const [chapters, setChapters] = useState<any[]>([]);
 
-  // Form 1: Manhwa
+  // Config state
+  const [siteConfig, setSiteConfig] = useState<any>({ category_images: {} });
+  const [configSaving, setConfigSaving] = useState(false);  // Form 1: Manhwa
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
@@ -55,10 +57,16 @@ export default function AdminPage() {
       } else {
         setUser(session.user);
         fetchManhwas();
+        fetchSiteConfig();
       }
       setLoadingUser(false);
     });
   }, [router, supabase]);
+
+  const fetchSiteConfig = async () => {
+    const { data } = await supabase.from("site_config").select("*").eq("id", 1).single();
+    if (data) setSiteConfig(data);
+  };
 
   const fetchManhwas = async () => {
     const { data } = await supabase.from("manhwas").select("id, title").order("created_at", { ascending: false });
@@ -181,6 +189,23 @@ export default function AdminPage() {
     }
   };
 
+  const handleConfigSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setConfigSaving(true);
+    const { error } = await supabase.from("site_config").upsert({
+      id: 1,
+      category_images: siteConfig.category_images,
+      updated_at: new Date().toISOString()
+    });
+    setConfigSaving(false);
+    if (error) {
+      alert("Error al guardar config: " + error.message);
+    } else {
+      setSuccessMsg("Configuración guardada exitosamente");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    }
+  };
+
   if (loadingUser) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   if (!user) return null; // router will redirect
 
@@ -217,6 +242,9 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab(5)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 5 ? "bg-[#ef4444] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
             <Book className="w-4 h-4 hidden sm:block" /> 5. Borrar
           </button>
+          <button onClick={() => setActiveTab(6)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 6 ? "bg-[#10b981] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <FileText className="w-4 h-4 hidden sm:block" /> 6. Config
+          </button>
         </div>
 
         <div className="glass rounded-[22px] p-6 sm:p-10 shadow-2xl">
@@ -235,6 +263,21 @@ export default function AdminPage() {
                     <option value="Acción" className="bg-[#121216]">Acción</option>
                     <option value="Romance" className="bg-[#121216]">Romance</option>
                     <option value="Drama" className="bg-[#121216]">Drama</option>
+                    <option value="Aventura" className="bg-[#121216]">Aventura</option>
+                    <option value="Comedia" className="bg-[#121216]">Comedia</option>
+                    <option value="Ciencia Ficción" className="bg-[#121216]">Ciencia Ficción</option>
+                    <option value="Suspenso" className="bg-[#121216]">Suspenso</option>
+                    <option value="Terror" className="bg-[#121216]">Terror</option>
+                    <option value="Misterio" className="bg-[#121216]">Misterio</option>
+                    <option value="Sobrenatural" className="bg-[#121216]">Sobrenatural</option>
+                    <option value="Psicológico" className="bg-[#121216]">Psicológico</option>
+                    <option value="Deportes" className="bg-[#121216]">Deportes</option>
+                    <option value="Slice of Life" className="bg-[#121216]">Slice of Life</option>
+                    <option value="Isekai" className="bg-[#121216]">Isekai</option>
+                    <option value="Mecha" className="bg-[#121216]">Mecha</option>
+                    <option value="Boys Love (BL)" className="bg-[#121216]">Boys Love (BL)</option>
+                    <option value="Girls Love (GL)" className="bg-[#121216]">Girls Love (GL)</option>
+                    <option value="+18" className="bg-[#121216]">+18</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -329,6 +372,20 @@ export default function AdminPage() {
                       <option value="Acción" className="bg-[#121216]">Acción</option>
                       <option value="Romance" className="bg-[#121216]">Romance</option>
                       <option value="Drama" className="bg-[#121216]">Drama</option>
+                      <option value="Aventura" className="bg-[#121216]">Aventura</option>
+                      <option value="Comedia" className="bg-[#121216]">Comedia</option>
+                      <option value="Ciencia Ficción" className="bg-[#121216]">Ciencia Ficción</option>
+                      <option value="Suspenso" className="bg-[#121216]">Suspenso</option>
+                      <option value="Terror" className="bg-[#121216]">Terror</option>
+                      <option value="Misterio" className="bg-[#121216]">Misterio</option>
+                      <option value="Sobrenatural" className="bg-[#121216]">Sobrenatural</option>
+                      <option value="Psicológico" className="bg-[#121216]">Psicológico</option>
+                      <option value="Deportes" className="bg-[#121216]">Deportes</option>
+                      <option value="Slice of Life" className="bg-[#121216]">Slice of Life</option>
+                      <option value="Isekai" className="bg-[#121216]">Isekai</option>
+                      <option value="Mecha" className="bg-[#121216]">Mecha</option>
+                      <option value="Boys Love (BL)" className="bg-[#121216]">Boys Love (BL)</option>
+                      <option value="Girls Love (GL)" className="bg-[#121216]">Girls Love (GL)</option>
                       <option value="+18" className="bg-[#121216]">+18</option>
                     </select>
                   </div>
@@ -507,6 +564,41 @@ export default function AdminPage() {
               <button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Book className="w-5 h-5" />}
                 Eliminar Manhwa y todo su contenido
+              </button>
+            </form>
+          )}
+
+          {activeTab === 6 && (
+            <form onSubmit={handleConfigSubmit} className="space-y-6 animate-in fade-in zoom-in-95">
+              <h2 className="text-xl font-bold border-b border-white/10 pb-4">Configuración del Sitio</h2>
+              <p className="text-sm text-white/60 mb-4">
+                Configura las imágenes de fondo que se mostrarán en la sección "Explorar por Géneros" en la página principal. Pega las URLs de las imágenes.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {["Todos", "Fantasía", "Acción", "Romance", "Drama", "+18"].map((cat) => (
+                  <div key={cat} className="space-y-2">
+                    <label className="text-sm font-semibold text-white/80 block">Imagen para: {cat}</label>
+                    <input
+                      type="url"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                      value={siteConfig?.category_images?.[cat] || ""}
+                      onChange={(e) => setSiteConfig({
+                        ...siteConfig,
+                        category_images: {
+                          ...(siteConfig?.category_images || {}),
+                          [cat]: e.target.value
+                        }
+                      })}
+                      className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <button type="submit" disabled={configSaving} className="w-full h-12 mt-6 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#10b981]/20">
+                {configSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                Guardar Configuración
               </button>
             </form>
           )}
