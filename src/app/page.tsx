@@ -406,13 +406,26 @@ export default function Home() {
           <div className="lower-content">
             <section id="categorias" className="lower-section" aria-labelledby="categoriesTitle">
               <div className="section-heading">
-                <h2 id="categoriesTitle" className="section-title lower-title">Explora por Categorías</h2>
+                <h2 id="categoriesTitle" className="section-title lower-title">Explorar por Géneros</h2>
               </div>
               <div className="categories-grid">
-                {categories.map(([name, key]) => (
-                  <a key={key} href="#recomendados" className="category-card" onClick={(e) => { e.preventDefault(); showToastMessage(`Explorando ${name}`) }}>
-                    <img src={MEDIA_CONFIG[key as keyof typeof MEDIA_CONFIG]} alt={`Categoría ${name}`} loading="lazy" />
-                    <h3>{name}</h3>
+                {[
+                  ["Todos", ""],
+                  ["Fantasía", "Fantasía"],
+                  ["Acción", "Acción"],
+                  ["Romance", "Romance"],
+                  ["Drama", "Drama"],
+                  ["+18", "+18"],
+                ].map(([name, cat]) => (
+                  <a
+                    key={cat}
+                    href="#recomendados"
+                    className={`category-card ${activeCategory === cat ? 'ring-2 ring-[#a855f7]' : ''}`}
+                    onClick={(e) => { e.preventDefault(); setActiveCategory(cat); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#a855f7]/20 to-[#7c3aed]/40">
+                      <h3 className="text-lg font-black text-white drop-shadow-lg">{name}</h3>
+                    </div>
                   </a>
                 ))}
               </div>
@@ -420,27 +433,32 @@ export default function Home() {
             
             <section id="noticias" className="lower-section" aria-labelledby="newsTitle">
               <div className="section-heading">
-                <h2 id="newsTitle" className="section-title lower-title">Últimas Noticias y Artículos</h2>
-                <a href="#" className="mini-button" onClick={(e) => { e.preventDefault(); showToastMessage("Todos los artículos") }}>
+                <h2 id="newsTitle" className="section-title lower-title">Novedades del Catálogo</h2>
+                <Link href="#recomendados" className="mini-button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                   Ver todos <ArrowRight />
-                </a>
+                </Link>
               </div>
               <div className="news-grid">
-                {news.map((item, i) => (
-                  <article key={i} className="news-card">
-                    <div className="news-media">
-                      <img src={MEDIA_CONFIG[item.image as keyof typeof MEDIA_CONFIG]} alt={item.title} loading="lazy" />
-                      <span className="news-label">{item.label}</span>
-                    </div>
-                    <div className="news-body">
-                      <h3>{item.title}</h3>
-                      <div className="news-meta">
-                        <span><CalendarDays />{item.date}</span>
-                        <span><MessageCircle />{item.comments}</span>
+                {manhwas.slice(0, 3).map((item) => (
+                  <Link key={item.id} href={`/manga/${item.id}`}>
+                    <article className="news-card group cursor-pointer">
+                      <div className="news-media">
+                        <img src={item.cover_url} alt={item.title} loading="lazy" className="group-hover:scale-105 transition-transform duration-500" />
+                        <span className="news-label">{item.genre}</span>
                       </div>
-                    </div>
-                  </article>
+                      <div className="news-body">
+                        <h3 className="group-hover:text-[#c084fc] transition-colors">{item.title}</h3>
+                        <div className="news-meta">
+                          <span><Star className="w-3 h-3 inline text-[#fbbf24]" /> {item.score}</span>
+                          <span className="text-[#a855f7] font-semibold text-xs">Leer ahora →</span>
+                        </div>
+                      </div>
+                    </article>
+                  </Link>
                 ))}
+                {manhwas.length === 0 && (
+                  <p className="text-white/40 col-span-3 text-center py-8">No hay manhwas disponibles aún.</p>
+                )}
               </div>
             </section>
           </div>
@@ -450,7 +468,7 @@ export default function Home() {
             <span className="newsletter-icon"><Mail /></span>
             <h2 id="newsletterTitle">Únete a Nekutoon</h2>
             <p>Suscríbete para recibir recomendaciones, actualizaciones y noticias de manhwas directamente en tu correo.</p>
-            <form onSubmit={(e) => { e.preventDefault(); showToastMessage("¡Gracias por suscribirte!") }}>
+            <form onSubmit={(e) => { e.preventDefault(); showToastMessage("¡Gracias por suscribirte!"); setIsAuthOpen(true); }}>
               <label className="sr-only" htmlFor="emailInput">Correo electrónico</label>
               <div className="newsletter-form-row">
                 <input id="emailInput" type="email" placeholder="Introduce tu correo" autoComplete="email" required />
@@ -460,10 +478,10 @@ export default function Home() {
             <div className="social-block">
               <span>Síguenos en nuestras redes</span>
               <div className="social-row">
-                <a href="#" aria-label="Discord"><MessageCircle /></a>
-                <a href="#" aria-label="X"><span className="social-x">𝕏</span></a>
-                <a href="#" aria-label="Instagram"><Camera /></a>
-                <a href="#" aria-label="YouTube"><Video /></a>
+                <a href="https://discord.gg" target="_blank" rel="noopener noreferrer" aria-label="Discord"><MessageCircle /></a>
+                <a href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="X"><span className="social-x">𝕏</span></a>
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><Camera /></a>
+                <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><Video /></a>
               </div>
             </div>
           </aside>
@@ -484,52 +502,52 @@ export default function Home() {
           <nav className="footer-links" aria-label="Enlaces del pie">
             <div>
               <h3>Explorar</h3>
-              <a href="#recomendados">Manhwas</a>
-              <a href="#recomendados">Recomendaciones</a>
-              <a href="#comunidad">Comunidad</a>
+              <a href="#recomendados" onClick={() => { setActiveCategory(""); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Manhwas</a>
+              <a href="#recomendados" onClick={() => { setActiveCategory("Acción"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Acción</a>
+              <a href="#recomendados" onClick={() => { setActiveCategory("Romance"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Romance</a>
               <a href="#categorias">Categorías</a>
             </div>
             <div>
-              <h3>Comunidad</h3>
-              <a href="#">Foro</a>
-              <a href="#">Discord</a>
-              <a href="#">Soporte</a>
-              <a href="#">Contacto</a>
+              <h3>Cuenta</h3>
+              <a href="#" onClick={(e) => { e.preventDefault(); setIsAuthOpen(true); }}>Iniciar sesión</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setIsAuthOpen(true); }}>Registrarse</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Favoritos — Próximamente"); }}>Favoritos</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Perfil — Próximamente"); }}>Mi perfil</a>
             </div>
             <div>
               <h3>Legal</h3>
-              <a href="#">Términos</a>
-              <a href="#">Privacidad</a>
-              <a href="#">Derechos de autor</a>
-              <a href="#">Cookies</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Términos de servicio"); }}>Términos</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Política de privacidad"); }}>Privacidad</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Derechos de autor"); }}>Derechos de autor</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Política de cookies"); }}>Cookies</a>
             </div>
           </nav>
           <div className="store-buttons">
             <span>Descarga nuestra app</span>
-            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("App Store") }}>
+            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("App Store — Próximamente"); }}>
               <Apple />
-              <span><small>Disponible en</small>App Store</span>
+              <span><small>Próximamente en</small>App Store</span>
             </a>
-            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Google Play") }}>
+            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Google Play — Próximamente"); }}>
               <Play />
-              <span><small>Disponible en</small>Google Play</span>
+              <span><small>Próximamente en</small>Google Play</span>
             </a>
           </div>
         </div>
         <div className="shell footer-bottom">
           <span>© 2026 Nekutoon. Todos los derechos reservados.</span>
           <div>
-            <a href="#">Política de Privacidad</a>
-            <a href="#">Términos de Servicio</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Política de privacidad"); }}>Política de Privacidad</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Términos de servicio"); }}>Términos de Servicio</a>
           </div>
         </div>
       </footer>
       
-      <AuthModal 
-        isOpen={isAuthOpen} 
-        onClose={() => setIsAuthOpen(false)} 
-        onSuccess={(u) => setUser(u)} 
-        showToast={showToastMessage} 
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={(u) => setUser(u)}
+        showToast={showToastMessage}
       />
 
       <div className={`toast ${showToast ? 'show' : ''}`} role="status" aria-live="polite">

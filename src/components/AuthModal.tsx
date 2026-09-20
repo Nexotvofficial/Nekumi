@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { X, Mail, Lock, User, Loader2 } from "lucide-react";
+import AvatarPicker from "@/components/AvatarPicker";
+import { getAvatarSvg } from "@/lib/avatars";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,6 +19,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState("hunter");
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const supabase = createClient();
 
   if (!isOpen) return null;
@@ -27,10 +31,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
 
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         showToast("¡Has iniciado sesión correctamente!");
         onSuccess(data.user);
@@ -39,14 +40,20 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: {
-              username,
-            }
-          }
+          options: { data: { username } }
         });
         if (error) throw error;
-        showToast("¡Registro exitoso! Revisa tu correo o inicia sesión.");
+
+        // Create profile with selected avatar
+        if (data.user) {
+          await supabase.from("profiles").upsert({
+            id: data.user.id,
+            avatar_url: selectedAvatar,
+            username: username || email.split("@")[0],
+          });
+        }
+
+        showToast("¡Registro exitoso! Inicia sesión para continuar.");
         setIsLogin(true);
       }
     } catch (err: any) {
@@ -58,12 +65,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="relative w-full max-w-md glass rounded-[22px] p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 icon-btn"
           aria-label="Cerrar modal"
@@ -92,24 +99,52 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#777782]" />
-              <input 
-                type="text" 
-                placeholder="Nombre de usuario" 
-                required 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-[46px] rounded-full border border-white/10 bg-white/5 text-white px-11 text-sm transition-all focus:outline-none focus:border-[#a855f7]/55 focus:ring-4 focus:ring-[#8b5cf6]/10"
-              />
-            </div>
+            <>
+              {/* Avatar preview + picker toggle */}
+              <div className="flex items-center gap-4 p-3 rounded-xl border border-white/10 bg-white/5">
+                <div
+                  className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer border-2 border-[#a855f7]/50"
+                  onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                  dangerouslySetInnerHTML={{ __html: getAvatarSvg(selectedAvatar) }}
+                />
+                <div className="flex-1">
+                  <p className="text-xs text-white/60">Tu avatar</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                    className="text-sm font-semibold text-[#c084fc] hover:text-white transition-colors"
+                  >
+                    {showAvatarPicker ? "Cerrar selección" : "Cambiar avatar →"}
+                  </button>
+                </div>
+              </div>
+
+              {showAvatarPicker && (
+                <div className="p-4 rounded-xl border border-[#a855f7]/20 bg-[#a855f7]/5">
+                  <AvatarPicker selected={selectedAvatar} onChange={(key) => { setSelectedAvatar(key); setShowAvatarPicker(false); }} />
+                </div>
+              )}
+
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#777782]" />
+                <input
+                  type="text"
+                  placeholder="Nombre de usuario"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full h-[46px] rounded-full border border-white/10 bg-white/5 text-white px-11 text-sm transition-all focus:outline-none focus:border-[#a855f7]/55 focus:ring-4 focus:ring-[#8b5cf6]/10"
+                />
+              </div>
+            </>
           )}
+
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#777782]" />
-            <input 
-              type="email" 
-              placeholder="Correo electrónico" 
-              required 
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full h-[46px] rounded-full border border-white/10 bg-white/5 text-white px-11 text-sm transition-all focus:outline-none focus:border-[#a855f7]/55 focus:ring-4 focus:ring-[#8b5cf6]/10"
@@ -117,18 +152,18 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
           </div>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#777782]" />
-            <input 
-              type="password" 
-              placeholder="Contraseña" 
-              required 
+            <input
+              type="password"
+              placeholder="Contraseña"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full h-[46px] rounded-full border border-white/10 bg-white/5 text-white px-11 text-sm transition-all focus:outline-none focus:border-[#a855f7]/55 focus:ring-4 focus:ring-[#8b5cf6]/10"
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="w-full h-[46px] mt-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#d946ef] text-white font-bold text-sm shadow-[0_10px_28px_rgba(139,92,246,0.27)] hover:-translate-y-[2px] hover:shadow-[0_14px_35px_rgba(217,70,239,0.35)] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
@@ -139,9 +174,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
 
         <div className="mt-6 text-center text-sm text-[#777782]">
           {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
-          <button 
-            type="button" 
-            onClick={() => setIsLogin(!isLogin)}
+          <button
+            type="button"
+            onClick={() => { setIsLogin(!isLogin); setShowAvatarPicker(false); }}
             className="text-[#a78bfa] font-semibold hover:text-white transition-colors"
           >
             {isLogin ? "Regístrate aquí" : "Inicia sesión"}

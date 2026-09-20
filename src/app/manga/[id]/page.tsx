@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 import { Heart, Star, BookOpen, Clock, List, ChevronRight, ArrowLeft, Loader2, MessageCircle, Send } from "lucide-react";
+import { getAvatarSvg, AVATARS } from "@/lib/avatars";
+import AvatarPicker from "@/components/AvatarPicker";
 
 interface Manhwa {
   id: string;
@@ -25,6 +27,7 @@ interface Chapter {
 interface Review {
   id: string;
   user_email?: string;
+  avatar_key?: string;
   rating: number;
   content: string;
   created_at: string;
@@ -42,17 +45,25 @@ export default function MangaDetail() {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   // Review form state
   const [newReview, setNewReview] = useState("");
   const [newRating, setNewRating] = useState(5);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState("hunter");
 
   useEffect(() => {
     async function loadData() {
       // Get user session
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
+
+      if (session?.user) {
+        const { data: prof } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+        if (prof) { setUserProfile(prof); setSelectedAvatar(prof.avatar_url || "hunter"); }
+      }
 
       // Fetch Manhwa details
       const { data: mData } = await supabase.from("manhwas").select("*").eq("id", id).single();
@@ -122,6 +133,7 @@ export default function MangaDetail() {
           manhwa_id: id,
           user_id: user.id,
           user_email: user.email,
+          avatar_key: selectedAvatar,
           rating: newRating,
           content: newReview,
         },
@@ -299,6 +311,29 @@ export default function MangaDetail() {
           {user ? (
             <form onSubmit={submitReview} className="glass rounded-[22px] p-6 mb-12">
               <h3 className="text-lg font-bold mb-4">Deja tu opinión</h3>
+
+              {/* Avatar selector row */}
+              <div className="flex items-center gap-4 mb-4 p-3 rounded-xl border border-white/10 bg-white/5">
+                <div
+                  className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer border-2 border-[#a855f7]/50"
+                  onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                  dangerouslySetInnerHTML={{ __html: getAvatarSvg(selectedAvatar) }}
+                />
+                <div>
+                  <p className="text-xs text-white/50">Comentando como</p>
+                  <p className="text-sm font-semibold text-white">{user.email?.split('@')[0]}</p>
+                  <button type="button" onClick={() => setShowAvatarPicker(!showAvatarPicker)} className="text-xs text-[#c084fc] hover:text-white transition-colors">
+                    {showAvatarPicker ? "Cerrar" : "Cambiar avatar →"}
+                  </button>
+                </div>
+              </div>
+
+              {showAvatarPicker && (
+                <div className="mb-4 p-4 rounded-xl border border-[#a855f7]/20 bg-[#a855f7]/5">
+                  <AvatarPicker selected={selectedAvatar} onChange={(k) => { setSelectedAvatar(k); setShowAvatarPicker(false); }} />
+                </div>
+              )}
+
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-sm text-white/70">Tu calificación:</span>
                 <div className="flex gap-1">
@@ -344,18 +379,26 @@ export default function MangaDetail() {
             ) : (
               reviews.map((review) => (
                 <div key={review.id} className="glass rounded-xl p-5 border border-white/5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="font-bold text-white text-sm">{review.user_email?.split('@')[0] || "Usuario"}</p>
-                      <p className="text-xs text-white/40">{new Date(review.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div className="flex gap-0.5 text-[#fbbf24]">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-current' : 'opacity-20'}`} />
-                      ))}
+                  <div className="flex items-start gap-4 mb-3">
+                    <div
+                      className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 border border-white/10"
+                      dangerouslySetInnerHTML={{ __html: getAvatarSvg(review.avatar_key || "hunter") }}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-bold text-white text-sm">{review.user_email?.split('@')[0] || "Usuario"}</p>
+                          <p className="text-xs text-white/40">{new Date(review.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-0.5 text-[#fbbf24]">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-current' : 'opacity-20'}`} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{review.content}</p>
+                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap pl-[60px]">{review.content}</p>
                 </div>
               ))
             )}
