@@ -34,15 +34,49 @@ const menuBtn=document.getElementById('menuBtn'),mobileNav=document.getElementBy
 menuBtn.addEventListener('click',()=>{const open=mobileNav.classList.toggle('open');menuBtn.setAttribute('aria-expanded',open);menuBtn.innerHTML=`<i data-lucide="${open?'x':'menu'}"></i>`;lucide.createIcons({attrs:{'stroke-width':1.8}})});
 const mobileSearch=document.getElementById('mobileSearch');
 document.getElementById('mobileSearchBtn').addEventListener('click',()=>{mobileSearch.classList.toggle('visible');if(mobileSearch.classList.contains('visible'))document.getElementById('mobileSearchInput').focus()});
-document.querySelectorAll('.search-input').forEach(input=>input.addEventListener('keydown',e=>{if(e.key==='Enter'&&input.value.trim())showToast(`Buscando “${input.value.trim()}”`)}));
+document.querySelectorAll('.search-input').forEach(input => input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && input.value.trim()) {
+    window.location.href = `explorar.html?q=${encodeURIComponent(input.value.trim())}`;
+  }
+}));
 
 /* Carrusel de recomendaciones en escritorio; desplazamiento táctil en móvil. */
-let cardPage=0;const prev=document.getElementById('cardsPrev'),next=document.getElementById('cardsNext');
-function visibleCards(){return innerWidth<=760?2:innerWidth<=1230?5:6}
-function updateCarousel(){if(innerWidth<=760){track.style.transform='';prev.disabled=true;next.disabled=true;return}const max=Math.max(0,manhwas.length-visibleCards());cardPage=Math.min(cardPage,max);const card=track.querySelector('.media-card');const step=card?card.getBoundingClientRect().width+10:0;track.style.transform=`translateX(${-cardPage*step}px)`;prev.disabled=cardPage===0;next.disabled=cardPage>=max}
-prev.addEventListener('click',()=>{cardPage=Math.max(0,cardPage-1);updateCarousel()});next.addEventListener('click',()=>{cardPage++;updateCarousel()});addEventListener('resize',updateCarousel);updateCarousel();
+let cardPage = 0; const prev = document.getElementById('cardsPrev'), next = document.getElementById('cardsNext');
+function visibleCards() { return innerWidth <= 760 ? 2 : innerWidth <= 1230 ? 5 : 6; }
+if (prev && next) {
+  function updateCarousel() { if (innerWidth <= 760) { track.style.transform = ''; prev.disabled = true; next.disabled = true; return } const max = Math.max(0, manhwas.length - visibleCards()); cardPage = Math.min(cardPage, max); const card = track.querySelector('.media-card'); const step = card ? card.getBoundingClientRect().width + 10 : 0; track.style.transform = `translateX(${-cardPage * step}px)`; prev.disabled = cardPage === 0; next.disabled = cardPage >= max; }
+  prev.addEventListener('click', () => { cardPage = Math.max(0, cardPage - 1); updateCarousel(); }); next.addEventListener('click', () => { cardPage++; updateCarousel(); }); addEventListener('resize', updateCarousel); updateCarousel();
+}
 
 /* Interacciones de botones, tarjetas, slider y likes. */
-document.addEventListener('click',e=>{const action=e.target.closest('[data-action]');if(action){e.preventDefault();showToast(action.dataset.action)}const card=e.target.closest('.media-card');if(card)showToast(`Abriendo ${card.dataset.title}`);const dot=e.target.closest('.slider-dots button');if(dot){document.querySelectorAll('.slider-dots button').forEach(el=>el.classList.remove('active'));dot.classList.add('active')}});
-document.querySelectorAll('.media-card').forEach(card=>card.addEventListener('keydown',e=>{if(e.key==='Enter')showToast(`Abriendo ${card.dataset.title}`)}));
-document.querySelectorAll('.review-like').forEach(button=>button.addEventListener('click',()=>{const active=button.classList.toggle('liked'),base=Number(button.dataset.likes);button.querySelector('span').textContent=base+(active?1:0)}));
+document.addEventListener('click', e => {
+  const action = e.target.closest('[data-action]');
+  if (action) {
+    e.preventDefault();
+    const act = action.dataset.action;
+    if (act === 'Perfil') window.location.href = 'perfil.html';
+    else if (act === 'Favoritos') window.location.href = 'favoritos.html';
+    else if (act === 'Notificaciones') window.location.href = 'notificaciones.html';
+    else if (act === 'Catálogo completo' || act === 'Todas las tendencias') window.location.href = 'explorar.html';
+    else if (act === 'Más reseñas') window.location.href = 'comunidad.html';
+    else if (act === 'Abriendo la reseña') window.location.href = 'manga.html';
+    else if (act === 'Enlaces oficiales') window.location.href = 'manga.html';
+    else showToast(act);
+  }
+  const card = e.target.closest('.media-card');
+  if (card) {
+    window.location.href = 'manga.html';
+  }
+  const dot = e.target.closest('.slider-dots button');
+  if (dot) {
+    document.querySelectorAll('.slider-dots button').forEach(el => el.classList.remove('active'));
+    dot.classList.add('active');
+  }
+});
+document.querySelectorAll('.media-card').forEach(card => card.addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.location.href = 'manga.html';
+}));
+document.querySelectorAll('.review-like').forEach(button => button.addEventListener('click', () => {
+  const active = button.classList.toggle('liked'), base = Number(button.dataset.likes);
+  button.querySelector('span').textContent = base + (active ? 1 : 0);
+}));
