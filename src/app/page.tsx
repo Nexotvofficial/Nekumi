@@ -41,23 +41,22 @@ const MEDIA_CONFIG = {
   news3: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=900&q=85",
 };
 
-const manhwas = [
-  { id: 'shadow-hunter', title: 'El Cazador de Sombras', meta: 'Fantasía • 49 capítulos', score: '4.9', isNew: true, image: MEDIA_CONFIG.action },
-  { id: 'eternal-legend', title: 'Eternal Legend', meta: 'Acción • 72 capítulos', score: '4.8', isNew: false, image: 'https://images.unsplash.com/photo-1614583225154-5fcdda07019e?auto=format&fit=crop&w=600&q=85' },
-  { id: 'crimson-heiress', title: 'La Heredera Carmesí', meta: 'Romance • 38 capítulos', score: '4.7', isNew: true, image: MEDIA_CONFIG.romance },
-  { id: 'northern-ashes', title: 'Cenizas del Norte', meta: 'Drama • 61 capítulos', score: '4.8', isNew: false, image: MEDIA_CONFIG.isekai },
-  { id: 'infinite-tower', title: 'La Torre Infinita', meta: 'Aventura • 106 capítulos', score: '4.9', isNew: true, image: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=600&q=85' },
-  { id: 'arcane-code', title: 'Código Arcano', meta: 'Misterio • 28 capítulos', score: '4.6', isNew: false, image: MEDIA_CONFIG.slice },
-  { id: 'crystal-night', title: 'Noche de Cristal', meta: 'Fantasía • 43 capítulos', score: '4.7', isNew: true, image: MEDIA_CONFIG.fantasy },
-  { id: 'last-guardian', title: 'El Último Guardián', meta: 'Acción • 84 capítulos', score: '4.8', isNew: false, image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=600&q=85' }
-];
+interface Manhwa {
+  id: string;
+  title: string;
+  description: string;
+  cover_url: string;
+  score: number;
+  genre: string;
+  isNew?: boolean;
+}
 
 const trends = [
-  { title: 'Solo Leveling', genre: 'Acción • Fantasía', image: manhwas[0].image },
-  { title: 'Omniscient Reader', genre: 'Aventura • Drama', image: manhwas[1].image },
-  { title: 'Villains Are Destined to Die', genre: 'Romance • Isekai', image: manhwas[2].image },
-  { title: 'Tower of God', genre: 'Fantasía • Misterio', image: manhwas[4].image },
-  { title: 'The World After the Fall', genre: 'Acción • Aventura', image: manhwas[6].image }
+  { title: 'Solo Leveling', genre: 'Acción • Fantasía', image: MEDIA_CONFIG.action },
+  { title: 'Omniscient Reader', genre: 'Aventura • Drama', image: MEDIA_CONFIG.fantasy },
+  { title: 'Villains Are Destined to Die', genre: 'Romance • Isekai', image: MEDIA_CONFIG.romance },
+  { title: 'Tower of God', genre: 'Fantasía • Misterio', image: MEDIA_CONFIG.fantasy },
+  { title: 'The World After the Fall', genre: 'Acción • Aventura', image: MEDIA_CONFIG.action }
 ];
 
 const reviews = [
@@ -99,6 +98,7 @@ export default function Home() {
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [manhwas, setManhwas] = useState<Manhwa[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -106,6 +106,11 @@ export default function Home() {
       const saved = new Set<string>(JSON.parse(localStorage.getItem('nekutoon:favorites') || '[]'));
       setFavorites(saved);
     } catch {}
+
+    // Fetch real manhwas from Supabase
+    supabase.from('manhwas').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+      if (data) setManhwas(data);
+    });
 
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -253,37 +258,37 @@ export default function Home() {
       <main>
         <div className="shell page-grid">
           <div className="main-column">
-            <section className="hero" aria-labelledby="heroTitle">
-              <img className="hero-bg" src={MEDIA_CONFIG.hero} alt="Ilustración atmosférica del Cazador de Sombras" />
-              <div className="hero-content">
-                <div className="hero-kicker">
-                  <span className="tag accent">Fantasía de acción</span>
-                  <span className="tag">Webtoon</span>
-                  <span className="tag">Estreno de temporada</span>
+            {manhwas.length > 0 && (
+              <section className="hero" aria-labelledby="heroTitle">
+                <img className="hero-bg" src={manhwas[0].cover_url} alt={`Ilustración de ${manhwas[0].title}`} />
+                <div className="hero-content">
+                  <div className="hero-kicker">
+                    <span className="tag accent">{manhwas[0].genre}</span>
+                    <span className="tag">Webtoon</span>
+                  </div>
+                  <h1 id="heroTitle" className="hero-title uppercase">{manhwas[0].title}</h1>
+                  <div className="hero-meta">
+                    <span className="rating"><Star />{manhwas[0].score}</span>
+                    <span className="meta-separator"></span>
+                    <span><Heart className="w-[13px] inline" /> 28.6k</span>
+                  </div>
+                  <p className="hero-copy">{manhwas[0].description}</p>
+                  <div className="hero-actions">
+                    <button className="btn btn-primary" type="button" onClick={() => showToastMessage("Abriendo la reseña")}>
+                      <BookOpen />Leer Reseña
+                    </button>
+                    <button className="btn btn-secondary" type="button" onClick={() => showToastMessage("Enlaces oficiales")}>
+                      <ExternalLink />Enlaces Oficiales
+                    </button>
+                  </div>
                 </div>
-                <h1 id="heroTitle" className="hero-title">EL CAZADOR<br />DE SOMBRAS</h1>
-                <div className="hero-meta">
-                  <span className="rating"><Star />4.9</span>
-                  <span>(14.2k votos)</span>
-                  <span className="meta-separator"></span>
-                  <span><Heart className="w-[13px] inline" /> 28.6k</span>
+                <div className="slider-dots">
+                  <button className="active" aria-label="Banner 1"></button>
+                  <button aria-label="Banner 2"></button>
+                  <button aria-label="Banner 3"></button>
                 </div>
-                <p className="hero-copy">Cuando las sombras despiertan, solo un cazador puede detenerlas. Una historia de poder, secretos y destinos enfrentados en un mundo al borde de la oscuridad.</p>
-                <div className="hero-actions">
-                  <button className="btn btn-primary" type="button" onClick={() => showToastMessage("Abriendo la reseña")}>
-                    <BookOpen />Leer Reseña
-                  </button>
-                  <button className="btn btn-secondary" type="button" onClick={() => showToastMessage("Enlaces oficiales")}>
-                    <ExternalLink />Enlaces Oficiales
-                  </button>
-                </div>
-              </div>
-              <div className="slider-dots">
-                <button className="active" aria-label="Banner 1"></button>
-                <button aria-label="Banner 2"></button>
-                <button aria-label="Banner 3"></button>
-              </div>
-            </section>
+              </section>
+            )}
             
             <section id="recomendados" className="section" aria-labelledby="recommendedTitle">
               <div className="section-heading">
@@ -303,7 +308,7 @@ export default function Home() {
                   {manhwas.map((item) => (
                     <article key={item.id} className="media-card" tabIndex={0} onClick={() => showToastMessage(`Abriendo ${item.title}`)}>
                       <div className="cover">
-                        <img src={item.image} alt={`Portada de ${item.title}`} loading="lazy" />
+                        <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
                         <span className="card-badge score"><Star />{item.score}</span>
                         {item.isNew && <span className="card-badge new">Nuevo</span>}
                         <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
@@ -312,7 +317,7 @@ export default function Home() {
                       </div>
                       <div className="card-info">
                         <h3 className="card-title">{item.title}</h3>
-                        <p className="card-meta">{item.meta}</p>
+                        <p className="card-meta">{item.genre}</p>
                       </div>
                     </article>
                   ))}
