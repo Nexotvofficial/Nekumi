@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Upload, ArrowLeft, Loader2, Book, FileText, Image as ImageIcon, CheckCircle } from "lucide-react";
+import { Upload, ArrowLeft, Loader2, Book, FileText, Image as ImageIcon, CheckCircle, Shield, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -192,7 +192,7 @@ export default function AdminPage() {
             <Link href="/" className="inline-flex items-center text-[#a7a7b1] hover:text-white transition-colors mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" /> Volver al inicio
             </Link>
-            <h1 className="text-3xl font-black flex items-center gap-2"><span className="text-yellow-400">👑</span> Súper Admin</h1>
+            <h1 className="text-3xl font-black flex items-center gap-2"><Shield className="w-8 h-8 text-[#a855f7]" /> Súper Admin</h1>
             <p className="text-[#a7a7b1] mt-1">Control total de la plataforma.</p>
           </div>
           <div className="text-right">
@@ -249,7 +249,7 @@ export default function AdminPage() {
                 <div className="space-y-2 sm:col-span-2 p-4 border border-[#a855f7]/30 bg-[#a855f7]/10 rounded-xl">
                   <label className="flex items-center gap-2 text-sm font-bold text-[#c084fc] cursor-pointer">
                     <input type="checkbox" checked={isHero} onChange={(e) => setIsHero(e.target.checked)} className="w-4 h-4 accent-[#a855f7]" />
-                    🌟 Destacar en Portada Principal (Hero Banner)
+                      <Star className="w-4 h-4" /> Destacar en Portada Principal (Hero Banner)
                   </label>
                   {isHero && (
                     <div className="mt-4 space-y-2">
@@ -344,7 +344,7 @@ export default function AdminPage() {
                   <div className="space-y-2 sm:col-span-2 p-4 border border-yellow-500/30 bg-yellow-500/10 rounded-xl">
                     <label className="flex items-center gap-2 text-sm font-bold text-yellow-400 cursor-pointer">
                       <input type="checkbox" checked={isHero} onChange={(e) => setIsHero(e.target.checked)} className="w-4 h-4 accent-yellow-500" />
-                      🌟 Destacar en Portada Principal (Hero Banner)
+                        <Star className="w-4 h-4" /> Destacar en Portada Principal (Hero Banner)
                     </label>
                     {isHero && (
                       <div className="mt-4 space-y-2">

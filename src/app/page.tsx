@@ -24,6 +24,7 @@ import {
   Apple,
   Play,
   X as XIcon,
+  Shield,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -251,7 +252,7 @@ export default function Home() {
               </button>
               {user?.email === 'diazmowi07@gmail.com' && (
                 <Link href="/admin" className="btn bg-[#a855f7]/20 text-[#c084fc] border border-[#a855f7]/30 hover:bg-[#a855f7]/30 font-bold px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2">
-                  👑 Admin
+                  <Shield className="w-4 h-4" /> Admin
                 </Link>
               )}
               <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
