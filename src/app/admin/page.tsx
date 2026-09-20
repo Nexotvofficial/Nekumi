@@ -105,32 +105,69 @@ export default function AdminPage() {
 
     if (uploadMode === "manual") {
       urls = pageUrls.split("\n").map(url => url.trim()).filter(url => url.length > 0);
-    } else {
-      // Generate GitHub CDN URLs
-      // Format: https://cdn.jsdelivr.net/gh/Nexotvofficial/REPO@main/FOLDER/1.jpg
-      const cleanFolder = ghFolder.replace(/^\/+|\/+$/g, ''); // remove leading/trailing slashes
-      for (let i = 1; i <= ghPagesCount; i++) {
-        urls.push(`https://cdn.jsdelivr.net/gh/Nexotvofficial/${ghRepo}@main/${cleanFolder}/${i}${ghExtension}`);
+      if (urls.length === 0) return alert("No hay URLs para subir");
+      
+      setLoading(true);
+      const insertData = urls.map((url, index) => ({
+        chapter_id: selectedChapterId,
+        page_number: index + 1,
+        image_url: url
+      }));
+  
+      const { error } = await supabase.from("pages").insert(insertData);
+      setLoading(false);
+      
+      if (error) alert("Error: " + error.message);
+      else {
+        setSuccessMsg(`¡Se subieron ${urls.length} páginas con éxito!`);
+        setPageUrls("");
+        setTimeout(() => setSuccessMsg(""), 3000);
       }
-    }
+    } else {
+      // Auto-detect using GitHub API
+      setLoading(true);
+      const cleanFolder = ghFolder.replace(/^\/+|\/+$/g, '');
+      const apiUrl = `https://api.github.com/repos/Nexotvofficial/${ghRepo}/contents/${cleanFolder}`;
+      
+      try {
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error("No se pudo leer la carpeta en GitHub. Verifica el nombre del repositorio, la ruta, o si el repositorio es privado.");
+        
+        const files = await res.json();
+        
+        // Filter only images
+        const imageFiles = files.filter((f: any) => 
+          f.type === "file" && 
+          (f.name.endsWith(".jpg") || f.name.endsWith(".png") || f.name.endsWith(".webp") || f.name.endsWith(".jpeg"))
+        );
+        
+        if (imageFiles.length === 0) throw new Error("No se encontraron imágenes en esa carpeta.");
 
-    if (urls.length === 0) return alert("No hay URLs para subir");
+        // Natural sort (so 2.jpg comes before 10.jpg)
+        imageFiles.sort((a: any, b: any) => {
+          return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+        });
 
-    setLoading(true);
-    const insertData = urls.map((url, index) => ({
-      chapter_id: selectedChapterId,
-      page_number: index + 1,
-      image_url: url
-    }));
+        // Convert to jsDelivr URLs
+        const insertData = imageFiles.map((file: any, index: number) => {
+          const jsdelivrUrl = `https://cdn.jsdelivr.net/gh/Nexotvofficial/${ghRepo}@main/${cleanFolder}/${file.name}`;
+          return {
+            chapter_id: selectedChapterId,
+            page_number: index + 1,
+            image_url: jsdelivrUrl
+          };
+        });
 
-    const { error } = await supabase.from("pages").insert(insertData);
-    setLoading(false);
-    
-    if (error) alert("Error: " + error.message);
-    else {
-      setSuccessMsg(`¡Se subieron ${urls.length} páginas con éxito!`);
-      setPageUrls("");
-      setTimeout(() => setSuccessMsg(""), 3000);
+        const { error } = await supabase.from("pages").insert(insertData);
+        if (error) throw error;
+
+        setSuccessMsg(`¡Magia! Se detectaron y subieron ${insertData.length} páginas automáticamente.`);
+        setTimeout(() => setSuccessMsg(""), 4000);
+      } catch (err: any) {
+        alert("Error de Detección: " + err.message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -359,30 +396,17 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-6 animate-in fade-in pt-2">
                   <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm">
-                    <strong>Instrucciones:</strong> Crea las carpetas en tu repositorio de GitHub y nombra las imágenes secuencialmente como <code>1.jpg</code>, <code>2.jpg</code>, <code>3.jpg</code>... 
+                    <strong>¡Modo Automágico!</strong> Solo dime en qué repositorio y en qué carpeta están tus imágenes. Yo entraré, leeré todas las imágenes sin importar cómo se llamen, las ordenaré y las publicaré al instante.
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-white/80 block">Nombre del Repositorio</label>
-                      <input type="text" required={uploadMode === "github"} value={ghRepo} onChange={(e) => setGhRepo(e.target.value)} placeholder="Nekumi-Archivos" className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
+                      <input type="text" required={uploadMode === "github"} value={ghRepo} onChange={(e) => setGhRepo(e.target.value)} placeholder="Nekumi-Catalog-02" className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-white/80 block">Ruta de la Carpeta</label>
-                      <input type="text" required={uploadMode === "github"} value={ghFolder} onChange={(e) => setGhFolder(e.target.value)} placeholder="cazador/capitulo1" className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm font-mono" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-white/80 block">Cantidad total de páginas</label>
-                      <input type="number" min="1" required={uploadMode === "github"} value={ghPagesCount} onChange={(e) => setGhPagesCount(parseInt(e.target.value))} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-white/80 block">Extensión de los archivos</label>
-                      <select required={uploadMode === "github"} value={ghExtension} onChange={(e) => setGhExtension(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm">
-                        <option value=".jpg" className="bg-[#121216]">.jpg</option>
-                        <option value=".png" className="bg-[#121216]">.png</option>
-                        <option value=".webp" className="bg-[#121216]">.webp</option>
-                        <option value=".jpeg" className="bg-[#121216]">.jpeg</option>
-                      </select>
+                      <label className="text-sm font-semibold text-white/80 block">Ruta EXACTA de la Carpeta</label>
+                      <input type="text" required={uploadMode === "github"} value={ghFolder} onChange={(e) => setGhFolder(e.target.value)} placeholder="catalog/reversal/cap-1" className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm font-mono" />
                     </div>
                   </div>
                 </div>
@@ -390,7 +414,7 @@ export default function AdminPage() {
 
               <button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-xl bg-[#ec4899] hover:bg-[#db2777] text-white font-bold transition-all flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                {uploadMode === "manual" ? `Subir ${pageUrls.split('\n').filter(l => l.trim()).length} Páginas` : `Autogenerar ${ghPagesCount} Páginas`}
+                {uploadMode === "manual" ? `Subir ${pageUrls.split('\n').filter(l => l.trim()).length} Páginas` : `Detectar y Subir Carpeta`}
               </button>
             </form>
           )}
