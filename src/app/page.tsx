@@ -26,6 +26,7 @@ import {
   X as XIcon,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 const MEDIA_CONFIG = {
   hero: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=1800&q=90",
@@ -306,11 +307,12 @@ export default function Home() {
               <div className="cards-viewport">
                 <div className="cards-track" style={{ transform: `translateX(calc(-${cardPage} * (100% / 6)))` }}>
                   {manhwas.map((item) => (
-                    <article key={item.id} className="media-card" tabIndex={0} onClick={() => showToastMessage(`Abriendo ${item.title}`)}>
-                      <div className="cover">
-                        <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
-                        <span className="card-badge score"><Star />{item.score}</span>
-                        {item.isNew && <span className="card-badge new">Nuevo</span>}
+                    <Link key={item.id} href={`/manga/${item.id}`} className="block">
+                      <article className="media-card" tabIndex={0}>
+                        <div className="cover">
+                          <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
+                          <span className="card-badge score"><Star />{item.score}</span>
+                          {item.isNew && <span className="card-badge new">Nuevo</span>}
                         <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
                           <Heart />
                         </button>
@@ -320,8 +322,9 @@ export default function Home() {
                         <p className="card-meta">{item.genre}</p>
                       </div>
                     </article>
-                  ))}
-                </div>
+                  </Link>
+                ))}
+              </div>
               </div>
             </section>
           </div>
