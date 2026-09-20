@@ -242,9 +242,7 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab(5)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 5 ? "bg-[#ef4444] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
             <Book className="w-4 h-4 hidden sm:block" /> 5. Borrar
           </button>
-          <button onClick={() => setActiveTab(6)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 6 ? "bg-[#10b981] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
-            <FileText className="w-4 h-4 hidden sm:block" /> 6. Config
-          </button>
+
         </div>
 
         <div className="glass rounded-[22px] p-6 sm:p-10 shadow-2xl">
@@ -564,41 +562,6 @@ export default function AdminPage() {
               <button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Book className="w-5 h-5" />}
                 Eliminar Manhwa y todo su contenido
-              </button>
-            </form>
-          )}
-
-          {activeTab === 6 && (
-            <form onSubmit={handleConfigSubmit} className="space-y-6 animate-in fade-in zoom-in-95">
-              <h2 className="text-xl font-bold border-b border-white/10 pb-4">Configuración del Sitio</h2>
-              <p className="text-sm text-white/60 mb-4">
-                Configura las imágenes de fondo que se mostrarán en la sección "Explorar por Géneros" en la página principal. Pega las URLs de las imágenes.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {["Todos", "Fantasía", "Acción", "Romance", "Drama", "+18"].map((cat) => (
-                  <div key={cat} className="space-y-2">
-                    <label className="text-sm font-semibold text-white/80 block">Imagen para: {cat}</label>
-                    <input
-                      type="url"
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                      value={siteConfig?.category_images?.[cat] || ""}
-                      onChange={(e) => setSiteConfig({
-                        ...siteConfig,
-                        category_images: {
-                          ...(siteConfig?.category_images || {}),
-                          [cat]: e.target.value
-                        }
-                      })}
-                      className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <button type="submit" disabled={configSaving} className="w-full h-12 mt-6 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#10b981]/20">
-                {configSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                Guardar Configuración
               </button>
             </form>
           )}
