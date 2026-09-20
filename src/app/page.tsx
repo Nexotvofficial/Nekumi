@@ -100,6 +100,10 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [manhwas, setManhwas] = useState<Manhwa[]>([]);
+  const [trending, setTrending] = useState<Manhwa[]>([]);
+  const [recentReviews, setRecentReviews] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
@@ -108,9 +112,19 @@ export default function Home() {
       setFavorites(saved);
     } catch {}
 
-    // Fetch real manhwas from Supabase
+    // Fetch real manhwas
     supabase.from('manhwas').select('*').order('created_at', { ascending: false }).then(({ data }) => {
       if (data) setManhwas(data);
+    });
+
+    // Fetch trending
+    supabase.from('manhwas').select('*').order('score', { ascending: false }).limit(5).then(({ data }) => {
+      if (data) setTrending(data);
+    });
+
+    // Fetch recent reviews with manhwa title
+    supabase.from('reviews').select('*, manhwas(title)').order('created_at', { ascending: false }).limit(3).then(({ data }) => {
+      if (data) setRecentReviews(data);
     });
 
     // Check active session
@@ -123,7 +137,7 @@ export default function Home() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -153,7 +167,13 @@ export default function Home() {
     setTimeout(() => setShowToast(false), 1800);
   };
 
-  const maxCardPage = Math.max(0, manhwas.length - 6); // Approximation for desktop
+  const filteredManhwas = manhwas.filter(m => {
+    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) || m.genre.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCat = activeCategory ? m.genre.toLowerCase() === activeCategory.toLowerCase() : true;
+    return matchesSearch && matchesCat;
+  });
+
+  const maxCardPage = Math.max(0, filteredManhwas.length - 6); // Approximation for desktop
 
   const handleAvatarClick = () => {
     if (user) {
@@ -162,6 +182,8 @@ export default function Home() {
       setIsAuthOpen(true);
     }
   };
+
+  const heroManhwa = manhwas.find(m => (m as any).is_hero) || manhwas[0];
 
   return (
     <>
@@ -183,17 +205,17 @@ export default function Home() {
               <span className="brand-word">neku<span>toon</span></span>
             </a>
             <nav className="desktop-nav" aria-label="Navegación principal">
-              <a className="nav-link active" href="#recomendados">Explorar</a>
-              <a className="nav-link" href="#recomendados">Recomendaciones</a>
-              <a className="nav-link" href="#comunidad">Comunidad</a>
-              <a className="nav-link" href="#oficiales">Plataformas Oficiales</a>
-              <a className="nav-link premium" href="#premium">Premium</a>
+              <a className={`nav-link ${!activeCategory ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory(""); }}>Explorar</a>
+              <a className={`nav-link ${activeCategory === 'Fantasía' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("Fantasía"); }}>Fantasía</a>
+              <a className={`nav-link ${activeCategory === 'Acción' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("Acción"); }}>Acción</a>
+              <a className={`nav-link ${activeCategory === 'Romance' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("Romance"); }}>Romance</a>
+              <a className={`nav-link ${activeCategory === '+18' ? 'active' : ''} text-pink-500`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("+18"); }}>+18</a>
             </nav>
             <div className="header-actions">
               <div className="search-wrap desktop-search">
                 <Search />
                 <label className="sr-only" htmlFor="desktopSearch">Buscar</label>
-                <input id="desktopSearch" className="search-input" type="search" placeholder="Buscar manhwas, artistas, géneros..." autoComplete="off" onKeyDown={(e) => { if (e.key === 'Enter') showToastMessage(`Buscando "${e.currentTarget.value}"`) }} />
+                <input id="desktopSearch" className="search-input" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar manhwas, géneros..." autoComplete="off" />
               </div>
               <button className="icon-btn menu-btn" type="button" aria-label="Mostrar buscador" onClick={() => setMobileSearchVisible(!mobileSearchVisible)}>
                 <Search />
@@ -229,7 +251,7 @@ export default function Home() {
               </button>
               {user?.email === 'diazmowi07@gmail.com' && (
                 <Link href="/admin" className="btn bg-[#a855f7]/20 text-[#c084fc] border border-[#a855f7]/30 hover:bg-[#a855f7]/30 font-bold px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2">
-                  👑 Panel Admin
+                  👑 Admin
                 </Link>
               )}
               <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
@@ -246,17 +268,17 @@ export default function Home() {
               <div className="search-wrap">
                 <Search />
                 <label className="sr-only" htmlFor="mobileSearchInput">Buscar</label>
-                <input id="mobileSearchInput" className="search-input" type="search" placeholder="Buscar manhwas, artistas, géneros..." />
+                <input id="mobileSearchInput" className="search-input" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar manhwas, géneros..." />
               </div>
             </div>
           )}
           
           <nav className={`mobile-nav ${mobileNavOpen ? 'open' : ''}`} aria-label="Navegación móvil">
-            <a href="#recomendados">Explorar</a>
-            <a href="#recomendados">Recomendaciones</a>
-            <a href="#comunidad">Comunidad</a>
-            <a href="#categorias">Categorías</a>
-            <a href="#noticias">Noticias</a>
+            <a href="#recomendados" onClick={() => setActiveCategory("")}>Explorar</a>
+            <a href="#recomendados" onClick={() => setActiveCategory("Fantasía")}>Fantasía</a>
+            <a href="#recomendados" onClick={() => setActiveCategory("Acción")}>Acción</a>
+            <a href="#recomendados" onClick={() => setActiveCategory("Romance")}>Romance</a>
+            <a href="#recomendados" onClick={() => setActiveCategory("+18")} className="text-pink-500">+18</a>
           </nav>
         </div>
       </header>
@@ -264,43 +286,35 @@ export default function Home() {
       <main>
         <div className="shell page-grid">
           <div className="main-column">
-            {manhwas.length > 0 && (
+            {heroManhwa && (
               <section className="hero" aria-labelledby="heroTitle">
-                <img className="hero-bg" src={manhwas[0].cover_url} alt={`Ilustración de ${manhwas[0].title}`} />
+                <img className="hero-bg" src={(heroManhwa as any).banner_url || heroManhwa.cover_url} alt={`Ilustración de ${heroManhwa.title}`} />
                 <div className="hero-content">
                   <div className="hero-kicker">
-                    <span className="tag accent">{manhwas[0].genre}</span>
+                    <span className="tag accent">{heroManhwa.genre}</span>
                     <span className="tag">Webtoon</span>
                   </div>
-                  <h1 id="heroTitle" className="hero-title uppercase">{manhwas[0].title}</h1>
+                  <h1 id="heroTitle" className="hero-title uppercase">{heroManhwa.title}</h1>
                   <div className="hero-meta">
-                    <span className="rating"><Star />{manhwas[0].score}</span>
+                    <span className="rating"><Star />{heroManhwa.score}</span>
                     <span className="meta-separator"></span>
-                    <span><Heart className="w-[13px] inline" /> 28.6k</span>
                   </div>
-                  <p className="hero-copy">{manhwas[0].description}</p>
+                  <p className="hero-copy">{heroManhwa.description}</p>
                   <div className="hero-actions">
-                    <button className="btn btn-primary" type="button" onClick={() => showToastMessage("Abriendo la reseña")}>
-                      <BookOpen />Leer Reseña
-                    </button>
-                    <button className="btn btn-secondary" type="button" onClick={() => showToastMessage("Enlaces oficiales")}>
-                      <ExternalLink />Enlaces Oficiales
-                    </button>
+                    <Link href={`/manga/${heroManhwa.id}`} className="btn btn-primary">
+                      <BookOpen />Ver Detalles
+                    </Link>
                   </div>
-                </div>
-                <div className="slider-dots">
-                  <button className="active" aria-label="Banner 1"></button>
-                  <button aria-label="Banner 2"></button>
-                  <button aria-label="Banner 3"></button>
                 </div>
               </section>
             )}
             
             <section id="recomendados" className="section" aria-labelledby="recommendedTitle">
               <div className="section-heading">
-                <h2 id="recommendedTitle" className="section-title">Recomendados de la Semana</h2>
+                <h2 id="recommendedTitle" className="section-title">
+                  {searchQuery ? `Resultados para "${searchQuery}"` : (activeCategory ? `Categoría: ${activeCategory}` : 'Explorar Catálogo')}
+                </h2>
                 <div className="section-tools">
-                  <a className="text-link" href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Catálogo completo"); }}>Ver todos</a>
                   <button className="round-arrow" type="button" aria-label="Anteriores" disabled={cardPage === 0} onClick={() => setCardPage(Math.max(0, cardPage - 1))}>
                     <ChevronLeft />
                   </button>
@@ -309,87 +323,79 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              <div className="cards-viewport">
-                <div className="cards-track" style={{ transform: `translateX(calc(-${cardPage} * (100% / 6)))` }}>
-                  {manhwas.map((item) => (
-                    <Link key={item.id} href={`/manga/${item.id}`} className="block">
-                      <article className="media-card" tabIndex={0}>
-                        <div className="cover">
-                          <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
-                          <span className="card-badge score"><Star />{item.score}</span>
-                          {item.isNew && <span className="card-badge new">Nuevo</span>}
-                        <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
-                          <Heart />
-                        </button>
-                      </div>
-                      <div className="card-info">
-                        <h3 className="card-title">{item.title}</h3>
-                        <p className="card-meta">{item.genre}</p>
-                      </div>
-                    </article>
-                  </Link>
-                ))}
-              </div>
-              </div>
+              
+              {filteredManhwas.length === 0 ? (
+                <div className="py-12 text-center text-[#777782] glass rounded-2xl">
+                  No se encontraron resultados.
+                </div>
+              ) : (
+                <div className="cards-viewport">
+                  <div className="cards-track" style={{ transform: `translateX(calc(-${cardPage} * (100% / 6)))` }}>
+                    {filteredManhwas.map((item) => (
+                      <Link key={item.id} href={`/manga/${item.id}`} className="block">
+                        <article className="media-card" tabIndex={0}>
+                          <div className="cover">
+                            <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
+                            <span className="card-badge score"><Star />{item.score}</span>
+                            <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
+                              <Heart />
+                            </button>
+                          </div>
+                          <div className="card-info">
+                            <h3 className="card-title">{item.title}</h3>
+                            <p className="card-meta">{item.genre}</p>
+                          </div>
+                        </article>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           </div>
           
           <aside className="sidebar">
             <section className="side-panel glass" aria-labelledby="trendingTitle">
               <div className="side-header">
-                <h2 id="trendingTitle" className="side-title">Tendencias de la Semana</h2>
+                <h2 id="trendingTitle" className="side-title">Tendencias</h2>
                 <span className="side-title-icon"><Flame /></span>
               </div>
               <ol className="rank-list">
-                {trends.map((item, i) => (
-                  <li key={i} className="rank-item">
+                {trending.length === 0 && <p className="text-sm text-center py-4 text-white/50">Cargando...</p>}
+                {trending.map((item, i) => (
+                  <li key={item.id} className="rank-item">
                     <span className="rank-number">{i + 1}</span>
-                    <img className="rank-thumb" src={item.image} alt={`Portada de ${item.title}`} loading="lazy" />
+                    <img className="rank-thumb" src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
                     <div className="rank-copy">
-                      <h3 className="rank-name">{item.title}</h3>
-                      <p className="rank-genre">{item.genre}</p>
+                      <h3 className="rank-name line-clamp-1"><Link href={`/manga/${item.id}`} className="hover:text-[#a855f7]">{item.title}</Link></h3>
+                      <p className="rank-genre">{item.genre} • <Star className="w-3 h-3 inline text-[#fbbf24]" /> {item.score}</p>
                     </div>
-                    <span className="trend-up"><TrendingUp /></span>
                   </li>
                 ))}
               </ol>
-              <div className="panel-footer">
-                <button className="mini-button" onClick={() => showToastMessage("Todas las tendencias")}>
-                  Ver todas <ArrowRight />
-                </button>
-              </div>
             </section>
             
             <section id="comunidad" className="side-panel glass">
               <div className="side-header">
-                <h2 className="side-title">Reseñas de la Comunidad</h2>
+                <h2 className="side-title">Reseñas</h2>
                 <span className="side-title-icon"><MessagesSquare /></span>
               </div>
               <div className="review-list">
-                {reviews.map((item) => (
+                {recentReviews.length === 0 && <p className="text-sm text-center py-4 text-white/50">Aún no hay reseñas en la plataforma.</p>}
+                {recentReviews.map((item) => (
                   <article key={item.id} className="review-item">
-                    <img className="review-avatar" src={item.avatar} alt={`Avatar de ${item.user}`} loading="lazy" />
-                    <div className="review-main">
+                    <div className="review-main" style={{ marginLeft: 0 }}>
                       <div className="review-head">
-                        <span className="review-user">{item.user}</span>
+                        <span className="review-user">{item.user_email?.split('@')[0] || "Usuario"}</span>
                         <span className="review-stars">
-                          <Star /><Star /><Star /><Star /><Star />
+                          {[...Array(5)].map((_, i) => <Star key={i} className={i < item.rating ? 'fill-current' : 'opacity-20'} />)}
                         </span>
                       </div>
-                      <p className="review-text">“{item.text}”</p>
-                      <p className="review-work">{item.work}</p>
+                      <p className="review-text line-clamp-3 text-sm">“{item.content}”</p>
+                      <p className="review-work text-xs text-[#a855f7]"><Link href={`/manga/${item.manhwa_id}`}>Leer reseña en {item.manhwas?.title || 'este manhwa'}</Link></p>
                     </div>
-                    <button className="review-like" type="button" aria-label="Me gusta">
-                      <Heart />
-                      <span>{item.likes}</span>
-                    </button>
                   </article>
                 ))}
-              </div>
-              <div className="panel-footer">
-                <button className="mini-button" onClick={() => showToastMessage("Más reseñas")}>
-                  Siguiente <ArrowRight />
-                </button>
               </div>
             </section>
           </aside>

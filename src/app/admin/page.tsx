@@ -29,6 +29,8 @@ export default function AdminPage() {
   const [coverUrl, setCoverUrl] = useState("");
   const [genre, setGenre] = useState("Fantasía");
   const [score, setScore] = useState(5.0);
+  const [isHero, setIsHero] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState("");
 
   // Form 2: Chapter
   const [selectedManhwaId, setSelectedManhwaId] = useState("");
@@ -71,7 +73,15 @@ export default function AdminPage() {
   const handleManhwaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.from("manhwas").insert([{ title, description, cover_url: coverUrl, genre, score }]);
+    
+    // Si marcamos este como hero, primero quitamos el hero a los demas para evitar dobles portadas
+    if (isHero) {
+      await supabase.from("manhwas").update({ is_hero: false }).neq("id", "00000000-0000-0000-0000-000000000000"); // Update all
+    }
+
+    const { error } = await supabase.from("manhwas").insert([{ 
+      title, description, cover_url: coverUrl, genre, score, is_hero: isHero, banner_url: bannerUrl 
+    }]);
     setLoading(false);
     if (error) alert("Error: " + error.message);
     else {
@@ -232,9 +242,24 @@ export default function AdminPage() {
                   <input type="number" step="0.1" required value={score} onChange={(e) => setScore(parseFloat(e.target.value))} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-semibold text-white/80 block">URL Portada</label>
+                  <label className="text-sm font-semibold text-white/80 block">URL Portada Vertical</label>
                   <input type="url" required value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
                 </div>
+                
+                <div className="space-y-2 sm:col-span-2 p-4 border border-[#a855f7]/30 bg-[#a855f7]/10 rounded-xl">
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#c084fc] cursor-pointer">
+                    <input type="checkbox" checked={isHero} onChange={(e) => setIsHero(e.target.checked)} className="w-4 h-4 accent-[#a855f7]" />
+                    🌟 Destacar en Portada Principal (Hero Banner)
+                  </label>
+                  {isHero && (
+                    <div className="mt-4 space-y-2">
+                      <label className="text-xs font-semibold text-white/80 block">URL Banner Horizontal (HD 16:9)</label>
+                      <input type="url" required={isHero} value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://ejemplo.com/banner.jpg" className="w-full h-11 rounded-xl border border-[#a855f7]/50 bg-black/40 text-white px-4 text-sm" />
+                      <p className="text-xs text-[#a855f7]/60">Esta imagen se usará como fondo gigante en la página de inicio.</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2 sm:col-span-2">
                   <label className="text-sm font-semibold text-white/80 block">Sinopsis</label>
                   <textarea required rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 text-white p-4 text-sm resize-none" />
@@ -252,7 +277,15 @@ export default function AdminPage() {
               e.preventDefault();
               if (!selectedManhwaId) return alert("Selecciona un manhwa");
               setLoading(true);
-              const { error } = await supabase.from("manhwas").update({ title, description, cover_url: coverUrl, genre, score }).eq("id", selectedManhwaId);
+
+              if (isHero) {
+                await supabase.from("manhwas").update({ is_hero: false }).neq("id", "00000000-0000-0000-0000-000000000000");
+              }
+
+              const { error } = await supabase.from("manhwas").update({ 
+                title, description, cover_url: coverUrl, genre, score, is_hero: isHero, banner_url: bannerUrl 
+              }).eq("id", selectedManhwaId);
+              
               setLoading(false);
               if (error) alert("Error: " + error.message);
               else {
@@ -272,6 +305,7 @@ export default function AdminPage() {
                     if(data) {
                       setTitle(data.title); setDescription(data.description);
                       setCoverUrl(data.cover_url); setGenre(data.genre); setScore(data.score);
+                      setIsHero(data.is_hero || false); setBannerUrl(data.banner_url || "");
                     }
                   }
                 }} className="w-full h-11 rounded-xl border border-yellow-500/30 bg-white/5 text-white px-4 text-sm">
@@ -283,7 +317,7 @@ export default function AdminPage() {
               </div>
 
               {selectedManhwaId && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-sm font-semibold text-white/80 block">Título</label>
                     <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
@@ -295,6 +329,7 @@ export default function AdminPage() {
                       <option value="Acción" className="bg-[#121216]">Acción</option>
                       <option value="Romance" className="bg-[#121216]">Romance</option>
                       <option value="Drama" className="bg-[#121216]">Drama</option>
+                      <option value="+18" className="bg-[#121216]">+18</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -302,17 +337,35 @@ export default function AdminPage() {
                     <input type="number" step="0.1" required value={score} onChange={(e) => setScore(parseFloat(e.target.value))} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-semibold text-white/80 block">URL Portada</label>
+                    <label className="text-sm font-semibold text-white/80 block">URL Portada Vertical</label>
                     <input type="url" required value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
                   </div>
+                  
+                  <div className="space-y-2 sm:col-span-2 p-4 border border-yellow-500/30 bg-yellow-500/10 rounded-xl">
+                    <label className="flex items-center gap-2 text-sm font-bold text-yellow-400 cursor-pointer">
+                      <input type="checkbox" checked={isHero} onChange={(e) => setIsHero(e.target.checked)} className="w-4 h-4 accent-yellow-500" />
+                      🌟 Destacar en Portada Principal (Hero Banner)
+                    </label>
+                    {isHero && (
+                      <div className="mt-4 space-y-2">
+                        <label className="text-xs font-semibold text-white/80 block">URL Banner Horizontal (HD 16:9)</label>
+                        <input type="url" required={isHero} value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://ejemplo.com/banner.jpg" className="w-full h-11 rounded-xl border border-yellow-500/50 bg-black/40 text-white px-4 text-sm" />
+                        <p className="text-xs text-yellow-200/60">Esta imagen se usará como fondo gigante en la página de inicio.</p>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-sm font-semibold text-white/80 block">Sinopsis</label>
                     <textarea required rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 text-white p-4 text-sm resize-none" />
                   </div>
-                  <button type="submit" disabled={loading} className="w-full sm:col-span-2 h-12 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-black font-bold transition-all flex items-center justify-center gap-2">
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                    Guardar Cambios
-                  </button>
+                  
+                  <div className="sm:col-span-2">
+                    <button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20">
+                      {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Book className="w-5 h-5" />}
+                      Actualizar Manhwa
+                    </button>
+                  </div>
                 </div>
               )}
             </form>
