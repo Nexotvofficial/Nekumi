@@ -431,25 +431,35 @@ export default function Home() {
                   ["Romance", "Romance"],
                   ["Drama", "Drama"],
                   ["+18", "+18"],
-                ].map(([name, cat]) => (
-                  <a
-                    key={cat}
-                    href="#recomendados"
-                    className={`category-card relative overflow-hidden group ${activeCategory === cat ? 'ring-2 ring-[#a855f7]' : ''}`}
-                    onClick={(e) => { e.preventDefault(); setActiveCategory(cat); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  >
-                    {siteConfig?.category_images?.[name] && (
-                      <img 
-                        src={siteConfig.category_images[name]} 
-                        alt={name} 
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0 opacity-50" 
-                      />
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#a855f7]/40 to-[#7c3aed]/60 z-10">
-                      <h3 className="text-lg font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] z-20 relative px-2 text-center">{name}</h3>
-                    </div>
-                  </a>
-                ))}
+                ].map(([name, cat]) => {
+                  const hasImg = !!siteConfig?.category_images?.[name];
+                  return (
+                    <a
+                      key={cat}
+                      href="#recomendados"
+                      className={`category-card relative overflow-hidden group ${activeCategory === cat ? 'ring-2 ring-[#a855f7]' : ''}`}
+                      onClick={(e) => { e.preventDefault(); setActiveCategory(cat); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    >
+                      {hasImg ? (
+                        <>
+                          <img 
+                            src={siteConfig.category_images[name]} 
+                            alt={name} 
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 z-0 opacity-80 group-hover:opacity-100" 
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10 transition-opacity duration-300 group-hover:opacity-80" />
+                          <div className="absolute inset-0 flex items-center justify-center z-20">
+                            <h3 className="text-xl font-black text-white drop-shadow-[0_4px_8px_rgba(0,0,0,1)] tracking-wider px-2 text-center group-hover:-translate-y-1 transition-transform duration-300">{name}</h3>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#a855f7]/20 to-[#7c3aed]/40">
+                          <h3 className="text-lg font-black text-white drop-shadow-lg">{name}</h3>
+                        </div>
+                      )}
+                    </a>
+                  );
+                })}
               </div>
             </section>
             
