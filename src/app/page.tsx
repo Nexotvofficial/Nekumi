@@ -82,6 +82,9 @@ const news = [
 ] as const;
 
 
+import AuthModal from "@/components/AuthModal";
+import { createClient } from "@/lib/supabase";
+
 export default function Home() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
@@ -94,16 +97,38 @@ export default function Home() {
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
+
   useEffect(() => {
     try {
       const saved = new Set<string>(JSON.parse(localStorage.getItem('nekutoon:favorites') || '[]'));
       setFavorites(saved);
     } catch {}
+
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (!user) {
+      showToastMessage('Inicia sesión para guardar favoritos');
+      setIsAuthOpen(true);
+      return;
+    }
+
     const next = new Set(favorites);
     if (next.has(id)) {
       next.delete(id);
@@ -123,6 +148,14 @@ export default function Home() {
   };
 
   const maxCardPage = Math.max(0, manhwas.length - 6); // Approximation for desktop
+
+  const handleAvatarClick = () => {
+    if (user) {
+      showToastMessage("Perfil (Próximamente)");
+    } else {
+      setIsAuthOpen(true);
+    }
+  };
 
   return (
     <>
@@ -188,7 +221,7 @@ export default function Home() {
               <button className={`icon-btn favorite-toggle ${favorites.size > 0 ? 'active' : ''}`} type="button" aria-label="Ver favoritos">
                 <Heart />
               </button>
-              <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={() => showToastMessage("Perfil")}>
+              <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
                 <img src={MEDIA_CONFIG.avatar} alt="Avatar de usuario" />
               </button>
               <button className="icon-btn menu-btn" type="button" aria-label="Abrir menú" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
@@ -472,6 +505,13 @@ export default function Home() {
         </div>
       </footer>
       
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
+        onSuccess={(u) => setUser(u)} 
+        showToast={showToastMessage} 
+      />
+
       <div className={`toast ${showToast ? 'show' : ''}`} role="status" aria-live="polite">
         {toastMessage}
       </div>
