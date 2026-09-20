@@ -20,6 +20,7 @@ export default function AdminPage() {
   
   // Bulk Import States
   const [bulkManhwaId, setBulkManhwaId] = useState("");
+  const [bulkRepo, setBulkRepo] = useState("Nekumi-Catalog-02");
   const [bulkPath, setBulkPath] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState("");
@@ -214,13 +215,13 @@ export default function AdminPage() {
 
   const handleBulkImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bulkManhwaId || !bulkPath) return alert("Faltan datos");
+    if (!bulkManhwaId || !bulkPath || !bulkRepo) return alert("Faltan datos");
     
     setBulkLoading(true);
-    setBulkProgress("Obteniendo árbol de archivos desde GitHub...");
+    setBulkProgress(`Obteniendo árbol de archivos desde ${bulkRepo}...`);
 
     try {
-      const res = await fetch("https://api.github.com/repos/Nexotvofficial/Nekumi-Catalog-02/git/trees/main?recursive=1");
+      const res = await fetch(`https://api.github.com/repos/Nexotvofficial/${bulkRepo}/git/trees/main?recursive=1`);
       const data = await res.json();
 
       if (!data.tree) throw new Error("No se pudo obtener el repositorio.");
@@ -274,7 +275,7 @@ export default function AdminPage() {
         const pagesToInsert = chapFiles.map((path, idx) => ({
           chapter_id: chapData.id,
           page_number: idx + 1,
-          image_url: `https://cdn.jsdelivr.net/gh/Nexotvofficial/Nekumi-Catalog-02@main/${path}`
+          image_url: `https://cdn.jsdelivr.net/gh/Nexotvofficial/${bulkRepo}@main/${path}`
         }));
 
         const { error: pagesErr } = await supabase.from("pages").insert(pagesToInsert);
@@ -673,10 +674,22 @@ export default function AdminPage() {
                   ))}
                 </select>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-white/80 block">2. Repositorio de GitHub</label>
+                  <p className="text-xs text-white/40 mb-2">Ej: <code className="bg-black/30 px-1 py-0.5 rounded">Nekumi-Catalog-04</code></p>
+                  <input
+                    required
+                    type="text"
+                    value={bulkRepo}
+                    onChange={(e) => setBulkRepo(e.target.value)}
+                    className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] outline-none transition-all"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-white/80 block">2. Ruta raíz en GitHub</label>
-                <p className="text-xs text-white/40 mb-2">Ejemplo: <code className="bg-black/30 px-1 py-0.5 rounded">img/jefe-dame-a-tu-hija</code></p>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-white/80 block">3. Ruta raíz en GitHub</label>
+                  <p className="text-xs text-white/40 mb-2">Ej: <code className="bg-black/30 px-1 py-0.5 rounded">img/jefe</code></p>
                 <input
                   required
                   type="text"
@@ -685,6 +698,7 @@ export default function AdminPage() {
                   onChange={(e) => setBulkPath(e.target.value)}
                   className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] outline-none transition-all"
                 />
+              </div>
               </div>
 
               {bulkProgress && (
