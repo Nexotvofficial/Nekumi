@@ -114,9 +114,9 @@ export default function MangaDetail() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c]/80 to-transparent" />
         
         <div className="absolute top-8 left-4 sm:left-8 z-10">
-          <button onClick={() => router.back()} className="icon-btn bg-black/40 hover:bg-black/60 text-white backdrop-blur-md rounded-full w-10 h-10 flex items-center justify-center transition-colors">
+          <Link href="/" className="icon-btn bg-black/40 hover:bg-black/60 text-white backdrop-blur-md rounded-full w-10 h-10 flex items-center justify-center transition-colors">
             <ArrowLeft className="w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </div>
 

@@ -227,6 +227,11 @@ export default function Home() {
               <button className={`icon-btn favorite-toggle ${favorites.size > 0 ? 'active' : ''}`} type="button" aria-label="Ver favoritos">
                 <Heart />
               </button>
+              {user?.email === 'diazmowi07@gmail.com' && (
+                <Link href="/admin" className="btn bg-[#a855f7]/20 text-[#c084fc] border border-[#a855f7]/30 hover:bg-[#a855f7]/30 font-bold px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2">
+                  👑 Panel Admin
+                </Link>
+              )}
               <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
                 <img src={MEDIA_CONFIG.avatar} alt="Avatar de usuario" />
               </button>

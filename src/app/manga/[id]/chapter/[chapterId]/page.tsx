@@ -63,7 +63,7 @@ export default function ChapterReader() {
       <div className="min-h-screen bg-[#050505] flex items-center justify-center text-center">
         <div>
           <h1 className="text-2xl font-bold mb-4">Capítulo no encontrado</h1>
-          <button onClick={() => router.back()} className="btn btn-primary inline-flex">Volver</button>
+          <Link href={`/manga/${manhwaId}`} className="btn btn-primary inline-flex">Volver al Manhwa</Link>
         </div>
       </div>
     );
