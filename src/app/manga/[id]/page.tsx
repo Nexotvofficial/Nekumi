@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { ArrowLeft, Star, Heart, BookOpen, Clock, List, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { Heart, Star, BookOpen, Clock, List, ChevronRight, ArrowLeft, Loader2, MessageCircle, Send } from "lucide-react";
 
 interface Manhwa {
   id: string;
@@ -22,6 +22,14 @@ interface Chapter {
   created_at: string;
 }
 
+interface Review {
+  id: string;
+  user_email?: string;
+  rating: number;
+  content: string;
+  created_at: string;
+}
+
 export default function MangaDetail() {
   const params = useParams();
   const router = useRouter();
@@ -30,9 +38,15 @@ export default function MangaDetail() {
 
   const [manhwa, setManhwa] = useState<Manhwa | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [user, setUser] = useState<any>(null);
+
+  // Review form state
+  const [newReview, setNewReview] = useState("");
+  const [newRating, setNewRating] = useState(5);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -51,6 +65,14 @@ export default function MangaDetail() {
         .eq("manhwa_id", id)
         .order("chapter_number", { ascending: false });
       if (cData) setChapters(cData);
+
+      // Fetch Reviews
+      const { data: rData } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("manhwa_id", id)
+        .order("created_at", { ascending: false });
+      if (rData) setReviews(rData);
 
       // Check if favorite
       if (session?.user && mData) {
@@ -81,6 +103,38 @@ export default function MangaDetail() {
     } else {
       await supabase.from("favorites").insert([{ user_id: user.id, manhwa_id: id }]);
       setIsFavorite(true);
+    }
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      alert("Inicia sesión para opinar.");
+      return;
+    }
+    if (!newReview.trim()) return;
+
+    setReviewLoading(true);
+    const { data, error } = await supabase
+      .from("reviews")
+      .insert([
+        {
+          manhwa_id: id,
+          user_id: user.id,
+          user_email: user.email,
+          rating: newRating,
+          content: newReview,
+        },
+      ])
+      .select();
+
+    setReviewLoading(false);
+    if (error) {
+      alert("Error al publicar reseña: " + error.message);
+    } else {
+      setNewReview("");
+      setNewRating(5);
+      if (data) setReviews([data[0], ...reviews]);
     }
   };
 
@@ -230,6 +284,80 @@ export default function MangaDetail() {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-16 border-t border-white/10 pt-16">
+          <div className="flex items-center gap-3 mb-8">
+            <MessageCircle className="w-6 h-6 text-[#a855f7]" />
+            <h2 className="text-2xl font-bold">Comentarios y Reseñas</h2>
+          </div>
+
+          {/* Add Review Form */}
+          {user ? (
+            <form onSubmit={submitReview} className="glass rounded-[22px] p-6 mb-12">
+              <h3 className="text-lg font-bold mb-4">Deja tu opinión</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm text-white/70">Tu calificación:</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewRating(star)}
+                      className={`p-1 transition-colors ${star <= newRating ? 'text-[#fbbf24]' : 'text-white/20'}`}
+                    >
+                      <Star className={`w-6 h-6 ${star <= newRating ? 'fill-current' : ''}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <textarea
+                value={newReview}
+                onChange={(e) => setNewReview(e.target.value)}
+                placeholder="¿Qué te pareció este manhwa?"
+                rows={3}
+                required
+                className="w-full rounded-xl border border-white/10 bg-black/20 text-white p-4 text-sm resize-none mb-4 focus:outline-none focus:border-[#a855f7]/50"
+              />
+              <button
+                type="submit"
+                disabled={reviewLoading}
+                className="btn bg-[#a855f7] hover:bg-[#9333ea] text-white font-bold px-6 py-2 rounded-xl transition-colors flex items-center gap-2"
+              >
+                {reviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Publicar Reseña
+              </button>
+            </form>
+          ) : (
+            <div className="glass rounded-[22px] p-8 text-center mb-12">
+              <p className="text-white/70 mb-4">Inicia sesión para dejar una reseña.</p>
+            </div>
+          )}
+
+          {/* Reviews List */}
+          <div className="space-y-4">
+            {reviews.length === 0 ? (
+              <p className="text-center text-white/50 py-8">No hay comentarios aún. ¡Sé el primero!</p>
+            ) : (
+              reviews.map((review) => (
+                <div key={review.id} className="glass rounded-xl p-5 border border-white/5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="font-bold text-white text-sm">{review.user_email?.split('@')[0] || "Usuario"}</p>
+                      <p className="text-xs text-white/40">{new Date(review.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex gap-0.5 text-[#fbbf24]">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-current' : 'opacity-20'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{review.content}</p>
+                </div>
+              ))
             )}
           </div>
         </div>

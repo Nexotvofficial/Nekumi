@@ -146,6 +146,9 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab(3)} className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 3 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
             <ImageIcon className="w-4 h-4" /> 3. Páginas
           </button>
+          <button onClick={() => setActiveTab(4)} className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 4 ? "bg-[#eab308] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <Book className="w-4 h-4" /> 4. Editar
+          </button>
         </div>
 
         <div className="glass rounded-[22px] p-6 sm:p-10 shadow-2xl">
@@ -183,6 +186,77 @@ export default function AdminPage() {
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                 Crear Manhwa
               </button>
+            </form>
+          )}
+
+          {activeTab === 4 && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedManhwaId) return alert("Selecciona un manhwa");
+              setLoading(true);
+              const { error } = await supabase.from("manhwas").update({ title, description, cover_url: coverUrl, genre, score }).eq("id", selectedManhwaId);
+              setLoading(false);
+              if (error) alert("Error: " + error.message);
+              else {
+                setSuccessMsg("¡Manhwa actualizado con éxito!");
+                fetchManhwas();
+                setTimeout(() => setSuccessMsg(""), 3000);
+              }
+            }} className="space-y-6 animate-in fade-in zoom-in-95">
+              <h2 className="text-xl font-bold border-b border-white/10 pb-4 text-yellow-400">Editar Manhwa Existente</h2>
+              
+              <div className="space-y-2 mb-6">
+                <label className="text-sm font-semibold text-white/80 block">Selecciona el Manhwa a editar</label>
+                <select required value={selectedManhwaId} onChange={async (e) => {
+                  setSelectedManhwaId(e.target.value);
+                  if(e.target.value) {
+                    const { data } = await supabase.from("manhwas").select("*").eq("id", e.target.value).single();
+                    if(data) {
+                      setTitle(data.title); setDescription(data.description);
+                      setCoverUrl(data.cover_url); setGenre(data.genre); setScore(data.score);
+                    }
+                  }
+                }} className="w-full h-11 rounded-xl border border-yellow-500/30 bg-white/5 text-white px-4 text-sm">
+                  <option value="" className="bg-[#121216]">-- Elige un manhwa --</option>
+                  {manhwas.map(m => (
+                    <option key={m.id} value={m.id} className="bg-[#121216]">{m.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedManhwaId && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in">
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-semibold text-white/80 block">Título</label>
+                    <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-white/80 block">Género</label>
+                    <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm">
+                      <option value="Fantasía" className="bg-[#121216]">Fantasía</option>
+                      <option value="Acción" className="bg-[#121216]">Acción</option>
+                      <option value="Romance" className="bg-[#121216]">Romance</option>
+                      <option value="Drama" className="bg-[#121216]">Drama</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-white/80 block">Puntuación</label>
+                    <input type="number" step="0.1" required value={score} onChange={(e) => setScore(parseFloat(e.target.value))} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-semibold text-white/80 block">URL Portada</label>
+                    <input type="url" required value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-semibold text-white/80 block">Sinopsis</label>
+                    <textarea required rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 text-white p-4 text-sm resize-none" />
+                  </div>
+                  <button type="submit" disabled={loading} className="w-full sm:col-span-2 h-12 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-black font-bold transition-all flex items-center justify-center gap-2">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                    Guardar Cambios
+                  </button>
+                </div>
+              )}
             </form>
           )}
 
