@@ -37,7 +37,14 @@ export default function AdminPage() {
 
   // Form 3: Pages
   const [selectedChapterId, setSelectedChapterId] = useState("");
+  const [uploadMode, setUploadMode] = useState<"manual" | "github">("github");
   const [pageUrls, setPageUrls] = useState("");
+  
+  // GitHub CDN specific state
+  const [ghRepo, setGhRepo] = useState("Nekumi-Archivos");
+  const [ghFolder, setGhFolder] = useState("");
+  const [ghPagesCount, setGhPagesCount] = useState(10);
+  const [ghExtension, setGhExtension] = useState(".jpg");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -94,9 +101,20 @@ export default function AdminPage() {
     e.preventDefault();
     if (!selectedChapterId) return alert("Selecciona un capítulo");
     
-    // Convert text area separated by newlines to array of objects
-    const urls = pageUrls.split("\n").map(url => url.trim()).filter(url => url.length > 0);
-    if (urls.length === 0) return alert("Ingresa al menos una URL");
+    let urls: string[] = [];
+
+    if (uploadMode === "manual") {
+      urls = pageUrls.split("\n").map(url => url.trim()).filter(url => url.length > 0);
+    } else {
+      // Generate GitHub CDN URLs
+      // Format: https://cdn.jsdelivr.net/gh/Nexotvofficial/REPO@main/FOLDER/1.jpg
+      const cleanFolder = ghFolder.replace(/^\/+|\/+$/g, ''); // remove leading/trailing slashes
+      for (let i = 1; i <= ghPagesCount; i++) {
+        urls.push(`https://cdn.jsdelivr.net/gh/Nexotvofficial/${ghRepo}@main/${cleanFolder}/${i}${ghExtension}`);
+      }
+    }
+
+    if (urls.length === 0) return alert("No hay URLs para subir");
 
     setLoading(true);
     const insertData = urls.map((url, index) => ({
@@ -136,18 +154,18 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-2xl w-full">
-          <button onClick={() => setActiveTab(1)} className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 1 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
-            <Book className="w-4 h-4" /> 1. Manhwas
+        <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-2xl w-full flex-wrap sm:flex-nowrap">
+          <button onClick={() => setActiveTab(1)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 1 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <Book className="w-4 h-4 hidden sm:block" /> 1. Manhwas
           </button>
-          <button onClick={() => setActiveTab(2)} className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 2 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
-            <FileText className="w-4 h-4" /> 2. Capítulos
+          <button onClick={() => setActiveTab(2)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 2 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <FileText className="w-4 h-4 hidden sm:block" /> 2. Capítulos
           </button>
-          <button onClick={() => setActiveTab(3)} className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 3 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
-            <ImageIcon className="w-4 h-4" /> 3. Páginas
+          <button onClick={() => setActiveTab(3)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 3 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <ImageIcon className="w-4 h-4 hidden sm:block" /> 3. Páginas
           </button>
-          <button onClick={() => setActiveTab(4)} className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 4 ? "bg-[#eab308] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
-            <Book className="w-4 h-4" /> 4. Editar
+          <button onClick={() => setActiveTab(4)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 4 ? "bg-[#eab308] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <Book className="w-4 h-4 hidden sm:block" /> 4. Editar
           </button>
         </div>
 
@@ -294,7 +312,17 @@ export default function AdminPage() {
           {activeTab === 3 && (
             <form onSubmit={handlePagesSubmit} className="space-y-6 animate-in fade-in zoom-in-95">
               <h2 className="text-xl font-bold border-b border-white/10 pb-4">Subir Imágenes al Capítulo</h2>
-              <div className="space-y-4">
+              
+              <div className="flex bg-black/40 rounded-xl p-1 mb-6">
+                <button type="button" onClick={() => setUploadMode("github")} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${uploadMode === "github" ? "bg-[#ec4899] text-white" : "text-white/50 hover:text-white"}`}>
+                  Archivos desde GitHub (Automático)
+                </button>
+                <button type="button" onClick={() => setUploadMode("manual")} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${uploadMode === "manual" ? "bg-[#ec4899] text-white" : "text-white/50 hover:text-white"}`}>
+                  Pegar Enlaces Manualmente
+                </button>
+              </div>
+
+              <div className="space-y-4 border-b border-white/10 pb-6">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-white/80 block">1. Selecciona el Manhwa</label>
                   <select required value={selectedManhwaId} onChange={(e) => { setSelectedManhwaId(e.target.value); fetchChapters(e.target.value); }} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm">
@@ -315,17 +343,51 @@ export default function AdminPage() {
                     </select>
                   </div>
                 )}
-                <div className="space-y-2">
+              </div>
+
+              {uploadMode === "manual" ? (
+                <div className="space-y-2 animate-in fade-in pt-2">
                   <label className="text-sm font-semibold text-white/80 block flex justify-between">
                     <span>3. Enlaces de las Imágenes (Una por línea)</span>
                     <span className="text-xs font-normal text-[#a7a7b1]">El orden será la página 1, 2, 3...</span>
                   </label>
-                  <textarea required rows={8} value={pageUrls} onChange={(e) => setPageUrls(e.target.value)} placeholder="https://ejemplo.com/pagina1.jpg&#10;https://ejemplo.com/pagina2.jpg&#10;https://ejemplo.com/pagina3.jpg" className="w-full rounded-xl border border-white/10 bg-[#0a0a0c] text-white p-4 text-sm font-mono whitespace-pre break-all resize-y" />
+                  <textarea required={uploadMode === "manual"} rows={8} value={pageUrls} onChange={(e) => setPageUrls(e.target.value)} placeholder="https://ejemplo.com/pagina1.jpg&#10;https://ejemplo.com/pagina2.jpg" className="w-full rounded-xl border border-white/10 bg-[#0a0a0c] text-white p-4 text-sm font-mono whitespace-pre break-all resize-y" />
                 </div>
-              </div>
-              <button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-[#ec4899] hover:bg-[#db2777] text-white font-bold transition-all flex items-center justify-center gap-2">
+              ) : (
+                <div className="space-y-6 animate-in fade-in pt-2">
+                  <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm">
+                    <strong>Instrucciones:</strong> Crea las carpetas en tu repositorio de GitHub y nombra las imágenes secuencialmente como <code>1.jpg</code>, <code>2.jpg</code>, <code>3.jpg</code>... 
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-white/80 block">Nombre del Repositorio</label>
+                      <input type="text" required={uploadMode === "github"} value={ghRepo} onChange={(e) => setGhRepo(e.target.value)} placeholder="Nekumi-Archivos" className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-white/80 block">Ruta de la Carpeta</label>
+                      <input type="text" required={uploadMode === "github"} value={ghFolder} onChange={(e) => setGhFolder(e.target.value)} placeholder="cazador/capitulo1" className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm font-mono" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-white/80 block">Cantidad total de páginas</label>
+                      <input type="number" min="1" required={uploadMode === "github"} value={ghPagesCount} onChange={(e) => setGhPagesCount(parseInt(e.target.value))} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-white/80 block">Extensión de los archivos</label>
+                      <select required={uploadMode === "github"} value={ghExtension} onChange={(e) => setGhExtension(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-white/5 text-white px-4 text-sm">
+                        <option value=".jpg" className="bg-[#121216]">.jpg</option>
+                        <option value=".png" className="bg-[#121216]">.png</option>
+                        <option value=".webp" className="bg-[#121216]">.webp</option>
+                        <option value=".jpeg" className="bg-[#121216]">.jpeg</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-xl bg-[#ec4899] hover:bg-[#db2777] text-white font-bold transition-all flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                Subir {pageUrls.split('\n').filter(l => l.trim()).length} Páginas
+                {uploadMode === "manual" ? `Subir ${pageUrls.split('\n').filter(l => l.trim()).length} Páginas` : `Autogenerar ${ghPagesCount} Páginas`}
               </button>
             </form>
           )}
