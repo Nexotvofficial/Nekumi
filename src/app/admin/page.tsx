@@ -156,7 +156,7 @@ export default function AdminPage() {
 
         <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-2xl w-full flex-wrap sm:flex-nowrap">
           <button onClick={() => setActiveTab(1)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 1 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
-            <Book className="w-4 h-4 hidden sm:block" /> 1. Manhwas
+            <Book className="w-4 h-4 hidden sm:block" /> 1. Crear
           </button>
           <button onClick={() => setActiveTab(2)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 2 ? "bg-[#a855f7] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
             <FileText className="w-4 h-4 hidden sm:block" /> 2. Capítulos
@@ -166,6 +166,9 @@ export default function AdminPage() {
           </button>
           <button onClick={() => setActiveTab(4)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 4 ? "bg-[#eab308] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
             <Book className="w-4 h-4 hidden sm:block" /> 4. Editar
+          </button>
+          <button onClick={() => setActiveTab(5)} className={`flex-1 py-3 px-2 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 5 ? "bg-[#ef4444] text-white shadow-lg" : "text-white/60 hover:text-white hover:bg-white/5"}`}>
+            <Book className="w-4 h-4 hidden sm:block" /> 5. Borrar
           </button>
         </div>
 
@@ -388,6 +391,45 @@ export default function AdminPage() {
               <button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-xl bg-[#ec4899] hover:bg-[#db2777] text-white font-bold transition-all flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                 {uploadMode === "manual" ? `Subir ${pageUrls.split('\n').filter(l => l.trim()).length} Páginas` : `Autogenerar ${ghPagesCount} Páginas`}
+              </button>
+            </form>
+          )}
+
+          {activeTab === 5 && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedManhwaId) return alert("Selecciona un manhwa para borrar");
+              const confirmDelete = window.confirm("¿ESTÁS SEGURO? Esto borrará el manhwa, todos sus capítulos, páginas y comentarios. Esta acción no se puede deshacer.");
+              if (!confirmDelete) return;
+
+              setLoading(true);
+              const { error } = await supabase.from("manhwas").delete().eq("id", selectedManhwaId);
+              setLoading(false);
+
+              if (error) {
+                alert("Error: " + error.message + "\n\n(Asegúrate de haber ejecutado el SQL de Delete en Supabase)");
+              } else {
+                setSuccessMsg("¡Manhwa BORRADO con éxito!");
+                setSelectedManhwaId("");
+                fetchManhwas();
+                setTimeout(() => setSuccessMsg(""), 3000);
+              }
+            }} className="space-y-6 animate-in fade-in zoom-in-95">
+              <h2 className="text-xl font-bold border-b border-white/10 pb-4 text-red-500">Borrar Manhwa Peligro ⚠️</h2>
+              
+              <div className="space-y-2 mb-6">
+                <label className="text-sm font-semibold text-white/80 block">Selecciona el Manhwa a ELIMINAR</label>
+                <select required value={selectedManhwaId} onChange={(e) => setSelectedManhwaId(e.target.value)} className="w-full h-11 rounded-xl border border-red-500/30 bg-white/5 text-white px-4 text-sm">
+                  <option value="" className="bg-[#121216]">-- Elige un manhwa --</option>
+                  {manhwas.map(m => (
+                    <option key={m.id} value={m.id} className="bg-[#121216]">{m.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Book className="w-5 h-5" />}
+                Eliminar Manhwa y todo su contenido
               </button>
             </form>
           )}
