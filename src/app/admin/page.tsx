@@ -20,10 +20,12 @@ export default function AdminProDashboard() {
   const [loadingUser, setLoadingUser] = useState(true);
 
   // Vistas
-  const [activeView, setActiveView] = useState<"dashboard" | "manhwas" | "chapters" | "pages" | "automator">("dashboard");
+  const [activeView, setActiveView] = useState<"dashboard" | "manhwas" | "chapters" | "pages" | "automator" | "users" | "reviews">("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Estados Globales (Dashboard)
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [stats, setStats] = useState({ manhwas: 0, chapters: 0, users: 0, views: 245672 });
   const [recentChapters, setRecentChapters] = useState<any[]>([]);
 
@@ -95,7 +97,15 @@ export default function AdminProDashboard() {
     // 3. Manhwas list (needed for selects and table)
     const { data: mData } = await supabase.from("manhwas").select("*").order("created_at", { ascending: false });
     if (mData) setManhwas(mData);
+
+    const { data: uData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (uData) setUsersList(uData);
+
+    const { data: rData } = await supabase.from('reviews').select('*, manhwa:manhwas(title)').order('created_at', { ascending: false });
+    if (rData) setReviewsList(rData);
   };
+
+  const handleDeleteReview = async (id: string) => { if (!confirm('¿Borrar este comentario?')) return; await supabase.from('reviews').delete().eq('id', id); setReviewsList(prev => prev.filter(r => r.id !== id)); setSuccessMsg('Comentario eliminado'); setTimeout(() => setSuccessMsg(''), 3000); };
 
   const fetchChapters = async (mId: string) => {
     const { data } = await supabase.from("chapters").select("*").eq("manhwa_id", mId).order("chapter_number", { ascending: false });
@@ -269,8 +279,8 @@ export default function AdminProDashboard() {
           <div className="pt-4 pb-2">
             <p className="text-xs font-semibold text-white/30 uppercase tracking-wider px-4">Comunidad</p>
           </div>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/30 cursor-not-allowed"><Users className="w-5 h-5" /> Usuarios</button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/30 cursor-not-allowed"><MessageSquare className="w-5 h-5" /> Comentarios</button>
+          <SidebarItem id="users" icon={Users} label="Usuarios" />
+          <SidebarItem id="reviews" icon={MessageSquare} label="Comentarios" />
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/30 cursor-not-allowed"><AlertCircle className="w-5 h-5" /> Reportes</button>
         </nav>
       </aside>
@@ -626,9 +636,91 @@ export default function AdminProDashboard() {
             )}
 
           </div>
+                    {/* VISTA 6: USUARIOS */}
+            {activeView === 'users' && (
+              <div className="bg-[#121216] border border-white/5 rounded-2xl p-6">
+                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><Users className="w-5 h-5 text-[#34d399]" /> Gestión de Usuarios</h3>
+                    <p className="text-sm text-[#a7a7b1]">Lectores registrados en Nekutoon.</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-[#a7a7b1] border-b border-white/5">
+                      <tr>
+                        <th className="pb-3 font-medium">Avatar</th>
+                        <th className="pb-3 font-medium">Usuario / Email</th>
+                        <th className="pb-3 font-medium">Fecha de Registro</th>
+                        <th className="pb-3 font-medium text-right">Rol</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {usersList.map((u) => (
+                        <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                          <td className="py-3">
+                            <div className="w-10 h-10 rounded-full bg-[#10b981]/20 flex items-center justify-center text-[#34d399] font-bold border border-[#10b981]/30">
+                              {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full rounded-full object-cover" /> : (u.email ? u.email[0].toUpperCase() : 'U')}
+                            </div>
+                          </td>
+                          <td className="py-3 font-semibold text-white">{u.email}</td>
+                          <td className="py-3 text-[#a7a7b1]">{new Date(u.created_at).toLocaleDateString()}</td>
+                          <td className="py-3 text-right">
+                            <span className={inline-block px-2.5 py-1 rounded-full text-xs font-semibold }>
+                              {u.email === 'diazmowi07@gmail.com' ? 'Admin' : 'Lector'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {usersList.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-[#a7a7b1]">No hay usuarios registrados aún.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* VISTA 7: COMENTARIOS */}
+            {activeView === 'reviews' && (
+              <div className="bg-[#121216] border border-white/5 rounded-2xl p-6">
+                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-[#f59e0b]" /> Moderación de Comentarios</h3>
+                    <p className="text-sm text-[#a7a7b1]">Administra las reseñas y comentarios de la comunidad.</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-[#a7a7b1] border-b border-white/5">
+                      <tr>
+                        <th className="pb-3 font-medium">Usuario</th>
+                        <th className="pb-3 font-medium">Manhwa</th>
+                        <th className="pb-3 font-medium">Comentario</th>
+                        <th className="pb-3 font-medium text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {reviewsList.map((r) => (
+                        <tr key={r.id} className="hover:bg-white/5 transition-colors">
+                          <td className="py-3 text-[#a7a7b1] text-xs max-w-[120px] truncate">{r.user_email || 'Anónimo'}</td>
+                          <td className="py-3 font-semibold text-white max-w-[150px] truncate">{r.manhwa?.title}</td>
+                          <td className="py-3 text-white/80 max-w-[300px] truncate">{r.content}</td>
+                          <td className="py-3 text-right">
+                            <button onClick={() => handleDeleteReview(r.id)} className="p-2 bg-[#ef4444]/10 hover:bg-[#ef4444]/20 rounded-lg text-[#ef4444] transition-colors" title="Borrar comentario">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {reviewsList.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-[#a7a7b1]">No hay comentarios publicados aún.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
         </main>
       </div>
     </div>
   );
 }
+
 
