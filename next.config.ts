@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
+import withSerwistInit from "@serwist/next";
 
 const cspHeader = `
     default-src 'self';
@@ -15,11 +15,9 @@ const cspHeader = `
     upgrade-insecure-requests;
 `;
 
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  register: true,
-  skipWaiting: true,
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
 });
 
 const nextConfig: NextConfig = {
@@ -56,4 +54,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+export default withSerwist(nextConfig);
