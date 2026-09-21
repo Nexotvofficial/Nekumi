@@ -148,6 +148,7 @@ export default function AdminProDashboard() {
     setBannerUrl(m.banner_url || "");
     setGenre(m.genre?.[0] || "Acción");
     setStatus(m.status || "Publicado");
+    setIsHero(m.is_hero || false);
     setIsAddManhwaOpen(true);
   };
 
@@ -457,7 +458,7 @@ export default function AdminProDashboard() {
                       <h3 className="text-lg font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#a855f7]" /> Gestión de manhwas</h3>
                       <p className="text-sm text-[#a7a7b1]">Administra el catálogo de la plataforma.</p>
                     </div>
-                    <button onClick={() => { setEditingId(""); setTitle(""); setDescription(""); setCoverUrl(""); setBannerUrl(""); setIsAddManhwaOpen(!isAddManhwaOpen); }} className="btn bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-[#a855f7]/20">
+                    <button onClick={() => { setEditingId(""); setTitle(""); setDescription(""); setCoverUrl(""); setBannerUrl(""); setIsHero(false); setIsAddManhwaOpen(!isAddManhwaOpen); }} className="btn bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-[#a855f7]/20">
                       {isAddManhwaOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {isAddManhwaOpen ? 'Cerrar panel' : 'Nuevo manhwa'}
                     </button>
                   </div>
@@ -539,6 +540,10 @@ export default function AdminProDashboard() {
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-[#a7a7b1] uppercase tracking-wider">Banner (URL)</label>
                         <input type="text" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} className="w-full h-10 bg-black/30 border border-white/10 rounded-xl px-3 text-sm text-white focus:border-[#a855f7] outline-none transition-colors" placeholder="Opcional..." />
+                      </div>
+                      <div className="flex items-center gap-3 py-2">
+                        <input type="checkbox" id="is_hero" checked={isHero} onChange={e => setIsHero(e.target.checked)} className="w-5 h-5 rounded border-white/10 bg-black/30 text-[#a855f7] focus:ring-[#a855f7] focus:ring-offset-0 cursor-pointer accent-[#a855f7]" />
+                        <label htmlFor="is_hero" className="text-sm font-semibold text-white/80 cursor-pointer">Destacar en el Banner Principal</label>
                       </div>
                       
                       <div className="pt-4 flex gap-3">

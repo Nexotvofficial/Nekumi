@@ -234,9 +234,19 @@ export default function Home() {
 
   const handleAvatarClick = () => { if (user) { setShowProfileMenu(!showProfileMenu); } else { setIsAuthOpen(true); } };
 
-    
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
-    const heroManhwa = manhwas.find(m => (m as any).is_hero) || manhwas[0];
+  const heroManhwas = manhwas.filter(m => (m as any).is_hero);
+  const displayHeroes = heroManhwas.length > 0 ? heroManhwas : manhwas.slice(0, 3);
+  const heroManhwa = displayHeroes[currentHeroIndex] || manhwas[0];
+
+  useEffect(() => {
+    if (displayHeroes.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentHeroIndex((prev) => (prev + 1) % displayHeroes.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [displayHeroes.length]);
 
   return (
     <>
@@ -394,7 +404,7 @@ export default function Home() {
                   No se encontraron resultados.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mt-4">
                   {filteredManhwas.map((item) => (
                     <Link key={item.id} href={`/manga/${item.id}`} className="block">
                       <article className="media-card h-full" tabIndex={0}>
