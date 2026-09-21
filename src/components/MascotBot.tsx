@@ -10,7 +10,6 @@ export default function MascotBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Usamos un video no-en-vivo por defecto para asegurar compatibilidad de Embed
   const [videoId, setVideoId] = useState("5qap5aO4i9A"); 
   const [customUrl, setCustomUrl] = useState("");
   
@@ -64,7 +63,7 @@ export default function MascotBot() {
       setVideoId(match[1]);
       setIsPlaying(true);
       setCustomUrl("");
-      setIsOpen(false);
+      // Ya NO cerramos el menú, para que el usuario pueda interactuar con el reproductor anti-bloqueo
     } else {
       alert("Enlace de YouTube no válido.");
     }
@@ -107,20 +106,41 @@ export default function MascotBot() {
           </button>
         </div>
         
-        <div className="mb-4">
-          {isPlaying ? (
-            <div className="flex items-center gap-3 bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-xl p-3">
+        {/* REPRODUCTOR VISIBLE ANTI-BLOQUEO */}
+        {isPlaying ? (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
               <div className="flex items-end gap-1 h-3">
                 <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
                 <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
                 <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
               </div>
-              <p className="text-[#c084fc] text-xs font-medium">Reproduciendo audio de fondo</p>
+              <p className="text-[#c084fc] text-xs font-medium">Mini-Player Activado</p>
             </div>
-          ) : (
+            
+            <div className="w-full h-32 rounded-xl overflow-hidden border border-white/10 relative shadow-inner bg-black">
+              {mounted && (
+                <Player 
+                  url={`https://www.youtube.com/watch?v=${videoId}`}
+                  playing={isPlaying}
+                  controls={true}
+                  width="100%"
+                  height="100%"
+                  config={{
+                    youtube: {
+                      playerVars: { autoplay: 1 }
+                    }
+                  }}
+                />
+              )}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2 text-center">Si no suena automático por bloqueo comercial, dale click al video arriba.</p>
+          </div>
+        ) : (
+          <div className="mb-4">
             <p className="text-gray-400 text-xs leading-relaxed">Conecta tu música favorita de YouTube para acompañar tu lectura.</p>
-          )}
-        </div>
+          </div>
+        )}
         
         <div className="flex items-center gap-2 mb-4 bg-[#0a0a0a] rounded-xl p-1 border border-white/5 focus-within:border-[#a855f7]/50 focus-within:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all">
           <input 
@@ -143,7 +163,6 @@ export default function MascotBot() {
           onClick={() => {
             if (!isPlaying) { setVideoId("5qap5aO4i9A"); }
             setIsPlaying(!isPlaying);
-            if (!isPlaying) setIsOpen(false); 
           }}
           className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold transition-all ${isPlaying ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-gradient-to-r from-[#a855f7] to-[#7e22ce] text-white hover:opacity-90 shadow-lg shadow-purple-900/40'}`}
         >
@@ -165,21 +184,6 @@ export default function MascotBot() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7] to-[#4f46e5] rounded-full blur-xl -z-10 opacity-30 group-hover:opacity-60 transition-opacity duration-300"></div>
         
-        {/* REPRODUCTOR REAL - CUBIERTO POR EL MASCOT PERO RENDERIZADO AL 100% PARA EVITAR BLOQUEO DE NAVEGADOR */}
-        {mounted && (
-          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none opacity-[0.01]">
-            <Player 
-              url={`https://www.youtube.com/watch?v=${videoId}`}
-              playing={isPlaying}
-              volume={1}
-              muted={false}
-              width="200%"
-              height="200%"
-              style={{ position: 'absolute', top: '-50%', left: '-50%' }}
-            />
-          </div>
-        )}
-
         <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl relative z-10">
           <defs>
             <linearGradient id="nekuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
