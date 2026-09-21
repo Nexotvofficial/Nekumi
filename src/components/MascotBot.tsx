@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Music, Pause, X, Play, Radio, Volume2 } from "lucide-react";
+import ReactPlayer from "react-player/youtube";
 
 export default function MascotBot() {
   const [isVisible, setIsVisible] = useState(false);
@@ -18,7 +19,11 @@ export default function MascotBot() {
   const startRef = useRef({ x: 0, y: 0 });
   const dragInfo = useRef({ startX: 0, startY: 0, isDragMove: false });
 
+  // Control para asegurar que montamos el reproductor solo en cliente
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     const initialX = window.innerWidth > 768 ? window.innerWidth - 120 : window.innerWidth - 100;
     const initialY = window.innerHeight > 768 ? window.innerHeight - 150 : window.innerHeight - 150;
     setPosition({ x: initialX, y: initialY });
@@ -88,11 +93,26 @@ export default function MascotBot() {
         @keyframes equalize { 0% { height: 4px; } 100% { height: 12px; } }
       `}</style>
       
-      {isPlaying && (
-        <iframe key={videoId} width="2" height="2" src={`https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`} frameBorder="0" allow="autoplay; encrypted-media" className="absolute opacity-0 pointer-events-none -z-50" style={{ top: "-9999px", left: "-9999px" }}></iframe>
+      {/* Reproductor Definitivo usando ReactPlayer */}
+      {mounted && (
+        <div className="absolute opacity-0 pointer-events-none -z-50" style={{ width: 1, height: 1, overflow: 'hidden' }}>
+          <ReactPlayer 
+            url={`https://www.youtube.com/watch?v=${videoId}`}
+            playing={isPlaying}
+            controls={false}
+            width="10px"
+            height="10px"
+            volume={1}
+            config={{
+              youtube: {
+                playerVars: { autoplay: 1, origin: typeof window !== 'undefined' ? window.location.origin : '' }
+              }
+            }}
+          />
+        </div>
       )}
 
-      {/* Premium Chat Bubble Menu - ABOSLUTELY POSITIONED ABOVE MASCOT */}
+      {/* Premium Chat Bubble Menu */}
       <div 
         className={`absolute bottom-full mb-4 left-1/2 -translate-x-1/2 transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'} bg-black/60 border border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] w-80 backdrop-blur-2xl cursor-default`}
       >
@@ -154,7 +174,6 @@ export default function MascotBot() {
         </button>
       </div>
 
-      {/* Mascot Avatar - Size restored to version 3! */}
       <div 
         ref={dragRef}
         onPointerDown={onPointerDown}
@@ -165,7 +184,6 @@ export default function MascotBot() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7] to-[#4f46e5] rounded-full blur-xl -z-10 opacity-30 group-hover:opacity-60 transition-opacity duration-300"></div>
         
-        {/* Original Version 3 Vector SVG Design */}
         <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
           <defs>
             <linearGradient id="nekuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -197,5 +215,3 @@ export default function MascotBot() {
     </div>
   );
 }
-
-
