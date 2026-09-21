@@ -187,7 +187,7 @@ export default function Home() {
       setUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); supabase.removeChannel(channel); };
   }, [supabase]);
 
   const handleLogout = async () => {
@@ -623,6 +623,7 @@ export default function Home() {
     </>
   );
 }
+
 
 
 
