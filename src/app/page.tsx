@@ -387,14 +387,6 @@ export default function Home() {
                 <h2 id="recommendedTitle" className="section-title">
                   {searchQuery ? `Resultados para "${searchQuery}"` : (activeCategory ? `Categoría: ${activeCategory}` : 'Explorar Catálogo')}
                 </h2>
-                <div className="section-tools">
-                  <button className="round-arrow" type="button" aria-label="Anteriores" disabled={cardPage === 0} onClick={() => setCardPage(Math.max(0, cardPage - 1))}>
-                    <ChevronLeft />
-                  </button>
-                  <button className="round-arrow" type="button" aria-label="Siguientes" disabled={cardPage >= maxCardPage} onClick={() => setCardPage(cardPage + 1)}>
-                    <ChevronRight />
-                  </button>
-                </div>
               </div>
               
               {filteredManhwas.length === 0 ? (
@@ -402,26 +394,24 @@ export default function Home() {
                   No se encontraron resultados.
                 </div>
               ) : (
-                <div className="cards-viewport">
-                  <div className="cards-track" style={{ transform: `translateX(calc(-${cardPage} * (100% / 6)))` }}>
-                    {filteredManhwas.map((item) => (
-                      <Link key={item.id} href={`/manga/${item.id}`} className="block">
-                        <article className="media-card" tabIndex={0}>
-                          <div className="cover">
-                            <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
-                            <span className="card-badge score"><Star />{item.score}</span>
-                            <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
-                              <Heart />
-                            </button>
-                          </div>
-                          <div className="card-info">
-                            <h3 className="card-title">{item.title}</h3>
-                            <p className="card-meta">{item.genre}</p>
-                          </div>
-                        </article>
-                      </Link>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+                  {filteredManhwas.map((item) => (
+                    <Link key={item.id} href={`/manga/${item.id}`} className="block">
+                      <article className="media-card h-full" tabIndex={0}>
+                        <div className="cover">
+                          <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" className="w-full object-cover aspect-[2/3]" />
+                          <span className="card-badge score"><Star />{item.score}</span>
+                          <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
+                            <Heart />
+                          </button>
+                        </div>
+                        <div className="card-info p-3">
+                          <h3 className="card-title line-clamp-1">{item.title}</h3>
+                          <p className="card-meta">{item.genre}</p>
+                        </div>
+                      </article>
+                    </Link>
+                  ))}
                 </div>
               )}
             </section>
