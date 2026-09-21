@@ -666,7 +666,7 @@ export default function AdminProDashboard() {
                           <td className="py-3 font-semibold text-white">{u.email}</td>
                           <td className="py-3 text-[#a7a7b1]">{new Date(u.created_at).toLocaleDateString()}</td>
                           <td className="py-3 text-right">
-                            <span className={inline-block px-2.5 py-1 rounded-full text-xs font-semibold }>
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${u.email === 'diazmowi07@gmail.com' ? 'bg-[#a855f7]/20 text-[#c084fc]' : 'bg-white/10 text-white/70'}`}>
                               {u.email === 'diazmowi07@gmail.com' ? 'Admin' : 'Lector'}
                             </span>
                           </td>
@@ -722,6 +722,7 @@ export default function AdminProDashboard() {
     </div>
   );
 }
+
 
 
 
