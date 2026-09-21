@@ -58,7 +58,7 @@ export default function MascotBot() {
       setVideoId(match[1]);
       setIsPlaying(true);
       setCustomUrl("");
-      setIsOpen(false); // Cierra el menú automáticamente
+      setIsOpen(false);
     } else {
       alert("Enlace de YouTube no válido.");
     }
@@ -79,7 +79,7 @@ export default function MascotBot() {
   return (
     <div 
       style={{ transform: `translate(${position.x}px, ${position.y}px)`, touchAction: "none" }}
-      className="fixed top-0 left-0 z-[9999] flex flex-col items-center"
+      className="fixed top-0 left-0 z-[9999] flex justify-center items-center"
     >
       <style>{`
         .eq-bar { animation: equalize 1s infinite alternate; }
@@ -98,9 +98,9 @@ export default function MascotBot() {
         ></iframe>
       )}
 
-      {/* Premium Chat Bubble Menu */}
+      {/* Premium Chat Bubble Menu - ABOSLUTELY POSITIONED ABOVE MASCOT */}
       <div 
-        className={`transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100 mb-3' : 'scale-0 opacity-0 h-0 m-0'} bg-black/60 border border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] w-80 backdrop-blur-2xl cursor-default`}
+        className={`absolute bottom-full mb-4 left-1/2 -translate-x-1/2 transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'} bg-black/60 border border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] w-80 backdrop-blur-2xl cursor-default`}
       >
         <div className="flex justify-between items-center mb-5 pb-3 border-b border-white/5">
           <div className="flex items-center gap-2">
@@ -112,7 +112,6 @@ export default function MascotBot() {
           </button>
         </div>
         
-        {/* Status Area */}
         <div className="mb-4">
           {isPlaying ? (
             <div className="flex items-center gap-3 bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-xl p-3">
@@ -128,7 +127,6 @@ export default function MascotBot() {
           )}
         </div>
         
-        {/* URL Input */}
         <div className="flex items-center gap-2 mb-4 bg-[#0a0a0a] rounded-xl p-1 border border-white/5 focus-within:border-[#a855f7]/50 focus-within:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all">
           <input 
             type="text" 
@@ -146,12 +144,11 @@ export default function MascotBot() {
           </button>
         </div>
 
-        {/* Action Button */}
         <button 
           onClick={() => {
             if (!isPlaying) { setVideoId("jfKfPfyJRdk"); }
             setIsPlaying(!isPlaying);
-            if (!isPlaying) setIsOpen(false); // Cierra al darle play al Lofi por defecto
+            if (!isPlaying) setIsOpen(false); 
           }}
           className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold transition-all ${isPlaying ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-gradient-to-r from-[#a855f7] to-[#7e22ce] text-white hover:opacity-90 shadow-lg shadow-purple-900/40'}`}
         >
@@ -163,57 +160,38 @@ export default function MascotBot() {
         </button>
       </div>
 
-      {/* Mascot Avatar */}
+      {/* Mascot Avatar - Size restored to version 3! */}
       <div 
         ref={dragRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={`relative group w-16 h-16 md:w-20 md:h-20 transition-transform select-none ${isDragging ? 'cursor-grabbing scale-95' : 'cursor-grab hover:scale-105'} filter drop-shadow-[0_5px_15px_rgba(168,85,247,0.3)] hover:drop-shadow-[0_5px_25px_rgba(168,85,247,0.6)]`}
+        className={`relative group w-20 h-20 md:w-24 md:h-24 transition-transform select-none ${isDragging ? 'cursor-grabbing scale-95' : 'cursor-grab hover:scale-105'} filter drop-shadow-[0_5px_15px_rgba(168,85,247,0.3)] hover:drop-shadow-[0_5px_25px_rgba(168,85,247,0.6)]`}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7] to-[#4f46e5] rounded-full blur-xl -z-10 opacity-30 group-hover:opacity-60 transition-opacity duration-300"></div>
         
-        {/* Sleek Minimalist Robot Cat */}
-        <svg viewBox="0 0 100 100" className="w-full h-full">
+        {/* Original Version 3 Vector SVG Design */}
+        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
           <defs>
-            <linearGradient id="robotBody" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1e1b4b" />
-              <stop offset="100%" stopColor="#0f172a" />
+            <linearGradient id="nekuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#a855f7" />
+              <stop offset="100%" stopColor="#6366f1" />
             </linearGradient>
-            <linearGradient id="robotEar" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#c084fc" />
+            <linearGradient id="earGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#d8b4fe" />
               <stop offset="100%" stopColor="#a855f7" />
             </linearGradient>
           </defs>
-          
-          {/* Ears */}
-          <polygon points="25,35 15,10 40,25" fill="url(#robotEar)" />
-          <polygon points="75,35 85,10 60,25" fill="url(#robotEar)" />
-          
-          {/* Head Box */}
-          <rect x="15" y="25" width="70" height="55" rx="16" fill="url(#robotBody)" stroke="#3b82f6" strokeWidth="1" />
-          <rect x="22" y="32" width="56" height="41" rx="8" fill="#000000" stroke="#1e1b4b" strokeWidth="2" />
-          
-          {/* Glowing Eyes */}
-          <path d="M 32 48 Q 38 42 44 48" fill="none" stroke="#a855f7" strokeWidth="3" strokeLinecap="round" />
-          <path d="M 56 48 Q 62 42 68 48" fill="none" stroke="#a855f7" strokeWidth="3" strokeLinecap="round" />
-          
-          {/* Audio Waves on Cheeks (if playing) */}
-          {isPlaying ? (
-             <g opacity="0.8">
-               <circle cx="30" cy="58" r="3" fill="#ec4899" className="animate-pulse" />
-               <circle cx="70" cy="58" r="3" fill="#ec4899" className="animate-pulse" />
-             </g>
-          ) : (
-             <g opacity="0.4">
-               <ellipse cx="30" cy="58" rx="4" ry="2" fill="#ec4899" />
-               <ellipse cx="70" cy="58" rx="4" ry="2" fill="#ec4899" />
-             </g>
-          )}
-          
-          {/* Mouth */}
-          <path d="M 47 55 Q 50 58 53 55" fill="none" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M 25 35 L 15 10 L 40 28 Z" fill="url(#earGrad)" stroke="#1e1b4b" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M 75 35 L 85 10 L 60 28 Z" fill="url(#earGrad)" stroke="#1e1b4b" strokeWidth="2" strokeLinejoin="round" />
+          <rect x="15" y="25" width="70" height="55" rx="22" fill="url(#nekuGrad)" stroke="#1e1b4b" strokeWidth="3" />
+          <rect x="22" y="32" width="56" height="41" rx="14" fill="#0f172a" stroke="#1e1b4b" strokeWidth="2" />
+          <path d="M 32 50 Q 38 42 44 50" fill="none" stroke="#e879f9" strokeWidth="4" strokeLinecap="round" />
+          <path d="M 56 50 Q 62 42 68 50" fill="none" stroke="#e879f9" strokeWidth="4" strokeLinecap="round" />
+          <ellipse cx="30" cy="58" rx="5" ry="2.5" fill="#ec4899" opacity="0.8" />
+          <ellipse cx="70" cy="58" rx="5" ry="2.5" fill="#ec4899" opacity="0.8" />
+          <path d="M 47 58 Q 50 62 53 58" fill="none" stroke="#e879f9" strokeWidth="2" strokeLinecap="round" />
         </svg>
 
         {!isOpen && (
