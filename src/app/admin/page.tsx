@@ -20,7 +20,7 @@ export default function AdminProDashboard() {
   const [loadingUser, setLoadingUser] = useState(true);
 
   // Vistas
-  const [activeView, setActiveView] = useState<"dashboard" | "manhwas" | "chapters" | "pages" | "automator" | "users" | "reviews">("dashboard");
+  const [activeView, setActiveView] = useState<"dashboard" | "manhwas" | "chapters" | "pages" | "automator" | "users" | "reviews" | "reports">("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Estados Globales (Dashboard)
@@ -42,6 +42,7 @@ export default function AdminProDashboard() {
   const [status, setStatus] = useState("Publicado");
   const [type, setType] = useState("Manhwa");
   const [isHero, setIsHero] = useState(false);
+  const [editingId, setEditingId] = useState('');
 
   // Estados de Capítulos
   const [chapters, setChapters] = useState<any[]>([]);
@@ -112,21 +113,54 @@ export default function AdminProDashboard() {
     if (data) setChapters(data);
   };
 
-  const handleCreateManhwa = async (e: React.FormEvent) => {
+    const handleSaveManhwa = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.from("manhwas").insert({
+    
+    const payload = {
       title, description, author, artist, status, type,
       genre: [genre], cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero
-    });
+    };
+
+    let error;
+    if (editingId) {
+      const { error: err } = await supabase.from("manhwas").update(payload).eq("id", editingId);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from("manhwas").insert(payload);
+      error = err;
+    }
+    
     setLoading(false);
     if (error) { alert("Error: " + error.message); } 
     else {
-      setSuccessMsg("Manhwa creado con éxito");
+      setSuccessMsg(editingId ? "Manhwa actualizado con éxito" : "Manhwa creado con éxito");
       setIsAddManhwaOpen(false);
+      setEditingId("");
       loadDashboardData();
       setTimeout(() => setSuccessMsg(""), 3000);
     }
+  };
+
+  const handleEditManhwa = (m: any) => {
+    setEditingId(m.id);
+    setTitle(m.title || "");
+    setDescription(m.description || "");
+    setCoverUrl(m.cover_url || "");
+    setBannerUrl(m.banner_url || "");
+    setGenre(m.genre?.[0] || "Acción");
+    setStatus(m.status || "Publicado");
+    setIsAddManhwaOpen(true);
+  };
+
+  const handleDeleteManhwa = async (id: string) => {
+    if (!confirm("¿ESTÁS SEGURO? Esto borrará el manhwa y todos sus capítulos y páginas. Esta acción no se puede deshacer.")) return;
+    setLoading(true);
+    await supabase.from("manhwas").delete().eq("id", id);
+    setManhwas(manhwas.filter(m => m.id !== id));
+    setLoading(false);
+    setSuccessMsg("Manhwa eliminado por completo");
+    setTimeout(() => setSuccessMsg(""), 3000);
   };
 
   const handleCreateChapter = async (e: React.FormEvent) => {
@@ -281,7 +315,7 @@ export default function AdminProDashboard() {
           </div>
           <SidebarItem id="users" icon={Users} label="Usuarios" />
           <SidebarItem id="reviews" icon={MessageSquare} label="Comentarios" />
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/30 cursor-not-allowed"><AlertCircle className="w-5 h-5" /> Reportes</button>
+          <SidebarItem id="reports" icon={AlertCircle} label="Reportes" />
         </nav>
       </aside>
 
@@ -425,7 +459,7 @@ export default function AdminProDashboard() {
                       <h3 className="text-lg font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#a855f7]" /> Gestión de manhwas</h3>
                       <p className="text-sm text-[#a7a7b1]">Administra el catálogo de la plataforma.</p>
                     </div>
-                    <button onClick={() => setIsAddManhwaOpen(!isAddManhwaOpen)} className="btn bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-[#a855f7]/20">
+                    <button onClick={() => { setEditingId(""); setTitle(""); setDescription(""); setCoverUrl(""); setBannerUrl(""); setIsAddManhwaOpen(!isAddManhwaOpen); }} className="btn bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-[#a855f7]/20">
                       {isAddManhwaOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {isAddManhwaOpen ? 'Cerrar panel' : 'Nuevo manhwa'}
                     </button>
                   </div>
@@ -452,8 +486,7 @@ export default function AdminProDashboard() {
                             <td className="py-3"><span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-[#10b981]/20 text-[#34d399]">{m.status || 'Publicado'}</span></td>
                             <td className="py-3 text-right">
                               <div className="flex justify-end gap-2">
-                                <button className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
-                                <button className="p-2 bg-[#ef4444]/10 hover:bg-[#ef4444]/20 rounded-lg text-[#ef4444] transition-colors" title="Borrar"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => handleEditManhwa(m)} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button> <button onClick={() => handleDeleteManhwa(m.id)} className="p-2 bg-[#ef4444]/10 hover:bg-[#ef4444]/20 rounded-lg text-[#ef4444] transition-colors" title="Borrar"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             </td>
                           </tr>
@@ -467,7 +500,7 @@ export default function AdminProDashboard() {
                 {isAddManhwaOpen && (
                   <div className="w-full lg:w-1/3 bg-[#121216] border border-white/5 rounded-2xl p-6 h-fit shrink-0 animate-in slide-in-from-right-8 fade-in">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6 border-b border-white/5 pb-4"><Plus className="w-5 h-5 text-[#a855f7]" /> Agregar nuevo manhwa</h3>
-                    <form onSubmit={handleCreateManhwa} className="space-y-4">
+                    <form onSubmit={handleSaveManhwa} className="space-y-4">
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-[#a7a7b1] uppercase tracking-wider">Título</label>
                         <input type="text" required value={title} onChange={e => setTitle(e.target.value)} className="w-full h-10 bg-black/30 border border-white/10 rounded-xl px-3 text-sm text-white focus:border-[#a855f7] outline-none transition-colors" placeholder="Ej. Solo Leveling" />
@@ -717,11 +750,29 @@ export default function AdminProDashboard() {
                 </div>
               </div>
             )}
+                    {/* VISTA 8: REPORTES */}
+            {activeView === 'reports' && (
+              <div className="bg-[#121216] border border-white/5 rounded-2xl p-6 max-w-4xl">
+                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><AlertCircle className="w-5 h-5 text-[#ef4444]" /> Centro de Reportes</h3>
+                    <p className="text-sm text-[#a7a7b1]">Contenido reportado por la comunidad por inclumplimiento de normas.</p>
+                  </div>
+                </div>
+                <div className="p-12 text-center text-[#a7a7b1] border-2 border-dashed border-white/5 rounded-2xl bg-black/20">
+                  <AlertCircle className="w-12 h-12 text-[#a7a7b1]/30 mx-auto mb-4" />
+                  <p className="text-lg font-semibold text-white mb-1">Todo está en orden</p>
+                  <p className="text-sm">No hay reportes pendientes de revisión. ¡Tu comunidad se está portando excelente!</p>
+                </div>
+              </div>
+            )}
         </main>
       </div>
     </div>
   );
 }
+
+
 
 
 
