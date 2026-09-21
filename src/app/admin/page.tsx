@@ -119,7 +119,7 @@ export default function AdminProDashboard() {
     setLoading(true);
     
     const payload = {
-      title, description, author, status, type,
+      title, description, status,
       genre: [genre], cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero
     };
 
@@ -779,6 +779,7 @@ export default function AdminProDashboard() {
     </div>
   );
 }
+
 
 
 
