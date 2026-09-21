@@ -46,6 +46,7 @@ export default function MangaDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [sortDesc, setSortDesc] = useState(true);
 
   // Review form state
   const [newReview, setNewReview] = useState("");
@@ -258,10 +259,7 @@ export default function MangaDetail() {
 
         {/* Chapters List */}
         <div className="mt-16">
-          <div className="flex items-center gap-3 mb-6">
-            <List className="w-6 h-6 text-[#a855f7]" />
-            <h2 className="text-2xl font-bold">Capítulos</h2>
-          </div>
+          <div className="flex items-center justify-between mb-6"> <div className="flex items-center gap-3"> <List className="w-6 h-6 text-[#a855f7]" /> <h2 className="text-2xl font-bold">Capítulos</h2> </div> <button onClick={() => setSortDesc(!sortDesc)} className="btn glass border border-white/10 hover:bg-white/5 text-sm"> Ordenar: {sortDesc ? "Más recientes" : "Más antiguos"} </button> </div>
 
           <div className="glass rounded-[22px] overflow-hidden">
             {chapters.length === 0 ? (
@@ -270,7 +268,7 @@ export default function MangaDetail() {
               </div>
             ) : (
               <ul className="divide-y divide-white/5">
-                {chapters.map((chapter) => (
+                {[...chapters].sort((a, b) => sortDesc ? b.chapter_number - a.chapter_number : a.chapter_number - b.chapter_number).map((chapter) => (
                   <li key={chapter.id}>
                     <Link 
                       href={`/manga/${id}/chapter/${chapter.id}`}
@@ -408,3 +406,4 @@ export default function MangaDetail() {
     </div>
   );
 }
+
