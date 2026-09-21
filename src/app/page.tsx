@@ -392,7 +392,7 @@ export default function Home() {
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
             <div className="bg-[#121214] border border-[#2a2a35] p-8 rounded-2xl max-w-md w-full text-center shadow-2xl">
               <div className="w-16 h-16 bg-pink-500/10 text-pink-500 flex items-center justify-center rounded-full mx-auto mb-6">
-                <ShieldAlert size={32} />
+                <Shield size={32} />
               </div>
               <h2 className="text-2xl font-bold text-white mb-4">Contenido para Adultos</h2>
               <p className="text-gray-400 mb-8">
