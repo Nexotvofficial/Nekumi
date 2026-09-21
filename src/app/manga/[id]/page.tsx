@@ -122,10 +122,9 @@ export default function MangaDetail() {
   const submitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      alert("Inicia sesión para opinar.");
+      alert("Inicia sesión para calificar.");
       return;
     }
-    if (!newReview.trim()) return;
 
     setReviewLoading(true);
     const { data, error } = await supabase
@@ -135,20 +134,31 @@ export default function MangaDetail() {
           manhwa_id: id,
           user_id: user.id,
           user_email: user.email,
-          
+          avatar_key: selectedAvatar,
           rating: newRating,
-          content: newReview,
+          content: newReview || "Sin comentario",
         },
       ])
       .select();
 
-    setReviewLoading(false);
     if (error) {
-      alert("Error al publicar reseña: " + error.message);
+      alert("Error al calificar: " + error.message);
+      setReviewLoading(false);
     } else {
       setNewReview("");
       setNewRating(5);
-      if (data) setReviews([data[0], ...reviews]);
+      
+      if (data) {
+        const updatedReviews = [data[0], ...reviews];
+        setReviews(updatedReviews);
+        
+        // Calcular nuevo promedio y actualizar manhwa
+        const sum = updatedReviews.reduce((acc, r) => acc + r.rating, 0);
+        const avg = parseFloat((sum / updatedReviews.length).toFixed(1));
+        await supabase.from("manhwas").update({ score: avg }).eq("id", id);
+        if (manhwa) setManhwa({ ...manhwa, score: avg });
+      }
+      setReviewLoading(false);
     }
   };
 
@@ -238,10 +248,14 @@ export default function MangaDetail() {
             </h1>
             
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-[#a7a7b1] mb-8 font-medium">
-              <div className="flex items-center gap-1.5 text-white">
+              <button 
+                onClick={() => document.getElementById('reseñas-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex items-center gap-1.5 text-white hover:text-[#fbbf24] transition-colors cursor-pointer"
+                title="Calificar este manhwa"
+              >
                 <Star className="w-4 h-4 text-[#fbbf24] fill-[#fbbf24]" />
                 <span className="font-bold text-[15px]">{manhwa.score}</span>
-              </div>
+              </button>
               <div className="w-1 h-1 rounded-full bg-white/20" />
               <div className="flex items-center gap-1.5">
                 <List className="w-4 h-4" />
@@ -300,7 +314,7 @@ export default function MangaDetail() {
         </div>
 
         {/* Reviews Section */}
-        <div className="mt-16 border-t border-white/10 pt-16">
+        <div id="reseñas-section" className="mt-16 border-t border-white/10 pt-16">
           <div className="flex items-center gap-3 mb-8">
             <MessageCircle className="w-6 h-6 text-[#a855f7]" />
             <h2 className="text-2xl font-bold">Comentarios y Reseñas</h2>
@@ -351,9 +365,8 @@ export default function MangaDetail() {
               <textarea
                 value={newReview}
                 onChange={(e) => setNewReview(e.target.value)}
-                placeholder="¿Qué te pareció este manhwa?"
+                placeholder="¿Qué te pareció este manhwa? (Opcional)"
                 rows={3}
-                required
                 className="w-full rounded-xl border border-white/10 bg-black/20 text-white p-4 text-sm resize-none mb-4 focus:outline-none focus:border-[#a855f7]/50"
               />
               <button

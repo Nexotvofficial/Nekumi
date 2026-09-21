@@ -369,26 +369,33 @@ export default function Home() {
       <main>
         <div className="shell page-grid">
           <div className="main-column">
-            {heroManhwa && (
-              <section className="hero" aria-labelledby="heroTitle">
-                <img className="hero-bg" src={(heroManhwa as any).banner_url || heroManhwa.cover_url} alt={`Ilustración de ${heroManhwa.title}`} />
-                <div className="hero-content">
-                  <div className="hero-kicker">
-                    <span className="tag accent">{heroManhwa.genre}</span>
-                    <span className="tag">Webtoon</span>
+            {displayHeroes.length > 0 && (
+              <section className="hero relative overflow-hidden" aria-labelledby="heroTitle">
+                {displayHeroes.map((hero, idx) => (
+                  <div 
+                    key={hero.id}
+                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                  >
+                    <img className="hero-bg w-full h-full object-cover" src={(hero as any).banner_url || hero.cover_url} alt={`Ilustración de ${hero.title}`} />
+                    <div className="hero-content relative z-20">
+                      <div className="hero-kicker">
+                        <span className="tag accent">{hero.genre}</span>
+                        <span className="tag">Webtoon</span>
+                      </div>
+                      <h1 id="heroTitle" className="hero-title uppercase">{hero.title}</h1>
+                      <div className="hero-meta">
+                        <span className="rating"><Star />{hero.score}</span>
+                        <span className="meta-separator"></span>
+                      </div>
+                      <p className="hero-copy">{hero.description}</p>
+                      <div className="hero-actions">
+                        <Link href={`/manga/${hero.id}`} className="btn btn-primary">
+                          <BookOpen />Ver Detalles
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                  <h1 id="heroTitle" className="hero-title uppercase">{heroManhwa.title}</h1>
-                  <div className="hero-meta">
-                    <span className="rating"><Star />{heroManhwa.score}</span>
-                    <span className="meta-separator"></span>
-                  </div>
-                  <p className="hero-copy">{heroManhwa.description}</p>
-                  <div className="hero-actions">
-                    <Link href={`/manga/${heroManhwa.id}`} className="btn btn-primary">
-                      <BookOpen />Ver Detalles
-                    </Link>
-                  </div>
-                </div>
+                ))}
               </section>
             )}
             
