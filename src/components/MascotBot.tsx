@@ -116,7 +116,7 @@ export default function MascotBot() {
               <iframe 
                 width="100%" 
                 height="100%" 
-                src={`https://yewtu.be/embed/${videoId}?autoplay=1`} 
+                src={`https://inv.tux.pizza/embed/${videoId}?autoplay=1`} 
                 title="YouTube video player" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -205,5 +205,6 @@ export default function MascotBot() {
     </div>
   );
 }
+
 
 
