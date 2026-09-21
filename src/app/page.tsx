@@ -370,7 +370,7 @@ export default function Home() {
         <div className="shell page-grid">
           <div className="main-column">
             {displayHeroes.length > 0 && (
-              <section className="hero" aria-labelledby="heroTitle">
+              <section className="hero grid" aria-labelledby="heroTitle">
                 {displayHeroes.map((hero, idx) => (
                   <img 
                     key={`bg-${hero.id}`}
@@ -383,7 +383,7 @@ export default function Home() {
                 {displayHeroes.map((hero, idx) => (
                   <div 
                     key={`content-${hero.id}`}
-                    className={`hero-content transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100 pointer-events-auto relative' : 'opacity-0 pointer-events-none absolute top-0 left-0 w-full h-full'}`}
+                    className={`hero-content col-start-1 row-start-1 transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-0'}`}
                   >
                     <div className="hero-kicker">
                       <span className="tag accent">{hero.genre}</span>
@@ -394,7 +394,7 @@ export default function Home() {
                       <span className="rating"><Star />{hero.score}</span>
                       <span className="meta-separator"></span>
                     </div>
-                    <p className="hero-copy">{hero.description}</p>
+                    <p className="hero-copy line-clamp-3">{hero.description}</p>
                     <div className="hero-actions">
                       <Link href={`/manga/${hero.id}`} className="btn btn-primary">
                         <BookOpen />Ver Detalles
