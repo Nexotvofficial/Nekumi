@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import MascotBot from "@/components/MascotBot";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -21,7 +22,9 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <body className={`${inter.variable} antialiased`}>
         {children}
+        <MascotBot />
       </body>
     </html>
   );
 }
+
