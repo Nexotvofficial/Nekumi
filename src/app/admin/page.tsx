@@ -119,7 +119,7 @@ export default function AdminProDashboard() {
     setLoading(true);
     
     const payload = {
-      title, description, author, artist, status, type,
+      title, description, author, status, type,
       genre: [genre], cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero
     };
 
@@ -510,11 +510,18 @@ export default function AdminProDashboard() {
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-[#a7a7b1] uppercase tracking-wider">Género</label>
                           <select value={genre} onChange={e => setGenre(e.target.value)} className="w-full h-10 bg-black/30 border border-white/10 rounded-xl px-3 text-sm text-white focus:border-[#a855f7] outline-none transition-colors">
-                            <option value="Acción" className="bg-[#121216]">Acción</option>
-                            <option value="Romance" className="bg-[#121216]">Romance</option>
-                            <option value="Fantasía" className="bg-[#121216]">Fantasía</option>
-                            <option value="+18" className="bg-[#121216]">+18</option>
-                          </select>
+                              <option value="Acción" className="bg-[#121216]">Acción</option>
+                              <option value="Romance" className="bg-[#121216]">Romance</option>
+                              <option value="Fantasía" className="bg-[#121216]">Fantasía</option>
+                              <option value="Comedia" className="bg-[#121216]">Comedia</option>
+                              <option value="Drama" className="bg-[#121216]">Drama</option>
+                              <option value="Aventura" className="bg-[#121216]">Aventura</option>
+                              <option value="Reencarnación" className="bg-[#121216]">Reencarnación</option>
+                              <option value="Sistema" className="bg-[#121216]">Sistema</option>
+                              <option value="Sobrenatural" className="bg-[#121216]">Sobrenatural</option>
+                              <option value="Escolar" className="bg-[#121216]">Escolar</option>
+                              <option value="+18" className="bg-[#121216]">+18</option>
+                            </select>
                         </div>
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-[#a7a7b1] uppercase tracking-wider">Estado</label>
@@ -772,6 +779,7 @@ export default function AdminProDashboard() {
     </div>
   );
 }
+
 
 
 
