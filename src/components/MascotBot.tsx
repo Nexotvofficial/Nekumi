@@ -67,13 +67,7 @@ export default function MascotBot() {
 
   return (
     <>
-      <style>{
-        @keyframes custom-float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-12px); }
-          100% { transform: translateY(0px); }
-        }
-      }</style>
+      
       
       <div 
         ref={dragRef}
@@ -149,3 +143,4 @@ export default function MascotBot() {
     </>
   );
 }
+
