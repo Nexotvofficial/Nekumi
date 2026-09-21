@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Music, Pause, X, MessageCircle, Play } from "lucide-react";
+import { Music, Pause, X, Play, Radio, Volume2 } from "lucide-react";
 
 export default function MascotBot() {
   const [isVisible, setIsVisible] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Custom YouTube ID
   const [videoId, setVideoId] = useState("jfKfPfyJRdk");
   const [customUrl, setCustomUrl] = useState("");
   
@@ -20,8 +19,8 @@ export default function MascotBot() {
   const dragInfo = useRef({ startX: 0, startY: 0, isDragMove: false });
 
   useEffect(() => {
-    const initialX = window.innerWidth > 768 ? window.innerWidth - 150 : window.innerWidth - 100;
-    const initialY = window.innerHeight > 768 ? window.innerHeight - 200 : window.innerHeight - 150;
+    const initialX = window.innerWidth > 768 ? window.innerWidth - 120 : window.innerWidth - 100;
+    const initialY = window.innerHeight > 768 ? window.innerHeight - 150 : window.innerHeight - 150;
     setPosition({ x: initialX, y: initialY });
     posRef.current = { x: initialX, y: initialY };
   }, []);
@@ -59,8 +58,9 @@ export default function MascotBot() {
       setVideoId(match[1]);
       setIsPlaying(true);
       setCustomUrl("");
+      setIsOpen(false); // Cierra el menú automáticamente
     } else {
-      alert("Enlace de YouTube no válido. Asegúrate de copiar el link completo.");
+      alert("Enlace de YouTube no válido.");
     }
   };
 
@@ -68,10 +68,10 @@ export default function MascotBot() {
     return (
       <button 
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-4 md:left-4 md:right-auto z-[9999] bg-[#a855f7] p-3 rounded-full shadow-lg shadow-purple-500/50 hover:bg-[#c084fc] transition-all flex items-center gap-2 group"
+        className="fixed bottom-6 right-6 md:left-6 md:right-auto z-[9999] bg-[#a855f7]/10 backdrop-blur-md border border-[#a855f7]/40 p-3.5 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:bg-[#a855f7]/20 hover:scale-105 transition-all flex items-center gap-3 group"
       >
-        <MessageCircle className="w-5 h-5 text-white" />
-        <span className="text-white text-sm font-bold w-0 overflow-hidden group-hover:w-32 whitespace-nowrap transition-all duration-300">Neku Bot</span>
+        <Radio className="w-5 h-5 text-[#c084fc] animate-pulse" />
+        <span className="text-white text-sm font-semibold w-0 overflow-hidden group-hover:w-32 whitespace-nowrap transition-all duration-300">Asistente Neku</span>
       </button>
     );
   }
@@ -81,6 +81,13 @@ export default function MascotBot() {
       style={{ transform: `translate(${position.x}px, ${position.y}px)`, touchAction: "none" }}
       className="fixed top-0 left-0 z-[9999] flex flex-col items-center"
     >
+      <style>{`
+        .eq-bar { animation: equalize 1s infinite alternate; }
+        .eq-bar:nth-child(2) { animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes equalize { 0% { height: 4px; } 100% { height: 12px; } }
+      `}</style>
+      
       {isPlaying && (
         <iframe
           width="0" height="0"
@@ -91,102 +98,127 @@ export default function MascotBot() {
         ></iframe>
       )}
 
-      {/* Chat Bubble Menu (Not draggable) */}
+      {/* Premium Chat Bubble Menu */}
       <div 
-        className={`transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100 mb-2' : 'scale-0 opacity-0 h-0 m-0'} bg-[#1a1a2e]/95 border border-[#a855f7]/50 rounded-2xl p-5 shadow-2xl shadow-purple-900/50 w-72 backdrop-blur-xl`}
+        className={`transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100 mb-3' : 'scale-0 opacity-0 h-0 m-0'} bg-black/60 border border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] w-80 backdrop-blur-2xl cursor-default`}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-white font-bold text-sm flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> Neku Bot
-          </h4>
-          <button onClick={() => { setIsVisible(false); setIsPlaying(false); }} className="text-gray-400 hover:text-red-400 bg-white/5 rounded-full p-1 transition-colors">
+        <div className="flex justify-between items-center mb-5 pb-3 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7]"></div>
+            <h4 className="text-white font-bold text-sm tracking-wide">Neku<span className="text-[#a855f7] font-normal">Bot</span></h4>
+          </div>
+          <button onClick={() => { setIsVisible(false); setIsPlaying(false); }} className="text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full p-1.5">
             <X className="w-4 h-4" />
           </button>
         </div>
         
-        <p className="text-gray-300 text-xs mb-4 leading-relaxed">¡Miau! 🐾 Escribe el link de tu canción favorita de YouTube y yo me encargo de ponerla de fondo.</p>
+        {/* Status Area */}
+        <div className="mb-4">
+          {isPlaying ? (
+            <div className="flex items-center gap-3 bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-xl p-3">
+              <div className="flex items-end gap-1 h-3">
+                <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
+                <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
+                <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
+              </div>
+              <p className="text-[#c084fc] text-xs font-medium">Reproduciendo audio de fondo</p>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-xs leading-relaxed">Conecta tu música favorita de YouTube para acompañar tu lectura.</p>
+          )}
+        </div>
         
-        {/* Custom Song Input (Fixed bug) */}
-        <div className="flex items-center gap-2 mb-4 bg-black/50 rounded-xl p-1.5 border border-white/10 focus-within:border-[#a855f7] transition-colors">
+        {/* URL Input */}
+        <div className="flex items-center gap-2 mb-4 bg-[#0a0a0a] rounded-xl p-1 border border-white/5 focus-within:border-[#a855f7]/50 focus-within:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all">
           <input 
             type="text" 
             placeholder="Pegar link de YouTube..."
             value={customUrl}
             onChange={(e) => setCustomUrl(e.target.value)}
-            className="bg-transparent border-none outline-none text-xs text-white px-2 py-1.5 w-full placeholder:text-gray-500"
+            className="bg-transparent border-none outline-none text-xs text-white px-3 py-2 w-full placeholder:text-gray-600"
             onKeyDown={(e) => e.key === 'Enter' && handlePlayCustom()}
           />
           <button 
             onClick={handlePlayCustom}
-            className="bg-[#a855f7] text-white p-2 rounded-lg hover:bg-[#c084fc] hover:shadow-lg hover:shadow-purple-500/20 transition-all flex-shrink-0"
+            className="bg-[#a855f7] text-white p-2 rounded-lg hover:bg-[#c084fc] transition-colors flex-shrink-0"
           >
-            <Play className="w-3 h-3 fill-current" />
+            <Play className="w-3.5 h-3.5 fill-current" />
           </button>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <button 
-            onClick={() => {
-              if (!isPlaying) setVideoId("jfKfPfyJRdk"); // Reset to default Lofi
-              setIsPlaying(!isPlaying);
-            }}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all shadow-lg ${isPlaying ? 'bg-pink-500/20 text-pink-400 border border-pink-500/50 hover:bg-pink-500/30 shadow-pink-500/20' : 'bg-gradient-to-r from-[#a855f7] to-[#8b5cf6] text-white border border-[#a855f7]/30 hover:shadow-purple-500/30'}`}
-          >
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Music className="w-4 h-4" />}
-            {isPlaying ? 'Pausar música' : 'Reproducir Lofi por defecto'}
-          </button>
-        </div>
+        {/* Action Button */}
+        <button 
+          onClick={() => {
+            if (!isPlaying) { setVideoId("jfKfPfyJRdk"); }
+            setIsPlaying(!isPlaying);
+            if (!isPlaying) setIsOpen(false); // Cierra al darle play al Lofi por defecto
+          }}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold transition-all ${isPlaying ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-gradient-to-r from-[#a855f7] to-[#7e22ce] text-white hover:opacity-90 shadow-lg shadow-purple-900/40'}`}
+        >
+          {isPlaying ? (
+            <> <Pause className="w-4 h-4 fill-current" /> Detener Música </>
+          ) : (
+            <> <Volume2 className="w-4 h-4" /> Lofi Radio 24/7 </>
+          )}
+        </button>
       </div>
 
-      {/* Mascot Avatar (Draggable area) */}
+      {/* Mascot Avatar */}
       <div 
         ref={dragRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={`relative group w-20 h-20 md:w-24 md:h-24 transition-transform hover:scale-105 select-none ${isDragging ? 'cursor-grabbing scale-95' : 'cursor-grab'}`}
+        className={`relative group w-16 h-16 md:w-20 md:h-20 transition-transform select-none ${isDragging ? 'cursor-grabbing scale-95' : 'cursor-grab hover:scale-105'} filter drop-shadow-[0_5px_15px_rgba(168,85,247,0.3)] hover:drop-shadow-[0_5px_25px_rgba(168,85,247,0.6)]`}
       >
-        <div className="absolute inset-0 bg-[#a855f7]/30 rounded-full blur-2xl -z-10 group-hover:bg-[#a855f7]/50 transition-all"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7] to-[#4f46e5] rounded-full blur-xl -z-10 opacity-30 group-hover:opacity-60 transition-opacity duration-300"></div>
         
-        {/* Definitive Cute Robot Cat Mascot SVG */}
-        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
+        {/* Sleek Minimalist Robot Cat */}
+        <svg viewBox="0 0 100 100" className="w-full h-full">
           <defs>
-            <linearGradient id="nekuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#a855f7" />
-              <stop offset="100%" stopColor="#6366f1" />
+            <linearGradient id="robotBody" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e1b4b" />
+              <stop offset="100%" stopColor="#0f172a" />
             </linearGradient>
-            <linearGradient id="earGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#d8b4fe" />
+            <linearGradient id="robotEar" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#c084fc" />
               <stop offset="100%" stopColor="#a855f7" />
             </linearGradient>
           </defs>
           
           {/* Ears */}
-          <path d="M 25 35 L 15 10 L 40 28 Z" fill="url(#earGrad)" stroke="#1e1b4b" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M 75 35 L 85 10 L 60 28 Z" fill="url(#earGrad)" stroke="#1e1b4b" strokeWidth="2" strokeLinejoin="round" />
+          <polygon points="25,35 15,10 40,25" fill="url(#robotEar)" />
+          <polygon points="75,35 85,10 60,25" fill="url(#robotEar)" />
           
-          {/* Main Head */}
-          <rect x="15" y="25" width="70" height="55" rx="22" fill="url(#nekuGrad)" stroke="#1e1b4b" strokeWidth="3" />
+          {/* Head Box */}
+          <rect x="15" y="25" width="70" height="55" rx="16" fill="url(#robotBody)" stroke="#3b82f6" strokeWidth="1" />
+          <rect x="22" y="32" width="56" height="41" rx="8" fill="#000000" stroke="#1e1b4b" strokeWidth="2" />
           
-          {/* Inner Screen */}
-          <rect x="22" y="32" width="56" height="41" rx="14" fill="#0f172a" stroke="#1e1b4b" strokeWidth="2" />
+          {/* Glowing Eyes */}
+          <path d="M 32 48 Q 38 42 44 48" fill="none" stroke="#a855f7" strokeWidth="3" strokeLinecap="round" />
+          <path d="M 56 48 Q 62 42 68 48" fill="none" stroke="#a855f7" strokeWidth="3" strokeLinecap="round" />
           
-          {/* Cute Eyes ^ ^ */}
-          <path d="M 32 50 Q 38 42 44 50" fill="none" stroke="#e879f9" strokeWidth="4" strokeLinecap="round" />
-          <path d="M 56 50 Q 62 42 68 50" fill="none" stroke="#e879f9" strokeWidth="4" strokeLinecap="round" />
+          {/* Audio Waves on Cheeks (if playing) */}
+          {isPlaying ? (
+             <g opacity="0.8">
+               <circle cx="30" cy="58" r="3" fill="#ec4899" className="animate-pulse" />
+               <circle cx="70" cy="58" r="3" fill="#ec4899" className="animate-pulse" />
+             </g>
+          ) : (
+             <g opacity="0.4">
+               <ellipse cx="30" cy="58" rx="4" ry="2" fill="#ec4899" />
+               <ellipse cx="70" cy="58" rx="4" ry="2" fill="#ec4899" />
+             </g>
+          )}
           
-          {/* Blushes */}
-          <ellipse cx="30" cy="58" rx="5" ry="2.5" fill="#ec4899" opacity="0.8" />
-          <ellipse cx="70" cy="58" rx="5" ry="2.5" fill="#ec4899" opacity="0.8" />
-          
-          {/* Tiny Mouth */}
-          <path d="M 47 58 Q 50 62 53 58" fill="none" stroke="#e879f9" strokeWidth="2" strokeLinecap="round" />
+          {/* Mouth */}
+          <path d="M 47 55 Q 50 58 53 55" fill="none" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
 
         {!isOpen && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 text-white font-bold text-[10px] px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-[#a855f7]/50 shadow-lg">
-            ¡Hazme click!
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0a0a0a]/90 text-white font-medium text-[10px] px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none border border-white/10 shadow-xl backdrop-blur-md">
+            Click para controles
           </div>
         )}
       </div>
