@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import MascotBot from "@/components/MascotBot";
+import SecurityShield from "@/components/SecurityShield";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -9,8 +10,33 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Nekutoon — Explora nuevos mundos",
-  description: "Nekutoon: descubre manhwas, webtoons, reseñas y tendencias.",
+  title: "Nekutoon — Leer Manhwas y Webtoons",
+  description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekutoon. Actualizaciones diarias con la mejor calidad en español.",
+  keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekutoon", "manga gratis", "acción", "romance"],
+  openGraph: {
+    title: "Nekutoon — El Mejor Catálogo de Manhwas",
+    description: "Lee tus manhwas y webtoons favoritos en la plataforma más rápida y limpia de internet.",
+    url: "https://www.nekutoon.com",
+    siteName: "Nekutoon",
+    locale: "es_LA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nekutoon — Leer Manhwas y Webtoons",
+    description: "Descubre los mejores manhwas actualizados a diario.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({
@@ -21,6 +47,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <body className={`${inter.variable} antialiased`}>
+        <SecurityShield />
         {children}
         <MascotBot />
       </body>

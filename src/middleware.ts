@@ -32,6 +32,13 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // 🛡️ TRAMPA PARA HACKERS: Bloquear rutas de escaneo malicioso
+  const maliciousPaths = ['.env', '.git', 'wp-admin', 'phpmyadmin', 'config.php', '.aws'];
+  if (maliciousPaths.some(path => request.nextUrl.pathname.includes(path))) {
+    // Si un bot intenta buscar vulnerabilidades, lo mandamos a un agujero negro
+    return new NextResponse("ACCESO DENEGADO - IP REGISTRADA", { status: 403 });
+  }
+
   // 🛡️ Regla de Seguridad: Proteger la ruta /admin
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // Si no hay usuario o el correo NO es el tuyo, patearlo al inicio

@@ -1,13 +1,27 @@
 import type { NextConfig } from "next";
 
+const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data: https://cdn.jsdelivr.net https://raw.githubusercontent.com https://*.supabase.co https://cdn.mangaupdates.com;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    connect-src 'self' https://*.supabase.co;
+    upgrade-insecure-requests;
+`;
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Aplica a todas las rutas
         source: '/(.*)',
         headers: [
-          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'X-Robots-Tag', value: 'index, follow' }, // Permitir a Google indexar tu página
+          { key: 'Content-Security-Policy', value: cspHeader.replace(/\n/g, '') },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
