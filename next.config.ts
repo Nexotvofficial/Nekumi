@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withPWAInit from "@ducanh2912/next-pwa";
 
 const cspHeader = `
     default-src 'self';
@@ -14,13 +15,20 @@ const cspHeader = `
     upgrade-insecure-requests;
 `;
 
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  skipWaiting: true,
+});
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
-          { key: 'X-Robots-Tag', value: 'index, follow' }, // Permitir a Google indexar tu página
+          { key: 'X-Robots-Tag', value: 'index, follow' },
           { key: 'Content-Security-Policy', value: cspHeader.replace(/\n/g, '') },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -48,4 +56,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);
