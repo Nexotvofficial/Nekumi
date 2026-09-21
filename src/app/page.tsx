@@ -83,14 +83,19 @@ const news = [
 ] as const;
 
 
+import Script from "next/script";
 import AuthModal from "@/components/AuthModal";
 import { LegalModal } from "@/components/LegalModal";
+import { AdsterraNative, AdsterraBanner300 } from "@/components/Adsterra";
 import { getAvatarSvg } from "@/lib/avatars";
 import { createClient } from "@/lib/supabase";
 
 export default function Home() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
+  const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
+  const [showAdultModal, setShowAdultModal] = useState(false);
+  const [pendingCategory, setPendingCategory] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [realNotifications, setRealNotifications] = useState<any[]>([]);
   const [notificationsRead, setNotificationsRead] = useState(false);
@@ -190,6 +195,16 @@ export default function Home() {
     return () => { subscription.unsubscribe(); supabase.removeChannel(channel); };
   }, [supabase]);
 
+  const handleCategoryClick = (e: any, category: string) => {
+    e?.preventDefault();
+    if (category === "+18" && !isAdultConfirmed) {
+      setPendingCategory("+18");
+      setShowAdultModal(true);
+    } else {
+      setActiveCategory(category);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setShowProfileMenu(false);
@@ -268,11 +283,11 @@ export default function Home() {
               <span className="brand-word">neku<span>toon</span></span>
             </a>
             <nav className="desktop-nav" aria-label="Navegación principal">
-              <a className={`nav-link ${!activeCategory ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory(""); }}>Explorar</a>
-              <a className={`nav-link ${activeCategory === 'Fantasía' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("Fantasía"); }}>Fantasía</a>
-              <a className={`nav-link ${activeCategory === 'Acción' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("Acción"); }}>Acción</a>
-              <a className={`nav-link ${activeCategory === 'Romance' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("Romance"); }}>Romance</a>
-              <a className={`nav-link ${activeCategory === '+18' ? 'active' : ''} text-pink-500`} href="#recomendados" onClick={(e) => { e.preventDefault(); setActiveCategory("+18"); }}>+18</a>
+              <a className={`nav-link ${!activeCategory ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "")}>Explorar</a>
+              <a className={`nav-link ${activeCategory === 'Fantasía' ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "Fantasía")}>Fantasía</a>
+              <a className={`nav-link ${activeCategory === 'Acción' ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "Acción")}>Acción</a>
+              <a className={`nav-link ${activeCategory === 'Romance' ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "Romance")}>Romance</a>
+              <a className={`nav-link ${activeCategory === '+18' ? 'active' : ''} text-pink-500`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "+18")}>+18</a>
             </nav>
             <div className="header-actions">
               <div className="search-wrap desktop-search">
@@ -357,18 +372,62 @@ export default function Home() {
           )}
           
           <nav className={`mobile-nav ${mobileNavOpen ? 'open' : ''}`} aria-label="Navegación móvil">
-            <a href="#recomendados" onClick={() => setActiveCategory("")}>Explorar</a>
-            <a href="#recomendados" onClick={() => setActiveCategory("Fantasía")}>Fantasía</a>
-            <a href="#recomendados" onClick={() => setActiveCategory("Acción")}>Acción</a>
-            <a href="#recomendados" onClick={() => setActiveCategory("Romance")}>Romance</a>
-            <a href="#recomendados" onClick={() => setActiveCategory("+18")} className="text-pink-500">+18</a>
+            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "")}>Explorar</a>
+            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "Fantasía")}>Fantasía</a>
+            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "Acción")}>Acción</a>
+            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "Romance")}>Romance</a>
+            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "+18")} className="text-pink-500">+18</a>
           </nav>
         </div>
       </header>
 
       <main>
+        {/* Adsterra Popunder (Sólo en +18) */}
+        {isAdultConfirmed && activeCategory === "+18" && (
+          <Script src="//pl31363079.profitableratecpmnetwork.com/54/29/bd/5429bd345e3c7e7bc304287e0656aaa3.js" strategy="lazyOnload" />
+        )}
+
+        {/* Modal de Advertencia +18 */}
+        {showAdultModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+            <div className="bg-[#121214] border border-[#2a2a35] p-8 rounded-2xl max-w-md w-full text-center shadow-2xl">
+              <div className="w-16 h-16 bg-pink-500/10 text-pink-500 flex items-center justify-center rounded-full mx-auto mb-6">
+                <ShieldAlert size={32} />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-4">Contenido para Adultos</h2>
+              <p className="text-gray-400 mb-8">
+                Esta sección contiene material explícito (+18). Al hacer clic en "Sí, soy mayor", 
+                confirmas que tienes la edad legal en tu país para ver este contenido.
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowAdultModal(false)}
+                  className="flex-1 py-3 px-4 rounded-xl font-medium bg-[#2a2a35] text-white hover:bg-[#3a3a45] transition-colors"
+                >
+                  No, volver
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsAdultConfirmed(true);
+                    setShowAdultModal(false);
+                    setActiveCategory(pendingCategory);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl font-medium bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-[0_0_20px_rgba(236,72,153,0.3)]"
+                >
+                  Sí, soy mayor
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="shell page-grid">
           <div className="main-column">
+            
+            {/* Adsterra Native Banner (Arriba en el inicio) */}
+            {!activeCategory && !searchQuery && <AdsterraNative />}
+
             {displayHeroes.length > 0 && (
               <section className="hero grid" aria-labelledby="heroTitle">
                 {displayHeroes.map((hero, idx) => (
@@ -496,6 +555,7 @@ export default function Home() {
         <div className="shell lower-grid">
           <div className="lower-content">
 
+            <AdsterraBanner300 />
             
             <section id="noticias" className="lower-section" aria-labelledby="newsTitle">
               <div className="section-heading">
@@ -568,9 +628,9 @@ export default function Home() {
           <nav className="footer-links" aria-label="Enlaces del pie">
             <div>
               <h3>Explorar</h3>
-              <a href="#recomendados" onClick={() => { setActiveCategory(""); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Manhwas</a>
-              <a href="#recomendados" onClick={() => { setActiveCategory("Acción"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Acción</a>
-              <a href="#recomendados" onClick={() => { setActiveCategory("Romance"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Romance</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, ""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Manhwas</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Acción"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Acción</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Romance"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Romance</a>
               <a href="#categorias">Categorías</a>
             </div>
             <div>
@@ -636,6 +696,7 @@ export default function Home() {
     </>
   );
 }
+
 
 
 

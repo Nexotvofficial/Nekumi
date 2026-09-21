@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import MascotBot from "@/components/MascotBot";
 import SecurityShield from "@/components/SecurityShield";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -58,6 +59,9 @@ export default function RootLayout({
         <SecurityShield />
         {children}
         <MascotBot />
+        
+        {/* Adsterra: Barra Social (Global) */}
+        <Script src="//pl31363077.profitableratecpmnetwork.com/bc/8a/a6/bc8aa66355b50d50a83a1ecc72eea53e.js" strategy="lazyOnload" />
       </body>
     </html>
   );
