@@ -370,29 +370,35 @@ export default function Home() {
         <div className="shell page-grid">
           <div className="main-column">
             {displayHeroes.length > 0 && (
-              <section className="hero relative overflow-hidden" aria-labelledby="heroTitle">
+              <section className="hero" aria-labelledby="heroTitle">
+                {displayHeroes.map((hero, idx) => (
+                  <img 
+                    key={`bg-${hero.id}`}
+                    className={`hero-bg transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100' : 'opacity-0'}`} 
+                    src={(hero as any).banner_url || hero.cover_url} 
+                    alt={`Ilustración de ${hero.title}`} 
+                  />
+                ))}
+                
                 {displayHeroes.map((hero, idx) => (
                   <div 
-                    key={hero.id}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                    key={`content-${hero.id}`}
+                    className={`hero-content transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100 pointer-events-auto relative' : 'opacity-0 pointer-events-none absolute top-0 left-0 w-full h-full'}`}
                   >
-                    <img className="hero-bg w-full h-full object-cover" src={(hero as any).banner_url || hero.cover_url} alt={`Ilustración de ${hero.title}`} />
-                    <div className="hero-content relative z-20">
-                      <div className="hero-kicker">
-                        <span className="tag accent">{hero.genre}</span>
-                        <span className="tag">Webtoon</span>
-                      </div>
-                      <h1 id="heroTitle" className="hero-title uppercase">{hero.title}</h1>
-                      <div className="hero-meta">
-                        <span className="rating"><Star />{hero.score}</span>
-                        <span className="meta-separator"></span>
-                      </div>
-                      <p className="hero-copy">{hero.description}</p>
-                      <div className="hero-actions">
-                        <Link href={`/manga/${hero.id}`} className="btn btn-primary">
-                          <BookOpen />Ver Detalles
-                        </Link>
-                      </div>
+                    <div className="hero-kicker">
+                      <span className="tag accent">{hero.genre}</span>
+                      <span className="tag">Webtoon</span>
+                    </div>
+                    <h1 id="heroTitle" className="hero-title uppercase">{hero.title}</h1>
+                    <div className="hero-meta">
+                      <span className="rating"><Star />{hero.score}</span>
+                      <span className="meta-separator"></span>
+                    </div>
+                    <p className="hero-copy">{hero.description}</p>
+                    <div className="hero-actions">
+                      <Link href={`/manga/${hero.id}`} className="btn btn-primary">
+                        <BookOpen />Ver Detalles
+                      </Link>
                     </div>
                   </div>
                 ))}
