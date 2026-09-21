@@ -57,6 +57,7 @@ export default function MangaDetail() {
 
   useEffect(() => {
     async function loadData() {
+      supabase.from('visits').insert([{}]).then();
       // Get user session
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
@@ -406,5 +407,6 @@ export default function MangaDetail() {
     </div>
   );
 }
+
 
 

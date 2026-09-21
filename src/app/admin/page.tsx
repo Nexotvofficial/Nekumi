@@ -26,7 +26,7 @@ export default function AdminProDashboard() {
   // Estados Globales (Dashboard)
   const [usersList, setUsersList] = useState<any[]>([]);
   const [reviewsList, setReviewsList] = useState<any[]>([]);
-  const [stats, setStats] = useState({ manhwas: 0, chapters: 0, users: 0, views: 245672 });
+  const [stats, setStats] = useState({ manhwas: 0, chapters: 0, users: 0, views: 0 });
   const [recentChapters, setRecentChapters] = useState<any[]>([]);
 
   // Estados de Manhwas
@@ -84,8 +84,9 @@ export default function AdminProDashboard() {
     // 1. Stats
     const { count: mCount } = await supabase.from("manhwas").select("*", { count: "exact", head: true });
     const { count: cCount } = await supabase.from("chapters").select("*", { count: "exact", head: true });
-    const { count: uCount } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-    setStats({ manhwas: mCount || 0, chapters: cCount || 0, users: uCount || 0, views: 245672 });
+    const { count: uCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: vCount } = await supabase.from('visits').select('*', { count: 'exact', head: true });
+    setStats({ manhwas: mCount || 0, chapters: cCount || 0, users: uCount || 0, views: 0 });
 
     // 2. Recent chapters
     const { data: recent } = await supabase
@@ -771,6 +772,7 @@ export default function AdminProDashboard() {
     </div>
   );
 }
+
 
 
 

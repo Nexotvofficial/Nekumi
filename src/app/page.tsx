@@ -139,6 +139,8 @@ export default function Home() {
     });
 
     // Check active session
+    supabase.from('visits').insert([{}]).then();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
@@ -576,6 +578,7 @@ export default function Home() {
     </>
   );
 }
+
 
 
 
