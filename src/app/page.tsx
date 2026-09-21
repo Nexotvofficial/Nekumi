@@ -11,7 +11,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  Flame,
+  Flame, User, LogOut,
   ArrowRight,
   MessagesSquare,
   TrendingUp,
@@ -97,7 +97,8 @@ export default function Home() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [cardPage, setCardPage] = useState(0);
 
-  const [toastMessage, setToastMessage] = useState("");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -149,6 +150,12 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setShowProfileMenu(false);
+    showToastMessage("Sesión cerrada correctamente");
+  };
+
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -185,15 +192,11 @@ export default function Home() {
 
   const maxCardPage = Math.max(0, filteredManhwas.length - 6); // Approximation for desktop
 
-  const handleAvatarClick = () => {
-    if (user) {
-      showToastMessage("Perfil (Próximamente)");
-    } else {
-      setIsAuthOpen(true);
-    }
-  };
+  const handleAvatarClick = () => { if (user) { setShowProfileMenu(!showProfileMenu); } else { setIsAuthOpen(true); } };
 
-  const heroManhwa = manhwas.find(m => (m as any).is_hero) || manhwas[0];
+    
+
+    const heroManhwa = manhwas.find(m => (m as any).is_hero) || manhwas[0];
 
   return (
     <>
@@ -264,9 +267,22 @@ export default function Home() {
                   <Shield className="w-4 h-4" /> Admin
                 </Link>
               )}
-              <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
-                <img src={MEDIA_CONFIG.avatar} alt="Avatar de usuario" />
-              </button>
+              <div className="relative">
+                <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
+                  <img src={MEDIA_CONFIG.avatar} alt="Avatar de usuario" />
+                </button>
+                
+                {showProfileMenu && user && (
+                  <div className="absolute right-0 mt-2 w-48 bg-[#121216] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 flex flex-col animate-in fade-in zoom-in-95">
+                    <Link href="/profile" className="px-4 py-3 text-sm text-white hover:bg-white/5 border-b border-white/5 flex items-center gap-2">
+                      <User className="w-4 h-4" /> Mi Perfil
+                    </Link>
+                    <button onClick={handleLogout} className="px-4 py-3 text-sm text-red-400 hover:bg-white/5 text-left flex items-center gap-2">
+                      <LogOut className="w-4 h-4" /> Cerrar Sesión
+                    </button>
+                  </div>
+                )}
+              </div>
               <button className="icon-btn menu-btn" type="button" aria-label="Abrir menú" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
                 {mobileNavOpen ? <XIcon /> : <Menu />}
               </button>
@@ -560,3 +576,7 @@ export default function Home() {
     </>
   );
 }
+
+
+
+
