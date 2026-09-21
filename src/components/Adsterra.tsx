@@ -28,22 +28,18 @@ export function AdsterraBanner300() {
 
   useEffect(() => {
     if (adRef.current && !adRef.current.firstChild) {
-      const conf = document.createElement("script");
-      conf.type = "text/javascript";
-      conf.innerHTML = `
-        atOptions = {
-          'key' : 'a135250a082e4273d22307c9d7e5b016',
-          'format' : 'iframe',
-          'height' : 250,
-          'width' : 300,
-          'params' : {}
-        };
-      `;
+      (window as any).atOptions = {
+        'key' : 'a135250a082e4273d22307c9d7e5b016',
+        'format' : 'iframe',
+        'height' : 250,
+        'width' : 300,
+        'params' : {}
+      };
+      
       const script = document.createElement("script");
       script.type = "text/javascript";
       script.src = "//www.highrevenueformat.com/a135250a082e4273d22307c9d7e5b016/invoke.js";
 
-      adRef.current.appendChild(conf);
       adRef.current.appendChild(script);
     }
   }, []);

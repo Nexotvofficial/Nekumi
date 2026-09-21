@@ -2,16 +2,17 @@ import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
 const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https:;
-    font-src 'self';
+    default-src 'self' https: http:;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https: http:;
+    style-src 'self' 'unsafe-inline' https: http:;
+    img-src 'self' blob: data: https: http:;
+    font-src 'self' https: data:;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    connect-src 'self' https://*.supabase.co;
+    frame-src 'self' https: http:;
+    connect-src 'self' https: http:;
     upgrade-insecure-requests;
 `;
 
