@@ -92,6 +92,7 @@ export default function Home() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [realNotifications, setRealNotifications] = useState<any[]>([]);
   const [notificationsRead, setNotificationsRead] = useState(false);
   
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -137,6 +138,43 @@ export default function Home() {
     supabase.from('reviews').select('*, manhwas(title)').order('created_at', { ascending: false }).limit(3).then(({ data }) => {
       if (data) setRecentReviews(data);
     });
+
+        const fetchInitialNotifications = async () => {
+      const { data } = await supabase
+        .from('chapters')
+        .select('id, chapter_number, created_at, manhwa:manhwas(id, title)')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (data && data.length > 0) {
+        setRealNotifications(data);
+        const lastReadId = localStorage.getItem('lastReadNotification');
+        if (lastReadId !== data[0].id) {
+          setNotificationsRead(false);
+        }
+      }
+    };
+    fetchInitialNotifications();
+
+    const channel = supabase.channel('realtime-chapters')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chapters' }, async (payload) => {
+        const { manhwa_id, chapter_number, id, created_at } = payload.new;
+        const { data: mData } = await supabase.from('manhwas').select('title').eq('id', manhwa_id).single();
+        const title = mData?.title || 'Un manhwa';
+        
+        const newNotif = {
+          id,
+          chapter_number,
+          created_at,
+          manhwa: { id: manhwa_id, title }
+        };
+        
+        setRealNotifications(prev => [newNotif, ...prev].slice(0, 5));
+        setNotificationsRead(false);
+        // Play notification sound if possible, or just toast
+        try { new Audio('/notification.mp3').play(); } catch(e) {}
+      })
+      .subscribe();
 
     // Check active session
     supabase.from('visits').insert([{}]).then();
@@ -243,22 +281,29 @@ export default function Home() {
                 </button>
                 <div className={`notification-dropdown glass ${notificationsOpen ? 'open' : ''}`}>
                   <div className="notification-head">
-                    <strong>Notificaciones</strong>
-                    <button type="button" onClick={() => { setNotificationsRead(true); showToastMessage('Notificaciones marcadas como leídas'); }}>Marcar leídas</button>
+                      <strong>Notificaciones</strong>
+                      <button type="button" onClick={() => { 
+                        setNotificationsRead(true); 
+                        if (realNotifications.length > 0) {
+                          localStorage.setItem('lastReadNotification', realNotifications[0].id);
+                        }
+                        showToastMessage('Notificaciones marcadas como leídas'); 
+                      }}>Marcar leídas</button>
+                    </div>
+                    {realNotifications.length === 0 ? (
+                      <div className="p-4 text-center text-white/50 text-sm">No hay notificaciones recientes</div>
+                    ) : (
+                      realNotifications.map(notif => (
+                        <Link href={`/manga/${notif.manhwa?.id}`} key={notif.id} className="notification-item">
+                          <span className="notification-icon"><Sparkles /></span>
+                          <span>
+                            <b>{notif.manhwa?.title}</b>
+                            <small>Capítulo {notif.chapter_number} · Hace un momento</small>
+                          </span>
+                        </Link>
+                      ))
+                    )}
                   </div>
-                  <a href="#" className="notification-item">
-                    <span className="notification-icon"><Sparkles /></span>
-                    <span><b>Nuevo capítulo disponible</b><small>El Cazador de Sombras · Cap. 50</small></span>
-                  </a>
-                  <a href="#" className="notification-item">
-                    <span className="notification-icon"><BookOpen /></span>
-                    <span><b>Estreno esta semana</b><small>La Heredera Carmesí · Temporada 2</small></span>
-                  </a>
-                  <a href="#" className="notification-item">
-                    <span className="notification-icon"><MessageCircle /></span>
-                    <span><b>Respondieron tu reseña</b><small>Luna.art mencionó tu comentario</small></span>
-                  </a>
-                </div>
               </div>
               
               <button className={`icon-btn favorite-toggle ${favorites.size > 0 ? 'active' : ''}`} type="button" aria-label="Ver favoritos">
@@ -578,6 +623,9 @@ export default function Home() {
     </>
   );
 }
+
+
+
 
 
 
