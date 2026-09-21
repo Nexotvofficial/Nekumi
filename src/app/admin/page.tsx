@@ -118,10 +118,7 @@ export default function AdminProDashboard() {
     e.preventDefault();
     setLoading(true);
     
-    const payload = {
-      title, description, status,
-      genre: [genre], cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero
-    };
+    const payload = { title, description, genre, cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero };
 
     let error;
     if (editingId) {
@@ -779,6 +776,8 @@ export default function AdminProDashboard() {
     </div>
   );
 }
+
+
 
 
 
