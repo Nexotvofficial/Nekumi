@@ -89,13 +89,7 @@ export default function MascotBot() {
       `}</style>
       
       {isPlaying && (
-        <iframe
-          width="0" height="0"
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-          frameBorder="0"
-          allow="autoplay; encrypted-media"
-          className="hidden"
-        ></iframe>
+        <iframe key={videoId} width="2" height="2" src={`https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`} frameBorder="0" allow="autoplay; encrypted-media" className="absolute opacity-0 pointer-events-none -z-50" style={{ top: "-9999px", left: "-9999px" }}></iframe>
       )}
 
       {/* Premium Chat Bubble Menu - ABOSLUTELY POSITIONED ABOVE MASCOT */}
@@ -203,3 +197,5 @@ export default function MascotBot() {
     </div>
   );
 }
+
+
