@@ -78,8 +78,8 @@ export default function MascotBot() {
   }
 
   // Changed to a reliable v9 API with Lorelei (cute anime style)
-  const girlImg = "https://api.dicebear.com/9.x/lorelei/svg?seed=NekuGirl&backgroundColor=transparent&hair=long42&accessories=sunglasses2";
-  const boyImg = "https://api.dicebear.com/9.x/lorelei/svg?seed=NekuBoy&backgroundColor=transparent&hair=short04&accessories=glasses";
+  const girlImg = "/mascot/girl.svg";
+  const boyImg = "/mascot/boy.svg";
 
   return (
     <div 
@@ -174,3 +174,4 @@ export default function MascotBot() {
     </div>
   );
 }
+
