@@ -32,6 +32,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/manga.html',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/(.*).html',
+        destination: '/',
+        permanent: true,
+      }
+    ];
+  },
 };
 
 export default nextConfig;
