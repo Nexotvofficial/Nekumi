@@ -15,7 +15,7 @@ export default function MascotBot() {
   // Interfaz de IA
   const [inputCommand, setInputCommand] = useState("");
   const [chatLog, setChatLog] = useState<{role: "user" | "neku", text: string}[]>([
-    { role: "neku" as const, text: "Hola. Soy Neku AI. Escribe un comando como 'modo cine', 'lee por mi', o 'jefe'." }
+    { role: "neku" as const, text: "Terminal Neku Inicializada. Ingrese un comando (ej. 'modo cine', 'auto scroll', 'modo seguro')." }
   ]);
   
   const [position, setPosition] = useState({ x: -1000, y: -1000 });
@@ -94,27 +94,27 @@ export default function MascotBot() {
       
       if (c.includes("cine") || c.includes("luz") || c.includes("luces")) {
         setIsCinemaMode(!isCinemaMode);
-        response = !isCinemaMode ? "Apagando las luces... 🎬 Modo Cine activado." : "Luces encendidas. 💡 Modo Cine desactivado.";
+        response = !isCinemaMode ? "Sistema de iluminación desactivado. Modo Cine en línea." : "Sistema de iluminación restaurado.";
       } 
       else if (c.includes("lee") || c.includes("auto") || c.includes("baja")) {
         setIsAutoScrolling(true);
-        response = "Iniciando Auto-Lectura... 📖 (Escribe 'para' para detener).";
+        response = "Ejecutando scroll automático. [Estado: Activo]";
       }
       else if (c.includes("para") || c.includes("deten") || c.includes("stop")) {
         setIsAutoScrolling(false);
-        response = "Auto-Lectura detenida. 🛑";
+        response = "Scroll automático interrumpido.";
       }
       else if (c.includes("jefe") || c.includes("panico") || c.includes("esconde")) {
         setIsBossMode(true);
         setIsOpen(false);
-        response = "¡Alerta! Activando Modo Anti-Jefe... 💼 (Click en cualquier parte de la pantalla falsa para salir).";
+        response = "Protocolo de camuflaje activado. Interfaz de trabajo simulada en curso.";
       }
       else if (c.includes("arriba") || c.includes("inicio")) {
         window.scrollTo({ top: 0, behavior: "smooth" });
-        response = "Viajando al principio de la página... 🚀";
+        response = "Redirigiendo al inicio del documento.";
       }
       else if (c.includes("hola") || c.includes("neku")) {
-        response = "¡Hola! Estoy listo para recibir órdenes. 🐱";
+        response = "Sistema operativo Neku a la escucha.";
       }
 
       setChatLog([...newLog, { role: "neku" as const, text: response }]);
@@ -147,7 +147,7 @@ export default function MascotBot() {
           className="fixed inset-0 z-[100000] bg-white text-black flex flex-col cursor-pointer"
         >
           <div className="bg-green-700 text-white p-2 font-bold flex items-center gap-4 text-sm">
-            <span>📊 Reporte_Mensual_Final_v3.xlsx - Excel</span>
+            <span>Reporte_Mensual_Final_v3.xlsx - Excel</span>
             <span className="font-normal text-xs opacity-70">(Click para salir del Modo Anti-Jefe)</span>
           </div>
           <div className="bg-gray-100 border-b border-gray-300 p-2 flex gap-4 text-xs">
@@ -273,5 +273,6 @@ export default function MascotBot() {
     </>
   );
 }
+
 
 
