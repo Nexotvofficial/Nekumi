@@ -134,7 +134,6 @@ export default function MangaDetail() {
           manhwa_id: id,
           user_id: user.id,
           user_email: user.email,
-          avatar_key: selectedAvatar,
           rating: newRating,
           content: newReview || "Sin comentario",
         },
