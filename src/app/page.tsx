@@ -520,6 +520,10 @@ export default function Home() {
               </ol>
             </section>
             
+            <div className="w-full flex justify-center mb-6">
+              <AdsterraBanner300 />
+            </div>
+            
             <section id="comunidad" className="side-panel glass">
               <div className="side-header">
                 <h2 className="side-title">Reseñas</h2>
@@ -554,8 +558,6 @@ export default function Home() {
 
         <div className="shell lower-grid">
           <div className="lower-content">
-
-            <AdsterraBanner300 />
             
             <section id="noticias" className="lower-section" aria-labelledby="newsTitle">
               <div className="section-heading">
