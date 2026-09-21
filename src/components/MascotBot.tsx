@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Music, Pause, X, Play, Radio, Volume2 } from "lucide-react";
-import ReactPlayer from "react-player";
-const Player: any = ReactPlayer;
 
 export default function MascotBot() {
   const [isVisible, setIsVisible] = useState(false);
@@ -20,10 +18,7 @@ export default function MascotBot() {
   const startRef = useRef({ x: 0, y: 0 });
   const dragInfo = useRef({ startX: 0, startY: 0, isDragMove: false });
 
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
-    setMounted(true);
     const initialX = window.innerWidth > 768 ? window.innerWidth - 120 : window.innerWidth - 100;
     const initialY = window.innerHeight > 768 ? window.innerHeight - 150 : window.innerHeight - 150;
     setPosition({ x: initialX, y: initialY });
@@ -63,7 +58,6 @@ export default function MascotBot() {
       setVideoId(match[1]);
       setIsPlaying(true);
       setCustomUrl("");
-      // Ya NO cerramos el menú, para que el usuario pueda interactuar con el reproductor anti-bloqueo
     } else {
       alert("Enlace de YouTube no válido.");
     }
@@ -106,7 +100,7 @@ export default function MascotBot() {
           </button>
         </div>
         
-        {/* REPRODUCTOR VISIBLE ANTI-BLOQUEO */}
+        {/* REPRODUCTOR NATIVO IFRAME - SIN LIBRERIAS INTERMEDIAS */}
         {isPlaying ? (
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
@@ -119,22 +113,18 @@ export default function MascotBot() {
             </div>
             
             <div className="w-full h-32 rounded-xl overflow-hidden border border-white/10 relative shadow-inner bg-black">
-              {mounted && (
-                <Player 
-                  url={`https://www.youtube.com/watch?v=${videoId}`}
-                  playing={isPlaying}
-                  controls={true}
-                  width="100%"
-                  height="100%"
-                  config={{
-                    youtube: {
-                      playerVars: { autoplay: 1 }
-                    }
-                  }}
-                />
-              )}
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`} 
+                title="YouTube video player" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+                className="absolute top-0 left-0 w-full h-full rounded-xl"
+              ></iframe>
             </div>
-            <p className="text-[10px] text-gray-500 mt-2 text-center">Si no suena automático por bloqueo comercial, dale click al video arriba.</p>
+            <p className="text-[10px] text-gray-500 mt-2 text-center">Si el artista bloqueó la reproducción automática, ¡dale play al video!</p>
           </div>
         ) : (
           <div className="mb-4">
