@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Music, Pause, X, Play, Radio, Volume2 } from "lucide-react";
-import ReactPlayer from "react-player/youtube";
+import ReactPlayer from "react-player";
+const Player: any = ReactPlayer;
 
 export default function MascotBot() {
   const [isVisible, setIsVisible] = useState(false);
@@ -96,18 +97,15 @@ export default function MascotBot() {
       {/* Reproductor Definitivo usando ReactPlayer */}
       {mounted && (
         <div className="absolute opacity-0 pointer-events-none -z-50" style={{ width: 1, height: 1, overflow: 'hidden' }}>
-          <ReactPlayer 
+          
+          <Player 
             url={`https://www.youtube.com/watch?v=${videoId}`}
             playing={isPlaying}
             controls={false}
             width="10px"
             height="10px"
             volume={1}
-            config={{
-              youtube: {
-                playerVars: { autoplay: 1, origin: typeof window !== 'undefined' ? window.location.origin : '' }
-              }
-            }}
+            
           />
         </div>
       )}
@@ -215,3 +213,10 @@ export default function MascotBot() {
     </div>
   );
 }
+
+
+
+
+
+
+
