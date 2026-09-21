@@ -109,14 +109,14 @@ export default function MascotBot() {
                 <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
                 <div className="w-1 bg-[#c084fc] rounded-full eq-bar"></div>
               </div>
-              <p className="text-[#c084fc] text-xs font-medium">Mini-Player Activado</p>
+              <p className="text-[#c084fc] text-xs font-medium">Proxy Anti-Bloqueo Activado</p>
             </div>
             
             <div className="w-full h-32 rounded-xl overflow-hidden border border-white/10 relative shadow-inner bg-black">
               <iframe 
                 width="100%" 
                 height="100%" 
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`} 
+                src={`https://yewtu.be/embed/${videoId}?autoplay=1`} 
                 title="YouTube video player" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -124,7 +124,7 @@ export default function MascotBot() {
                 className="absolute top-0 left-0 w-full h-full rounded-xl"
               ></iframe>
             </div>
-            <p className="text-[10px] text-gray-500 mt-2 text-center">Si el artista bloqueó la reproducción automática, ¡dale play al video!</p>
+            <p className="text-[10px] text-gray-500 mt-2 text-center">Red Invidious (Bypass) conectada. ¡Adiós restricciones de YouTube!</p>
           </div>
         ) : (
           <div className="mb-4">
@@ -205,3 +205,5 @@ export default function MascotBot() {
     </div>
   );
 }
+
+
