@@ -7,10 +7,13 @@ const nextConfig: NextConfig = {
         // Aplica a todas las rutas
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Robots-Tag',
-            value: 'noindex, nofollow', // Evita que Google indexe la web si está en pruebas
-          },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' }
         ],
       },
     ];
