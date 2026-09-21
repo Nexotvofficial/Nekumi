@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Music, Pause, RefreshCw, X, MessageCircle } from "lucide-react";
+import { Music, Pause, RefreshCw, X, MessageCircle, Search, Play } from "lucide-react";
 
 export default function MascotBot() {
   const [isVisible, setIsVisible] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [gender, setGender] = useState<"girl" | "boy">("girl");
+  
+  // Custom YouTube ID
+  const [videoId, setVideoId] = useState("jfKfPfyJRdk");
+  const [customUrl, setCustomUrl] = useState("");
   
   const [position, setPosition] = useState({ x: -1000, y: -1000 });
   const [isDragging, setIsDragging] = useState(false);
@@ -49,6 +53,18 @@ export default function MascotBot() {
     }
   };
 
+  const handlePlayCustom = () => {
+    // Extract video ID from youtube url
+    const match = customUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    if (match && match[1]) {
+      setVideoId(match[1]);
+      setIsPlaying(true);
+      setCustomUrl("");
+    } else {
+      alert("Por favor pega un enlace válido de YouTube");
+    }
+  };
+
   if (!isVisible) {
     return (
       <button 
@@ -61,8 +77,9 @@ export default function MascotBot() {
     );
   }
 
-  const girlImg = "https://api.dicebear.com/7.x/miniavs/svg?seed=NekuGirl&backgroundColor=transparent&hair=long16&clothing=shirt02&eyes=happy";
-  const boyImg = "https://api.dicebear.com/7.x/miniavs/svg?seed=NekuBoy&backgroundColor=transparent&hair=short02&clothing=shirt01&eyes=happy";
+  // Changed to a reliable v9 API with Lorelei (cute anime style)
+  const girlImg = "https://api.dicebear.com/9.x/lorelei/svg?seed=NekuGirl&backgroundColor=transparent&hair=long42&accessories=sunglasses2";
+  const boyImg = "https://api.dicebear.com/9.x/lorelei/svg?seed=NekuBoy&backgroundColor=transparent&hair=short04&accessories=glasses";
 
   return (
     <div 
@@ -77,7 +94,7 @@ export default function MascotBot() {
       {isPlaying && (
         <iframe
           width="0" height="0"
-          src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1"
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
           frameBorder="0"
           allow="autoplay; encrypted-media"
           className="hidden"
@@ -86,7 +103,7 @@ export default function MascotBot() {
 
       <div 
         onPointerDown={(e) => e.stopPropagation()}
-        className={`transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100 mb-2' : 'scale-0 opacity-0 h-0 m-0'} bg-[#1a1a2e]/95 border border-[#a855f7]/30 rounded-2xl p-4 shadow-xl shadow-purple-900/40 w-64 backdrop-blur-md cursor-default`}
+        className={`transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100 mb-2' : 'scale-0 opacity-0 h-0 m-0'} bg-[#1a1a2e]/95 border border-[#a855f7]/30 rounded-2xl p-4 shadow-xl shadow-purple-900/40 w-72 backdrop-blur-md cursor-default`}
       >
         <div className="flex justify-between items-center mb-3">
           <h4 className="text-white font-bold text-sm">Asistente Nekutoon</h4>
@@ -95,15 +112,36 @@ export default function MascotBot() {
           </button>
         </div>
         
-        <p className="text-gray-300 text-xs mb-4">¡Hola! 🐾 ¿Quieres música relajante (Lofi) para acompañar tu lectura?</p>
+        <p className="text-gray-300 text-xs mb-3">¡Hola! 🐾 ¿Quieres música relajante o prefieres poner tu propia canción?</p>
         
+        {/* Custom Song Input */}
+        <div className="flex items-center gap-2 mb-3 bg-black/30 rounded-lg p-1 border border-white/5">
+          <input 
+            type="text" 
+            placeholder="Pega un link de YouTube..."
+            value={customUrl}
+            onChange={(e) => setCustomUrl(e.target.value)}
+            className="bg-transparent border-none outline-none text-xs text-white px-2 py-1 w-full"
+            onKeyDown={(e) => e.key === 'Enter' && handlePlayCustom()}
+          />
+          <button 
+            onClick={handlePlayCustom}
+            className="bg-[#a855f7] text-white p-1.5 rounded-md hover:bg-[#c084fc] transition-colors"
+          >
+            <Play className="w-3 h-3" />
+          </button>
+        </div>
+
         <div className="flex flex-col gap-2">
           <button 
-            onClick={() => setIsPlaying(!isPlaying)}
+            onClick={() => {
+              if (!isPlaying) setVideoId("jfKfPfyJRdk"); // Reset to Lofi
+              setIsPlaying(!isPlaying);
+            }}
             className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${isPlaying ? 'bg-pink-500/20 text-pink-400 border border-pink-500/50 hover:bg-pink-500/30' : 'bg-[#a855f7]/20 text-[#c084fc] border border-[#a855f7]/30 hover:bg-[#a855f7]/40'}`}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Music className="w-4 h-4" />}
-            {isPlaying ? 'Pausar música' : 'Reproducir Lofi'}
+            {isPlaying ? 'Pausar música' : 'Reproducir Lofi por defecto'}
           </button>
           
           <button 
@@ -124,7 +162,7 @@ export default function MascotBot() {
         <img 
           src={gender === "girl" ? girlImg : boyImg} 
           alt="Neku Bot" 
-          className="w-full h-full object-contain drop-shadow-xl"
+          className="w-full h-full object-contain drop-shadow-xl bg-white/5 rounded-full p-1"
           draggable={false}
         />
         {!isOpen && (
