@@ -10,7 +10,8 @@ export default function MascotBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  const [videoId, setVideoId] = useState("jfKfPfyJRdk");
+  // Usamos un video no-en-vivo por defecto para asegurar compatibilidad de Embed
+  const [videoId, setVideoId] = useState("5qap5aO4i9A"); 
   const [customUrl, setCustomUrl] = useState("");
   
   const [position, setPosition] = useState({ x: -1000, y: -1000 });
@@ -20,7 +21,6 @@ export default function MascotBot() {
   const startRef = useRef({ x: 0, y: 0 });
   const dragInfo = useRef({ startX: 0, startY: 0, isDragMove: false });
 
-  // Control para asegurar que montamos el reproductor solo en cliente
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -94,23 +94,6 @@ export default function MascotBot() {
         @keyframes equalize { 0% { height: 4px; } 100% { height: 12px; } }
       `}</style>
       
-      {/* Reproductor Definitivo usando ReactPlayer */}
-      {mounted && (
-        <div className="absolute opacity-0 pointer-events-none -z-50" style={{ width: 1, height: 1, overflow: 'hidden' }}>
-          
-          <Player 
-            url={`https://www.youtube.com/watch?v=${videoId}`}
-            playing={isPlaying}
-            controls={false}
-            width="10px"
-            height="10px"
-            volume={1}
-            
-          />
-        </div>
-      )}
-
-      {/* Premium Chat Bubble Menu */}
       <div 
         className={`absolute bottom-full mb-4 left-1/2 -translate-x-1/2 transition-all duration-300 transform origin-bottom ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'} bg-black/60 border border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] w-80 backdrop-blur-2xl cursor-default`}
       >
@@ -158,7 +141,7 @@ export default function MascotBot() {
 
         <button 
           onClick={() => {
-            if (!isPlaying) { setVideoId("jfKfPfyJRdk"); }
+            if (!isPlaying) { setVideoId("5qap5aO4i9A"); }
             setIsPlaying(!isPlaying);
             if (!isPlaying) setIsOpen(false); 
           }}
@@ -182,7 +165,22 @@ export default function MascotBot() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7] to-[#4f46e5] rounded-full blur-xl -z-10 opacity-30 group-hover:opacity-60 transition-opacity duration-300"></div>
         
-        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
+        {/* REPRODUCTOR REAL - CUBIERTO POR EL MASCOT PERO RENDERIZADO AL 100% PARA EVITAR BLOQUEO DE NAVEGADOR */}
+        {mounted && (
+          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none opacity-[0.01]">
+            <Player 
+              url={`https://www.youtube.com/watch?v=${videoId}`}
+              playing={isPlaying}
+              volume={1}
+              muted={false}
+              width="200%"
+              height="200%"
+              style={{ position: 'absolute', top: '-50%', left: '-50%' }}
+            />
+          </div>
+        )}
+
+        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl relative z-10">
           <defs>
             <linearGradient id="nekuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#a855f7" />
@@ -205,7 +203,7 @@ export default function MascotBot() {
         </svg>
 
         {!isOpen && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0a0a0a]/90 text-white font-medium text-[10px] px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none border border-white/10 shadow-xl backdrop-blur-md">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0a0a0a]/90 text-white font-medium text-[10px] px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none border border-white/10 shadow-xl backdrop-blur-md z-20">
             Click para controles
           </div>
         )}
@@ -213,10 +211,3 @@ export default function MascotBot() {
     </div>
   );
 }
-
-
-
-
-
-
-
