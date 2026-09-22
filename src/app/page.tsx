@@ -354,7 +354,7 @@ export default function Home() {
               <div className="relative">
                 <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
                   <div 
-                    className="w-[34px] h-[34px] rounded-full overflow-hidden bg-black/40 border-2 border-[#111115] [&>svg]:w-full [&>svg]:h-full"
+                    className="rounded-full overflow-hidden bg-black/40 [&>svg]:w-full [&>svg]:h-full [&>svg]:scale-110"
                     dangerouslySetInnerHTML={{ __html: getAvatarSvg(userProfile?.avatar_url || "hunter") }}
                   />
                 </button>

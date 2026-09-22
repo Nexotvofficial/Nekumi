@@ -11,6 +11,8 @@ import {
   Menu, X, Upload, Calendar, ArrowUpRight, Clock
 } from "lucide-react";
 
+const ALL_GENRES = ['Acción', 'Romance', 'Fantasía', 'Comedia', 'Drama', 'Aventura', 'Misterio', 'Terror', 'Suspenso', 'Ciencia Ficción', 'Harem', 'Isekai', 'Reencarnación', 'Cultivación', '+18', 'Escolar', 'Recuentos de la vida', 'Sobrenatural', 'Deportes', 'Psicológico', 'Sistema'];
+
 export default function AdminProDashboard() {
   const router = useRouter();
   const supabase = createClient();
@@ -38,7 +40,7 @@ export default function AdminProDashboard() {
   const [artist, setArtist] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
-  const [genre, setGenre] = useState("Acción");
+  const [genres, setGenres] = useState<string[]>(["Acción"]);
   const [status, setStatus] = useState("Publicado");
   const [type, setType] = useState("Manhwa");
   const [isHero, setIsHero] = useState(false);
@@ -118,7 +120,7 @@ export default function AdminProDashboard() {
     e.preventDefault();
     setLoading(true);
     
-    const payload = { title, description, genre, cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero };
+    const payload = { title, description, genre: genres.join(", "), cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero };
 
     let error;
     if (editingId) {
@@ -146,7 +148,7 @@ export default function AdminProDashboard() {
     setDescription(m.description || "");
     setCoverUrl(m.cover_url || "");
     setBannerUrl(m.banner_url || "");
-    setGenre(m.genre?.[0] || "Acción");
+    setGenres(m.genre ? m.genre.split(", ") : ["Acción"]);
     setStatus(m.status || "Publicado");
     setIsHero(m.is_hero || false);
     setIsAddManhwaOpen(true);
@@ -481,7 +483,7 @@ export default function AdminProDashboard() {
                               <img src={m.cover_url} alt={m.title} className="w-10 h-14 object-cover rounded-md border border-white/10" />
                             </td>
                             <td className="py-3 font-semibold text-white max-w-[200px] truncate">{m.title}</td>
-                            <td className="py-3 text-[#a7a7b1]">{m.genre?.[0] || '-'}</td>
+                            <td className="py-3 text-[#a7a7b1]">{m.genre || '-'}</td>
                             <td className="py-3"><span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-[#10b981]/20 text-[#34d399]">{m.status || 'Publicado'}</span></td>
                             <td className="py-3 text-right">
                               <div className="flex justify-end gap-2">
