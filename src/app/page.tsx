@@ -68,14 +68,6 @@ const reviews = [
   { id: 3, user: 'Mika_07', text: 'Necesito la próxima temporada ya. El final me dejó sin palabras.', work: 'La Heredera Carmesí', likes: 51, avatar: 'https://i.pravatar.cc/96?img=32' }
 ];
 
-const categories = [
-  ['Fantasía', 'fantasy'],
-  ['Acción', 'action'],
-  ['Romance', 'romance'],
-  ['Isekai', 'isekai'],
-  ['Recuentos de la vida', 'slice'],
-  ['Comedia', 'comedy']
-] as const;
 
 const news = [
   { label: 'Novedades', title: 'Los estrenos de manhwa que no puedes perderte este mes', date: '18 Sep 2026', comments: 24, image: 'news1' },
@@ -544,22 +536,6 @@ export default function Home() {
                   )}
                 </>
               )}
-            </section>
-
-            <section id="categorias" className="category-section" aria-labelledby="categoriesTitle">
-              <div className="section-heading">
-                <h2 id="categoriesTitle" className="section-title">Explora por categoría</h2>
-
-              </div>
-              <div className="categories-grid">
-                {categories.map(([label, key]) => (
-                  <button key={key} type="button" className="category-tile" onClick={(e) => { handleCategoryClick(e, label); setVisibleCount(18); }}>
-                    <img src={MEDIA_CONFIG[key as keyof typeof MEDIA_CONFIG]} alt="" loading="lazy" />
-                    <span>{label}</span>
-                    <ArrowRight className="category-arrow" />
-                  </button>
-                ))}
-              </div>
             </section>
           </div>
           
