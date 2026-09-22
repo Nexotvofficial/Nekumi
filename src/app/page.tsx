@@ -302,7 +302,7 @@ export default function Home() {
                   <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">toon</span>
                 </span>
               </a>
-            <nav className="desktop-nav flex items-center gap-4 overflow-x-auto whitespace-nowrap scrollbar-hide" aria-label="Navegación principal">
+            <nav className="desktop-nav flex items-center gap-5" aria-label="Navegación principal">
                 <a className={`nav-link ${!activeCategory ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, ""); setVisibleCount(18); }}>Explorar</a>
                 <a className={`nav-link ${activeCategory === 'Acción' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Acción"); setVisibleCount(18); }}>Acción</a>
                 <a className={`nav-link ${activeCategory === 'Fantasía' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Fantasía"); setVisibleCount(18); }}>Fantasía</a>
@@ -530,11 +530,15 @@ export default function Home() {
                     ))}
                   </div>
                   {visibleCount < filteredManhwas.length && (
-                    <div className="flex justify-center mt-10">
+                    <div className="flex justify-center mt-12 mb-4">
                       <button 
                         onClick={() => setVisibleCount((v: number) => v + 18)} 
-                        className="bg-[#1c1c24] hover:bg-[#2a2a35] border border-white/5 text-white font-medium py-3 px-8 rounded-full transition-all active:scale-95 flex items-center gap-2">
-                        <span>Cargar más manhwas</span>
+                        className="group relative px-8 py-2.5 rounded-full bg-[#121214] border border-white/10 hover:border-[#a855f7]/50 transition-all duration-300"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#a855f7]/10 to-[#ec4899]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+                        <span className="relative text-xs uppercase tracking-wider font-bold text-[#a7a7b1] group-hover:text-white transition-colors flex items-center gap-2">
+                          Mostrar más
+                        </span>
                       </button>
                     </div>
                   )}
