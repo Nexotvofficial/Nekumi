@@ -56,9 +56,11 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <body className={`${inter.variable} antialiased`}>
-        <SecurityShield />
-        {children}
-        <MascotBot />
+        <div id="root-app">
+          <SecurityShield />
+          {children}
+          <MascotBot />
+        </div>
         
         {/* Adsterra: Barra Social (Global) */}
         <Script src="//pl31363077.profitableratecpmnetwork.com/bc/8a/a6/bc8aa66355b50d50a83a1ecc72eea53e.js" strategy="lazyOnload" />
