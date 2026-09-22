@@ -5,6 +5,7 @@ import MascotBot from "@/components/MascotBot";
 import SecurityShield from "@/components/SecurityShield";
 import Script from "next/script";
 import { AdsterraPopunder } from "@/components/Adsterra";
+import AntiAdblock from "@/components/AntiAdblock";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -75,6 +76,7 @@ export default function RootLayout({
         <div id="root-app">
           <AdsterraPopunder />
           <SecurityShield />
+          <AntiAdblock />
           {children}
           <MascotBot />
         </div>
