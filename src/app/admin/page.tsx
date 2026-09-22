@@ -522,12 +522,16 @@ export default function AdminProDashboard() {
                               </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-[#a7a7b1] uppercase tracking-wider">Estado</label>
-                          <select value={status} onChange={e => setStatus(e.target.value)} className="w-full h-10 bg-black/30 border border-white/10 rounded-xl px-3 text-sm text-white focus:border-[#a855f7] outline-none transition-colors">
-                            <option value="Publicado" className="bg-[#121216]">Publicado</option>
-                            <option value="En pausa" className="bg-[#121216]">En pausa</option>
-                          </select>
-                        </div>
+  <label className="text-xs font-semibold text-[#a7a7b1] uppercase tracking-wider">Estado de Emisión</label>
+  <div className="w-full flex gap-2 mt-2">
+    {['En emisión', 'Finalizado', 'Pausado'].map(s => (
+      <label key={s} className={`cursor-pointer px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${status === s ? 'bg-[#a855f7]/20 border-[#a855f7] text-[#c084fc]' : 'bg-black/30 border-white/10 text-[#a7a7b1] hover:border-white/30'}`}>
+        <input type="radio" className="hidden" checked={status === s} onChange={() => setStatus(s)} />
+        {s}
+      </label>
+    ))}
+  </div>
+</div>
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-[#a7a7b1] uppercase tracking-wider">Descripción</label>
