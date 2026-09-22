@@ -549,7 +549,7 @@ export default function Home() {
             <section id="categorias" className="category-section" aria-labelledby="categoriesTitle">
               <div className="section-heading">
                 <h2 id="categoriesTitle" className="section-title">Explora por categoría</h2>
-                <span className="section-caption">Encuentra tu próxima historia</span>
+
               </div>
               <div className="categories-grid">
                 {categories.map(([label, key]) => (
