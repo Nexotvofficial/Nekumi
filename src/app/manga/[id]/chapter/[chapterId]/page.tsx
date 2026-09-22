@@ -38,6 +38,7 @@ export default function ChapterReader() {
   const [readMode, setReadMode] = useState<"cascade" | "paged">("cascade");
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showReaderHeader, setShowReaderHeader] = useState(true);
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +98,29 @@ export default function ChapterReader() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY <= 24 || currentScrollY < lastScrollY) {
+        setShowReaderHeader(true);
+      } else if (currentScrollY > lastScrollY + 4) {
+        setShowReaderHeader(false);
+        setShowSettings(false);
+      }
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleReaderClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    setShowReaderHeader(true);
+    handlePageClick(e);
+  };
+
   const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readMode !== "paged") return;
     
@@ -146,7 +170,7 @@ export default function ChapterReader() {
   return (
     <div className="min-h-screen bg-[#050505]">
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-[#0a0a0c]/80 backdrop-blur-md border-b border-white/5 py-4 px-4 sm:px-6 flex items-center justify-between transition-transform">
+      <div className={`sticky top-0 z-50 bg-[#0a0a0c]/80 backdrop-blur-md border-b border-white/5 py-4 px-4 sm:px-6 flex items-center justify-between transition-transform duration-300 ${showReaderHeader ? "translate-y-0" : "-translate-y-full"}`}>
         <div className="flex items-center gap-4">
           <Link href={`/manga/${manhwaId}`} className="icon-btn hover:bg-white/10 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -205,7 +229,7 @@ export default function ChapterReader() {
       <div 
         ref={containerRef}
         className={`max-w-3xl mx-auto flex flex-col items-center ${readMode === 'paged' ? 'cursor-pointer relative min-h-[70vh]' : ''}`}
-        onClick={handlePageClick}
+        onClick={handleReaderClick}
       >
         {pages.length === 0 ? (
           <div className="p-12 text-center text-[#777782] w-full">
