@@ -16,12 +16,6 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: false,
-  runtimeCaching: [
-    {
-      matcher: ({ request }) => request.mode === "navigate",
-      handler: "NetworkOnly",
-    },
-  ],
 });
 
 serwist.addEventListeners();
