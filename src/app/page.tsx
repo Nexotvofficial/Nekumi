@@ -110,6 +110,7 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [legalModal, setLegalModal] = useState<{isOpen: boolean, type: any}>({isOpen: false, type: ""});
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [manhwas, setManhwas] = useState<Manhwa[]>([]);
   const [trending, setTrending] = useState<Manhwa[]>([]);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
@@ -184,12 +185,23 @@ export default function Home() {
     // Check active session
     supabase.from('visits').insert([{}]).then();
 
+    const fetchProfile = (sessionUser: any) => {
+      setUser(sessionUser);
+      if (sessionUser) {
+        supabase.from('profiles').select('*').eq('id', sessionUser.id).single().then(({data}) => {
+          if (data) setUserProfile(data);
+        });
+      } else {
+        setUserProfile(null);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      fetchProfile(session?.user ?? null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      fetchProfile(session?.user ?? null);
     });
 
     return () => { subscription.unsubscribe(); supabase.removeChannel(channel); };
@@ -341,7 +353,10 @@ export default function Home() {
               )}
               <div className="relative">
                 <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
-                  <img src={MEDIA_CONFIG.avatar} alt="Avatar de usuario" />
+                  <div 
+                    className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-black/40"
+                    dangerouslySetInnerHTML={{ __html: getAvatarSvg(userProfile?.avatar_url || "hunter") }}
+                  />
                 </button>
                 
                 {showProfileMenu && user && (
