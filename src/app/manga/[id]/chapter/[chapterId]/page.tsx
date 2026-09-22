@@ -74,6 +74,21 @@ export default function ChapterReader() {
     if (chapterId) loadData();
   }, [chapterId, manhwaId, supabase]);
 
+  // Image Preloader for Paged Mode
+  useEffect(() => {
+    if (readMode === "paged" && pages.length > 0) {
+      // Preload next 3 images to eliminate waiting time
+      const preloadCount = 3;
+      for (let i = 1; i <= preloadCount; i++) {
+        const nextIndex = currentPageIndex + i;
+        if (nextIndex < pages.length) {
+          const img = new window.Image();
+          img.src = pages[nextIndex].image_url;
+        }
+      }
+    }
+  }, [currentPageIndex, pages, readMode]);
+
   const toggleReadMode = (mode: "cascade" | "paged") => {
     setReadMode(mode);
     localStorage.setItem("nekutoon:readMode", mode);
@@ -230,6 +245,13 @@ export default function ChapterReader() {
               {/* Page Counter Overlay */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold text-white tracking-widest shadow-xl">
                 {currentPageIndex + 1} / {pages.length}
+              </div>
+
+              {/* Preloader Oculto para Carga Instantánea */}
+              <div className="hidden">
+                {pages.slice(currentPageIndex + 1, currentPageIndex + 4).map((p) => (
+                  <img key={`preload-${p.id}`} src={p.image_url} alt="preload" />
+                ))}
               </div>
             </div>
           )
