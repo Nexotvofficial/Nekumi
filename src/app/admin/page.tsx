@@ -41,7 +41,7 @@ export default function AdminProDashboard() {
   const [coverUrl, setCoverUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [genres, setGenres] = useState<string[]>(["Acción"]);
-  const [status, setStatus] = useState("Publicado");
+  const [status, setStatus] = useState("En emisión");
   const [type, setType] = useState("Manhwa");
   const [isHero, setIsHero] = useState(false);
   const [editingId, setEditingId] = useState('');
@@ -120,7 +120,7 @@ export default function AdminProDashboard() {
     e.preventDefault();
     setLoading(true);
     
-    const payload = { title, description, genre: genres.join(", "), cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero };
+    const payload = { title, description, genre: genres.join(", "), cover_url: coverUrl, banner_url: bannerUrl, is_hero: isHero, status };
 
     let error;
     if (editingId) {
@@ -149,7 +149,7 @@ export default function AdminProDashboard() {
     setCoverUrl(m.cover_url || "");
     setBannerUrl(m.banner_url || "");
     setGenres(m.genre ? m.genre.split(", ") : ["Acción"]);
-    setStatus(m.status || "Publicado");
+    setStatus(m.status || "En emisión");
     setIsHero(m.is_hero || false);
     setIsAddManhwaOpen(true);
   };
@@ -484,7 +484,7 @@ export default function AdminProDashboard() {
                             </td>
                             <td className="py-3 font-semibold text-white max-w-[200px] truncate">{m.title}</td>
                             <td className="py-3 text-[#a7a7b1]">{m.genre || '-'}</td>
-                            <td className="py-3"><span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-[#10b981]/20 text-[#34d399]">{m.status || 'Publicado'}</span></td>
+                            <td className="py-3"><span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${m.status === 'Finalizado' ? 'bg-[#10b981]/20 text-[#34d399]' : 'bg-[#3b82f6]/20 text-[#60a5fa]'}`}>{m.status || 'En emisión'}</span></td>
                             <td className="py-3 text-right">
                               <div className="flex justify-end gap-2">
                                 <button onClick={() => handleEditManhwa(m)} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button> <button onClick={() => handleDeleteManhwa(m.id)} className="p-2 bg-[#ef4444]/10 hover:bg-[#ef4444]/20 rounded-lg text-[#ef4444] transition-colors" title="Borrar"><Trash2 className="w-4 h-4" /></button>

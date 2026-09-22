@@ -49,6 +49,7 @@ interface Manhwa {
   description: string;
   cover_url: string;
   score: number;
+  status?: string;
   genre: string;
   isNew?: boolean;
 }
@@ -116,6 +117,7 @@ export default function Home() {
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
+  const [visibleCount, setVisibleCount] = useState<number>(18);
   const [siteConfig, setSiteConfig] = useState<any>(null);
   const supabase = createClient();
 
@@ -300,13 +302,16 @@ export default function Home() {
                   <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">toon</span>
                 </span>
               </a>
-            <nav className="desktop-nav" aria-label="Navegación principal">
-              <a className={`nav-link ${!activeCategory ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "")}>Explorar</a>
-              <a className={`nav-link ${activeCategory === 'Fantasía' ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "Fantasía")}>Fantasía</a>
-              <a className={`nav-link ${activeCategory === 'Acción' ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "Acción")}>Acción</a>
-              <a className={`nav-link ${activeCategory === 'Romance' ? 'active' : ''}`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "Romance")}>Romance</a>
-              <a className={`nav-link ${activeCategory === '+18' ? 'active' : ''} text-pink-500`} href="#recomendados" onClick={(e) => handleCategoryClick(e, "+18")}>+18</a>
-            </nav>
+            <nav className="desktop-nav flex items-center gap-4 overflow-x-auto whitespace-nowrap scrollbar-hide" aria-label="Navegación principal">
+                <a className={`nav-link ${!activeCategory ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, ""); setVisibleCount(18); }}>Explorar</a>
+                <a className={`nav-link ${activeCategory === 'Acción' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Acción"); setVisibleCount(18); }}>Acción</a>
+                <a className={`nav-link ${activeCategory === 'Fantasía' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Fantasía"); setVisibleCount(18); }}>Fantasía</a>
+                <a className={`nav-link ${activeCategory === 'Romance' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Romance"); setVisibleCount(18); }}>Romance</a>
+                <a className={`nav-link ${activeCategory === 'Isekai' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Isekai"); setVisibleCount(18); }}>Isekai</a>
+                <a className={`nav-link ${activeCategory === 'Drama' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Drama"); setVisibleCount(18); }}>Drama</a>
+                <a className={`nav-link ${activeCategory === 'Comedia' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Comedia"); setVisibleCount(18); }}>Comedia</a>
+                <a className={`nav-link ${activeCategory === '+18' ? 'active' : ''} text-pink-500`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "+18"); setVisibleCount(18); }}>+18</a>
+              </nav>
             <div className="header-actions">
               <div className="search-wrap desktop-search">
                 <Search />
@@ -393,12 +398,15 @@ export default function Home() {
           )}
           
           <nav className={`mobile-nav ${mobileNavOpen ? 'open' : ''}`} aria-label="Navegación móvil">
-            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "")}>Explorar</a>
-            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "Fantasía")}>Fantasía</a>
-            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "Acción")}>Acción</a>
-            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "Romance")}>Romance</a>
-            <a href="#recomendados" onClick={(e) => handleCategoryClick(e, "+18")} className="text-pink-500">+18</a>
-          </nav>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, ""); setVisibleCount(18); setMobileNavOpen(false); }}>Explorar</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Acción"); setVisibleCount(18); setMobileNavOpen(false); }}>Acción</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Fantasía"); setVisibleCount(18); setMobileNavOpen(false); }}>Fantasía</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Romance"); setVisibleCount(18); setMobileNavOpen(false); }}>Romance</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Isekai"); setVisibleCount(18); setMobileNavOpen(false); }}>Isekai</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Drama"); setVisibleCount(18); setMobileNavOpen(false); }}>Drama</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Comedia"); setVisibleCount(18); setMobileNavOpen(false); }}>Comedia</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "+18"); setVisibleCount(18); setMobileNavOpen(false); }} className="text-pink-500">+18</a>
+            </nav>
         </div>
       </header>
 
@@ -494,25 +502,43 @@ export default function Home() {
                   No se encontraron resultados.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mt-4">
-                  {filteredManhwas.map((item) => (
-                    <Link key={item.id} href={`/manga/${item.id}`} className="block">
-                      <article className="media-card h-full" tabIndex={0}>
-                        <div className="cover">
-                          <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" className="w-full object-cover aspect-[2/3]" />
-                          <span className="card-badge score"><Star />{item.score}</span>
-                          <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
-                            <Heart />
-                          </button>
-                        </div>
-                        <div className="card-info p-3">
-                          <h3 className="card-title line-clamp-1">{item.title}</h3>
-                          <p className="card-meta">{item.genre}</p>
-                        </div>
-                      </article>
-                    </Link>
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mt-4">
+                    {filteredManhwas.slice(0, visibleCount).map((item) => (
+                      <Link key={item.id} href={`/manga/${item.id}`} className="block">
+                        <article className="media-card h-full" tabIndex={0}>
+                          <div className="cover">
+                            <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" className="w-full object-cover aspect-[2/3]" />
+                            <span className="card-badge score"><Star />{item.score}</span>
+                            
+                            {item.status && item.status !== 'Publicado' && (
+                              <span className={`absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg ${item.status === 'Finalizado' ? 'bg-[#10b981]/80 text-white border-[#10b981]/30' : 'bg-[#3b82f6]/80 text-white border-[#3b82f6]/30'}`}>
+                                {item.status}
+                              </span>
+                            )}
+
+                            <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
+                              <Heart />
+                            </button>
+                          </div>
+                          <div className="card-info p-3">
+                            <h3 className="card-title line-clamp-1">{item.title}</h3>
+                            <p className="card-meta">{item.genre}</p>
+                          </div>
+                        </article>
+                      </Link>
+                    ))}
+                  </div>
+                  {visibleCount < filteredManhwas.length && (
+                    <div className="flex justify-center mt-10">
+                      <button 
+                        onClick={() => setVisibleCount((v: number) => v + 18)} 
+                        className="bg-[#1c1c24] hover:bg-[#2a2a35] border border-white/5 text-white font-medium py-3 px-8 rounded-full transition-all active:scale-95 flex items-center gap-2">
+                        <span>Cargar más manhwas</span>
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </div>
