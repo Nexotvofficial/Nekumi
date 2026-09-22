@@ -55,15 +55,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    registration.unregister();
+                  }
+                });
+              }
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} antialiased`}>
         <div id="root-app">
           <SecurityShield />
           {children}
           <MascotBot />
         </div>
-        
-        {/* Adsterra: Barra Social (Global) */}
-        <Script src="//pl31363077.profitableratecpmnetwork.com/bc/8a/a6/bc8aa66355b50d50a83a1ecc72eea53e.js" strategy="lazyOnload" />
       </body>
     </html>
   );

@@ -19,6 +19,7 @@ const cspHeader = `
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
+  disable: true,
 });
 
 const nextConfig: NextConfig = {
