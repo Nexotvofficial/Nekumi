@@ -153,7 +153,10 @@ export default function ChapterReader() {
           </Link>
           <div>
             <h1 className="font-bold text-white leading-tight">Capítulo {chapter.chapter_number}</h1>
-            {chapter.title && <p className="text-xs text-[#a7a7b1]">{chapter.title}</p>}
+            {chapter.title &&
+              chapter.title.replace(/[íìîï]/gi, "i").trim().toLowerCase() !== `capitulo ${chapter.chapter_number}` &&
+              <p className="text-xs text-[#a7a7b1]">{chapter.title}</p>
+            }
           </div>
         </div>
         
