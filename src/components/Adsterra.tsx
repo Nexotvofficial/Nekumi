@@ -55,3 +55,17 @@ export function AdsterraBanner300() {
     </div>
   );
 }
+
+export function AdsterraPopunder() {
+  useEffect(() => {
+    const scriptId = 'adsterra-popunder-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.type = 'text/javascript';
+      script.src = '//pl31363079.profitableratecpmnetwork.com/54/29/bd/5429bd345e3c7e7bc304287e0656aaa3.js';
+      document.body.appendChild(script);
+    }
+  }, []);
+  return null;
+}

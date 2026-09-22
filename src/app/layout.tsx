@@ -4,6 +4,7 @@ import "./globals.css";
 import MascotBot from "@/components/MascotBot";
 import SecurityShield from "@/components/SecurityShield";
 import Script from "next/script";
+import { AdsterraPopunder } from "@/components/Adsterra";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -72,6 +73,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} antialiased`}>
         <div id="root-app">
+          <AdsterraPopunder />
           <SecurityShield />
           {children}
           <MascotBot />

@@ -403,10 +403,7 @@ export default function Home() {
       </header>
 
       <main>
-        {/* Adsterra Popunder (Sólo en +18) */}
-        {isAdultConfirmed && activeCategory === "+18" && (
-          <Script src="//pl31363079.profitableratecpmnetwork.com/54/29/bd/5429bd345e3c7e7bc304287e0656aaa3.js" strategy="lazyOnload" />
-        )}
+        {/* Popunder Adsterra es ahora Global en layout.tsx */}
 
         {/* Modal de Advertencia +18 */}
         {showAdultModal && (
