@@ -282,7 +282,7 @@ export default function Home() {
       <header className="site-header">
         <div className="shell">
           <div className="header-inner">
-            <a href="#" className="brand group" aria-label="Nekutoon, inicio">
+            <a href="#" className="brand group" aria-label="Nekumi, inicio">
                 <svg className="brand-mark w-9 h-9 drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-transform group-hover:scale-110 duration-300" viewBox="0 0 44 44" aria-hidden="true">
                   <defs>
                     <linearGradient id="lg-epic" x1="0" y1="0" x2="44" y2="44">
@@ -299,7 +299,7 @@ export default function Home() {
                   <path d="M14.5 31V15.8L28.5 31" fill="none" stroke="url(#lg-epic-2)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <span className="brand-word tracking-[0.02em] text-[24px] font-black uppercase">
-                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">toon</span>
+                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">mi</span>
                 </span>
               </a>
             <nav className="desktop-nav flex items-center gap-5" aria-label="Navegación principal">
@@ -503,7 +503,7 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mt-4">
+                  <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mt-4">
                     {filteredManhwas.slice(0, visibleCount).map((item) => (
                       <Link key={item.id} href={`/manga/${item.id}`} className="block">
                         <article className="media-card h-full" tabIndex={0}>
@@ -511,9 +511,9 @@ export default function Home() {
                             <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" className="w-full object-cover aspect-[2/3]" />
                             <span className="card-badge score"><Star />{item.score}</span>
                             
-                            {item.status && item.status !== 'Publicado' && (
+                            {(item.status || 'En emisión') && (
                               <span className={`absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg ${item.status === 'Finalizado' ? 'bg-[#10b981]/80 text-white border-[#10b981]/30' : 'bg-[#3b82f6]/80 text-white border-[#3b82f6]/30'}`}>
-                                {item.status}
+                                {item.status || 'En emisión'}
                               </span>
                             )}
 
@@ -544,6 +544,22 @@ export default function Home() {
                   )}
                 </>
               )}
+            </section>
+
+            <section id="categorias" className="category-section" aria-labelledby="categoriesTitle">
+              <div className="section-heading">
+                <h2 id="categoriesTitle" className="section-title">Explora por categoría</h2>
+                <span className="section-caption">Encuentra tu próxima historia</span>
+              </div>
+              <div className="categories-grid">
+                {categories.map(([label, key]) => (
+                  <button key={key} type="button" className="category-tile" onClick={(e) => { handleCategoryClick(e, label); setVisibleCount(18); }}>
+                    <img src={MEDIA_CONFIG[key as keyof typeof MEDIA_CONFIG]} alt="" loading="lazy" />
+                    <span>{label}</span>
+                    <ArrowRight className="category-arrow" />
+                  </button>
+                ))}
+              </div>
             </section>
           </div>
           
@@ -667,7 +683,7 @@ export default function Home() {
       <footer className="site-footer">
         <div className="shell footer-grid">
           <div className="footer-brand">
-            <a href="#" className="brand group" aria-label="Nekutoon, inicio">
+            <a href="#" className="brand group" aria-label="Nekumi, inicio">
                 <svg className="brand-mark w-9 h-9 drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-transform group-hover:scale-110 duration-300" viewBox="0 0 44 44" aria-hidden="true">
                   <defs>
                     <linearGradient id="lg-epic" x1="0" y1="0" x2="44" y2="44">
@@ -684,7 +700,7 @@ export default function Home() {
                   <path d="M14.5 31V15.8L28.5 31" fill="none" stroke="url(#lg-epic-2)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <span className="brand-word tracking-[0.02em] text-[24px] font-black uppercase">
-                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">toon</span>
+                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">mi</span>
                 </span>
               </a>
             <p>Tu espacio para descubrir, valorar y compartir las mejores historias del universo manhwa y webtoon.</p>

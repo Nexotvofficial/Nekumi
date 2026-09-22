@@ -272,7 +272,7 @@ export default function MangaDetail() {
         </div>
 
         {/* Chapters List */}
-        <div className="mt-16">
+        <div className="mt-16 detail-chapters">
           <div className="flex items-center justify-between mb-6"> <div className="flex items-center gap-3"> <List className="w-6 h-6 text-[#a855f7]" /> <h2 className="text-2xl font-bold">Capítulos</h2> </div> <button onClick={() => setSortDesc(!sortDesc)} className="btn glass border border-white/10 hover:bg-white/5 text-sm"> Ordenar: {sortDesc ? "Más recientes" : "Más antiguos"} </button> </div>
 
           <div className="glass rounded-[22px] overflow-hidden">
@@ -313,7 +313,7 @@ export default function MangaDetail() {
         </div>
 
         {/* Reviews Section */}
-        <div id="reseñas-section" className="mt-16 border-t border-white/10 pt-16">
+        <div id="reseñas-section" className="mt-16 border-t border-white/10 pt-16 detail-reviews">
           <div className="flex items-center gap-3 mb-8">
             <MessageCircle className="w-6 h-6 text-[#a855f7]" />
             <h2 className="text-2xl font-bold">Comentarios y Reseñas</h2>

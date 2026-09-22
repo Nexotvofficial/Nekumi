@@ -1753,3 +1753,39 @@ a {
   50% { transform: translateY(-12px); }
   100% { transform: translateY(0px); }
 }
+
+
+/* Nekumi visual system refresh */
+.catalog-grid { align-items: start; }
+.catalog-grid .media-card { transition: transform .24s ease, filter .24s ease; }
+.catalog-grid .media-card:hover { transform: translateY(-4px); }
+.catalog-grid .cover { aspect-ratio: 2 / 3; }
+.catalog-grid .card-info { padding: 11px 4px 2px; }
+.catalog-grid .card-title { font-size: 12px; }
+.catalog-grid .card-meta { font-size: 10px; }
+.category-section { margin-top: 42px; padding: 24px; border: 1px solid rgba(255,255,255,.07); border-radius: 22px; background: linear-gradient(135deg, rgba(139,92,246,.08), rgba(17,17,21,.72)); }
+.section-caption { color: #777781; font-size: 11px; }
+.categories-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.category-tile { position: relative; min-height: 92px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; text-align: left; color: #fff; background: #15151a; cursor: pointer; isolation: isolate; transition: transform .22s ease, border-color .22s ease; }
+.category-tile:hover { transform: translateY(-3px); border-color: rgba(192,132,252,.55); }
+.category-tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .42; z-index: -2; transition: transform .35s ease; }
+.category-tile:hover img { transform: scale(1.08); }
+.category-tile::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(5,5,8,.92), rgba(5,5,8,.25)); }
+.category-tile span { position: absolute; left: 14px; bottom: 14px; font-size: 12px; font-weight: 800; }
+.category-arrow { position: absolute; right: 12px; top: 12px; width: 15px; color: #c084fc; }
+.admin-shell > .max-w-3xl { max-width: 1120px; }
+.admin-shell .glass { border-color: rgba(168,85,247,.16); }
+.admin-shell select, .admin-shell input, .admin-shell textarea { transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+.admin-shell select:focus, .admin-shell input:focus, .admin-shell textarea:focus { outline: none; border-color: rgba(168,85,247,.62); box-shadow: 0 0 0 4px rgba(139,92,246,.1); }
+.detail-chapters li a { min-height: 78px; }
+.detail-chapters li a:hover { background: linear-gradient(90deg, rgba(139,92,246,.12), rgba(255,255,255,.03)); }
+.detail-reviews textarea { min-height: 112px; }
+@media (max-width: 640px) {
+.category-section { padding: 16px; margin-top: 30px; }
+.categories-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.category-tile { min-height: 78px; }
+.section-caption { display: none; }
+.admin-shell { padding-top: 24px; }
+.admin-shell > .max-w-3xl { width: 100%; }
+.detail-chapters li a { padding: 14px 12px; }
+}
