@@ -109,10 +109,6 @@ a {
   filter: drop-shadow(0 5px 14px rgba(168, 85, 247, .32));
 }
 
-.brand-word span {
-  color: #a78bfa;
-}
-
 .desktop-nav {
   display: flex;
   align-items: center;
