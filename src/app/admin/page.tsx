@@ -286,7 +286,7 @@ export default function AdminProDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#050505] flex text-white font-sans overflow-hidden">
+    <div className="admin-shell min-h-screen bg-[#050505] flex text-white font-sans overflow-hidden">
       
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#0a0a0c] border-r border-white/5 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
