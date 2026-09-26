@@ -130,6 +130,19 @@ def scrape_manhwa(url):
     from urllib.parse import urljoin
     links = soup.find_all('a', href=True)
     
+    # ⚡ SOPORTE AJAX: Muchas webs (Madara/WordPress) cargan la lista de capítulos por AJAX
+    ajax_url = f"{url.rstrip('/')}/ajax/chapters/"
+    try:
+        ajax_res = requests.post(ajax_url, headers=headers, timeout=10)
+        if ajax_res.status_code == 200 and len(ajax_res.text) > 200:
+            ajax_soup = BeautifulSoup(ajax_res.text, 'html.parser')
+            ajax_links = ajax_soup.find_all('a', href=True)
+            if len(ajax_links) > 0:
+                print(f"  ⚡ Lista completa de capítulos detectada por AJAX ({len(ajax_links)} enlaces).")
+                links.extend(ajax_links)
+    except Exception:
+        pass
+    
     # Usamos un dict para evitar duplicados y guardar el número real extraído
     chapters_extracted = {}
     
@@ -167,10 +180,53 @@ def scrape_manhwa(url):
             
         print(f"  ⏳ Procesando Capítulo {chap_number}...")
         
-        chap_res = requests.get(chap_url, headers=headers)
+        try:
+            chap_res = requests.get(chap_url, headers=headers, timeout=20)
+        except Exception as e:
+            print(f"    ❌ Error al conectar con el capítulo {chap_number}: {e}")
+            continue
+            
+        if chap_res.status_code == 403 or "Just a moment" in chap_res.text or "Un momento" in chap_res.text:
+            print(f"    ❌ Error 403: El sitio bloqueó la descarga con Cloudflare en el Capítulo {chap_number}.")
+            continue
+            
+        if chap_res.status_code != 200:
+            print(f"    ❌ Error HTTP {chap_res.status_code} en el Capítulo {chap_number}.")
+            continue
+            
         chap_res.encoding = 'utf-8'
         chap_soup = BeautifulSoup(chap_res.text, 'html.parser')
         
+        # Buscar contenedor de lectura si existe, sino todo el body
+        reading_area = chap_soup.find(class_=re.compile(r'reading-content|entry-content|chapter-content|vung-doc', re.I)) or chap_soup
+        images = reading_area.find_all('img')
+        
+        pages_payload = []
+        page_num = 1
+        for img in images:
+            src = (
+                img.get('data-src') or 
+                img.get('src') or 
+                img.get('data-lazy-src') or 
+                img.get('data-original') or
+                img.get('data-lazyload')
+            )
+            if src:
+                src = src.strip()
+                src = urljoin(chap_url, src)
+                # Filtrar imágenes pequeñas (iconos) o de ads
+                if not any(bad in src.lower() for bad in ['logo', 'avatar', 'banner', 'adsterra', 'pixel', 'icon', 'favicon']):
+                    pages_payload.append({
+                        "page_number": page_num,
+                        "image_url": src  # ¡HOTLINKING DIRECTO! No se sube al repo
+                    })
+                    page_num += 1
+                
+        # ⚠️ IMPORTANTE: Solo insertar el capítulo en la base de datos SI TIENE PÁGINAS VÁLIDAS
+        if not pages_payload:
+            print(f"    ⚠️ No se encontraron imágenes válidas en el Capítulo {chap_number}. No se guardó para evitar capítulos vacíos.")
+            continue
+            
         # Insertar Capítulo en BD
         chap_payload = {
             "manhwa_id": manhwa_id,
@@ -178,28 +234,14 @@ def scrape_manhwa(url):
             "title": ""
         }
         c_res = supabase.table("chapters").insert(chap_payload).execute()
-        chapter_id = c_res.data[0]['id']
-        
-        images = chap_soup.find_all('img')
-        pages_payload = []
-        page_num = 1
-        for img in images:
-            src = img.get('data-src') or img.get('src')
-            if src:
-                src = src.strip()
-                src = urljoin(chap_url, src)
-                # Filtrar imágenes pequeñas (iconos) o de ads
-                if 'logo' not in src.lower() and 'avatar' not in src.lower() and 'banner' not in src.lower():
-                    pages_payload.append({
-                        "chapter_id": chapter_id,
-                        "page_number": page_num,
-                        "image_url": src  # ¡HOTLINKING DIRECTO! No se sube al repo
-                    })
-                    page_num += 1
-                
-        if pages_payload:
+        if c_res.data and len(c_res.data) > 0:
+            chapter_id = c_res.data[0]['id']
+            for p in pages_payload:
+                p["chapter_id"] = chapter_id
             supabase.table("pages").insert(pages_payload).execute()
             print(f"    ⚡ Insertadas {len(pages_payload)} páginas (Directo de la web, sin descargar).")
+        else:
+            print(f"    ❌ Error al registrar el capítulo en la base de datos.")
 
 if __name__ == "__main__":
     print("\n🚀 NEKUTOON - AUTO SCRAPER (DIRECTO A BD) 🚀")

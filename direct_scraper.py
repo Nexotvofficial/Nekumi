@@ -129,6 +129,19 @@ def scrape_manhwa(url):
     from urllib.parse import urljoin
     links = soup.find_all('a', href=True)
     
+    # ⚡ SOPORTE AJAX: Muchas webs (Madara/WordPress) cargan la lista de capítulos por AJAX
+    ajax_url = f"{url.rstrip('/')}/ajax/chapters/"
+    try:
+        ajax_res = requests.post(ajax_url, headers=headers, timeout=10)
+        if ajax_res.status_code == 200 and len(ajax_res.text) > 200:
+            ajax_soup = BeautifulSoup(ajax_res.text, 'html.parser')
+            ajax_links = ajax_soup.find_all('a', href=True)
+            if len(ajax_links) > 0:
+                print(f"  ⚡ Lista completa de capítulos detectada por AJAX ({len(ajax_links)} enlaces).")
+                links.extend(ajax_links)
+    except Exception:
+        pass
+    
     # Usamos un dict para evitar duplicados y guardar el número real extraído
     chapters_extracted = {}
     
