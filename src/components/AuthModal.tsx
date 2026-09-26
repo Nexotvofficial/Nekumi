@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase";
-import { X, Mail, Lock, User, Loader2 } from "lucide-react";
+import { X, Mail, Lock, User, Loader2, ShieldCheck } from "lucide-react";
 import AvatarPicker from "@/components/AvatarPicker";
 import { getAvatarSvg } from "@/lib/avatars";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,12 +22,25 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
   const [username, setUsername] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("hunter");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<any>(null);
   const supabase = createClient();
+
+  // Cloudflare Turnstile Site Key
+  // TEST KEY (siempre pasa) - reemplaza con tu Site Key real de Cloudflare Turnstile
+  const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Verificar que el Turnstile fue completado
+    if (!turnstileToken) {
+      showToast("Por favor completa la verificación de seguridad ✅");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -192,9 +206,31 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
             </div>
           )}
 
+          {/* Cloudflare Turnstile - Verificación anti-bots */}
+          <div className="flex flex-col items-center gap-2 py-1">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={TURNSTILE_SITE_KEY}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken(null)}
+              onError={() => setTurnstileToken(null)}
+              options={{
+                theme: 'dark',
+                language: 'es',
+                size: 'normal',
+              }}
+            />
+            {!turnstileToken && (
+              <p className="text-xs text-[#777782] flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                Completa la verificación para continuar
+              </p>
+            )}
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !turnstileToken}
             className="w-full h-[46px] mt-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#d946ef] text-white font-bold text-sm shadow-[0_10px_28px_rgba(139,92,246,0.27)] hover:-translate-y-[2px] hover:shadow-[0_14px_35px_rgba(217,70,239,0.35)] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
