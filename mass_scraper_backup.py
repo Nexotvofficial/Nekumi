@@ -26,13 +26,20 @@ modo = "1"
 if entrada.startswith("http://") or entrada.startswith("https://"):
     # El usuario pegó una URL directamente en el primer prompt
     url_limpia = entrada.lower()
-    # Si contiene /manga/<slug> o /comics/<slug> y no parece ser catálogo
-    if any(k in url_limpia for k in ['/manga/', '/comic/', '/comics/', '/manhwa/']) and not any(k in url_limpia for k in ['/page/', '?page=', '/catalog', '/genero/']):
-        modo = "2"
-        manga_url = entrada
-    else:
+    
+    # Si la URL indica claramente que es una paginación de catálogo
+    if '/page/' in url_limpia or '?page=' in url_limpia:
         modo = "1"
         base_url = entrada
+    # Si la URL es la raíz del sitio (ej. https://vermanhwa.com o https://vermanhwa.com/)
+    elif url_limpia.count('/') < 3 or (url_limpia.count('/') == 3 and url_limpia.endswith('/')):
+        modo = "1"
+        base_url = entrada
+    # De lo contrario, asumimos que es la URL de un manhwa individual
+    else:
+        modo = "2"
+        manga_url = entrada
+
 elif entrada in ["2", "individual", "unico", "único", "solo", "uno", "i", "u"]:
     modo = "2"
 else:
