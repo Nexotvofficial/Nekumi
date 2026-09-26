@@ -248,12 +248,13 @@ export default function Home() {
   const filteredManhwas = manhwas.filter(m => {
     const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) || m.genre.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Ocultar +18 y BL de la vista general por defecto
+    // Ocultar +18, BL y Romance de la vista general por defecto
     if (!activeCategory && !searchQuery) {
       const isSensible = m.genre.toLowerCase().includes('+18') || 
                          m.genre.toLowerCase().includes('bl') || 
                          m.genre.toLowerCase().includes('boys love') ||
-                         m.genre.toLowerCase().includes('yuri');
+                         m.genre.toLowerCase().includes('yuri') ||
+                         m.genre.toLowerCase().includes('romance');
       if (isSensible) return false;
     }
 
