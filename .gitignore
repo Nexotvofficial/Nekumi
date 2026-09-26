@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 .venv/
 __pycache__/
+
+# Archivos de prueba locales
+test_*.py
+test_*.ts
+*.dump.html
