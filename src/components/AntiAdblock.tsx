@@ -53,20 +53,10 @@ export default function AntiAdblock() {
       document.body.removeChild(bait);
     }
 
-    // METHOD 2: Brave & strict blockers network test (AdSense URL)
-    // If honeypot failed to catch it, we test the network request
-    if (!adblockEnabled) {
-      try {
-        await fetch("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", {
-          method: "HEAD",
-          mode: "no-cors",
-          cache: "no-store"
-        });
-      } catch (error) {
-        // A network error here usually means the browser/extension blocked the request entirely
-        adblockEnabled = true;
-      }
-    }
+    // NOTE: We removed the network-based AdSense fetch test because
+    // iOS Safari (ITP) and some browsers block requests to ad domains
+    // by default — causing false positives for ALL iPhone users.
+    // The DOM honeypot above is reliable enough to catch real adblockers.
 
     setDetected(adblockEnabled);
     setIsChecking(false);
