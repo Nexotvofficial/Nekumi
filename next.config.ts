@@ -10,10 +10,8 @@ const cspHeader = `
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    frame-ancestors 'none';
     frame-src 'self' https: http:;
     connect-src 'self' https: http:;
-    upgrade-insecure-requests;
 `;
 
 const withSerwist = withSerwistInit({
