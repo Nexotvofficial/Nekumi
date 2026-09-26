@@ -24,6 +24,7 @@ export const metadata: Metadata = {
   title: "Nekutoon — Leer Manhwas y Webtoons",
   description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekutoon. Actualizaciones diarias con la mejor calidad en español.",
   keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekutoon", "manga gratis", "acción", "romance"],
+  referrer: "no-referrer",
   openGraph: {
     title: "Nekutoon — El Mejor Catálogo de Manhwas",
     description: "Lee tus manhwas y webtoons favoritos en la plataforma más rápida y limpia de internet.",
@@ -58,6 +59,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <head>
+        <meta name="referrer" content="no-referrer" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
