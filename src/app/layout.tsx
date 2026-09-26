@@ -61,13 +61,24 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for(let registration of registrations) {
-                    registration.unregister();
+              (function() {
+                if ('serviceWorker' in navigator) {
+                  // Unregister ALL service workers
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for (var i = 0; i < registrations.length; i++) {
+                      registrations[i].unregister();
+                    }
+                  });
+                  // Clear ALL caches to fix broken iOS Safari loads
+                  if ('caches' in window) {
+                    caches.keys().then(function(cacheNames) {
+                      cacheNames.forEach(function(cacheName) {
+                        caches.delete(cacheName);
+                      });
+                    });
                   }
-                });
-              }
+                }
+              })();
             `,
           }}
         />
