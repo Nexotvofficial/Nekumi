@@ -247,7 +247,17 @@ export default function Home() {
 
   const filteredManhwas = manhwas.filter(m => {
     const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) || m.genre.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCat = activeCategory ? m.genre.toLowerCase() === activeCategory.toLowerCase() : true;
+    
+    // Ocultar +18 y BL de la vista general por defecto
+    if (!activeCategory && !searchQuery) {
+      const isSensible = m.genre.toLowerCase().includes('+18') || 
+                         m.genre.toLowerCase().includes('bl') || 
+                         m.genre.toLowerCase().includes('boys love') ||
+                         m.genre.toLowerCase().includes('yuri');
+      if (isSensible) return false;
+    }
+
+    const matchesCat = activeCategory ? m.genre.toLowerCase().includes(activeCategory.toLowerCase()) : true;
     return matchesSearch && matchesCat;
   });
 
@@ -302,7 +312,7 @@ export default function Home() {
                 <a className={`nav-link ${activeCategory === 'Isekai' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Isekai"); setVisibleCount(18); }}>Isekai</a>
                 <a className={`nav-link ${activeCategory === 'Drama' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Drama"); setVisibleCount(18); }}>Drama</a>
                 <a className={`nav-link ${activeCategory === 'Comedia' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Comedia"); setVisibleCount(18); }}>Comedia</a>
-                <a className={`nav-link ${activeCategory === '+18' ? 'active' : ''} text-pink-500`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "+18"); setVisibleCount(18); }}>+18</a>
+                <a className={`nav-link ${activeCategory === 'BL' || activeCategory === 'Boys Love' ? 'active' : ''}`} href="#recomendados" onClick={(e) => { handleCategoryClick(e, "BL"); setVisibleCount(18); }}>BL</a>
               </nav>
             <div className="header-actions">
               <div className="search-wrap desktop-search">
@@ -397,7 +407,7 @@ export default function Home() {
               <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Isekai"); setVisibleCount(18); setMobileNavOpen(false); }}>Isekai</a>
               <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Drama"); setVisibleCount(18); setMobileNavOpen(false); }}>Drama</a>
               <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "Comedia"); setVisibleCount(18); setMobileNavOpen(false); }}>Comedia</a>
-              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "+18"); setVisibleCount(18); setMobileNavOpen(false); }} className="text-pink-500">+18</a>
+              <a href="#recomendados" onClick={(e) => { handleCategoryClick(e, "BL"); setVisibleCount(18); setMobileNavOpen(false); }}>BL</a>
             </nav>
         </div>
       </header>
@@ -483,10 +493,20 @@ export default function Home() {
             )}
             
             <section id="recomendados" className="section" aria-labelledby="recommendedTitle">
-              <div className="section-heading">
+              <div className="section-heading flex-col items-start gap-4">
                 <h2 id="recommendedTitle" className="section-title">
                   {searchQuery ? `Resultados para "${searchQuery}"` : (activeCategory ? `Categoría: ${activeCategory}` : 'Explorar Catálogo')}
                 </h2>
+                
+                {/* Menú de sectores (Solo visible en Explorar principal sin búsqueda) */}
+                {!activeCategory && !searchQuery && (
+                  <div className="flex gap-2 w-full overflow-x-auto pb-2 scrollbar-hide">
+                    <button onClick={(e) => handleCategoryClick(e, "+18")} className="px-4 py-1.5 rounded-full bg-pink-500/10 text-pink-500 border border-pink-500/20 text-xs font-bold whitespace-nowrap hover:bg-pink-500/20 transition-colors">Contenido +18</button>
+                    <button onClick={(e) => handleCategoryClick(e, "Yuri")} className="px-4 py-1.5 rounded-full bg-purple-500/10 text-purple-500 border border-purple-500/20 text-xs font-bold whitespace-nowrap hover:bg-purple-500/20 transition-colors">Yuri (GL)</button>
+                    <button onClick={(e) => handleCategoryClick(e, "Thriller")} className="px-4 py-1.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold whitespace-nowrap hover:bg-red-500/20 transition-colors">Thriller / Terror</button>
+                    <button onClick={(e) => handleCategoryClick(e, "Deportes")} className="px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 text-xs font-bold whitespace-nowrap hover:bg-blue-500/20 transition-colors">Deportes</button>
+                  </div>
+                )}
               </div>
               
               {filteredManhwas.length === 0 ? (
