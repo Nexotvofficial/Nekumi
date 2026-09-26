@@ -24,19 +24,44 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- 2. SCRAPER GENÉRICO ---
 def scrape_manhwa(url):
+    url = url.strip()
+    if not url:
+        print("❌ URL vacía.")
+        return False
+        
+    # Si pegaron el link de un capítulo, convertir al link del manhwa principal
+    clean_url = re.sub(r'/(capitulo|chapter)[^/]*.*$', '/', url, flags=re.IGNORECASE)
+    if clean_url != url:
+        print(f"ℹ️ Detecté enlace de capítulo. Ajustando al manhwa principal: {clean_url}")
+        url = clean_url
+
     print(f"🌍 Analizando: {url}")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     
     # 1. Obtener datos del Manhwa
-    res = requests.get(url, headers=headers)
-    res.encoding = 'utf-8'  # <--- Fix para tildes y eñes
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        res.encoding = 'utf-8'
+    except Exception as e:
+        print(f"❌ Error al conectar con {url}: {e}")
+        return False
+        
+    # Detectar si la web redirigió al home (como hace VerManhwa cuando un manga no existe)
+    if res.history and res.url.rstrip('/') in ['https://vermanhwa.com', 'http://vermanhwa.com', 'https://lector-mangas.lat']:
+        print(f"❌ Error: La URL no existe en el sitio y fue redirigida al inicio.")
+        return False
+
     soup = BeautifulSoup(res.text, 'html.parser')
     
-    # Intentar obtener el título (adaptable según la web)
-    title_tag = soup.find('h1')
+    # Intentar obtener el título (soporte para post-title de Madara o H1)
+    title_tag = soup.find(class_=re.compile(r'post-title|entry-title|manga-title', re.I)) or soup.find('h1')
     manga_title = title_tag.text.strip() if title_tag else "Manga Desconocido"
     # Limpiar el título por si la web incluye "Capítulo X" en el H1
     manga_title = re.sub(r'(?i)\s*(cap[ií]tulo|chapter)\s*\d+([.-]\d+)?.*$', '', manga_title).strip()
+    
+    if manga_title.lower() in ["ultimos mangas", "últimos mangas", "home", "inicio", "manga desconocido", "page not found", "404"]:
+        print(f"❌ Error: No se encontró un manga válido en esta URL. Asegúrate de copiar el enlace de la portada del manhwa.")
+        return False
     
     # Extraer un slug confiable desde la URL
     slug = url.rstrip('/').split('/')[-1]
@@ -178,5 +203,8 @@ def scrape_manhwa(url):
 
 if __name__ == "__main__":
     print("\n🚀 NEKUTOON - AUTO SCRAPER (DIRECTO A BD) 🚀")
-    target_url = input("🔗 Pega la URL principal del Manhwa a scrapear: ").strip()
+    if len(sys.argv) > 1:
+        target_url = sys.argv[1].strip()
+    else:
+        target_url = input("🔗 Pega la URL principal del Manhwa a scrapear: ").strip()
     scrape_manhwa(target_url)
