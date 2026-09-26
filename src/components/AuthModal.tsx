@@ -26,9 +26,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
   const turnstileRef = useRef<any>(null);
   const supabase = createClient();
 
-  // Cloudflare Turnstile Site Key
-  // TEST KEY (siempre pasa) - reemplaza con tu Site Key real de Cloudflare Turnstile
-  const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+  // Cloudflare Turnstile Site Key (Nekutoon - nekutoon.com)
+  const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAFD90UHKmLECFLzY";
 
   if (!isOpen) return null;
 
