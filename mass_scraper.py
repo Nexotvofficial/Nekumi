@@ -18,22 +18,33 @@ page_num = 1
 
 while True:
     print(f"🔎 Escaneando página {page_num}...")
-    url = f"{base_url}?page={page_num}"
+    if 'lector-mangas.lat' in base_url:
+        url = f"{base_url}?page={page_num}"
+    else:
+        url = f"{base_url.rstrip('/')}/page/{page_num}/"
+        
     res = requests.get(url, headers=headers)
     soup = BeautifulSoup(res.text, 'html.parser')
     
-    # Buscar todos los enlaces que sean mangas
+    # Buscar todos los enlaces
     links = soup.find_all('a', href=True)
     nuevos_en_pagina = 0
     
     for link in links:
         href = link['href']
-        # Evitar links de generos, login, o paginación
-        if href.startswith('/comics/') and '/genre/' not in href and '/page' not in href:
-            full_url = urljoin(base_url, href)
-            if full_url not in all_manhwas:
-                all_manhwas.add(full_url)
-                nuevos_en_pagina += 1
+        
+        # Filtros de exclusión comunes
+        if any(x in href.lower() for x in ['/genre/', '/page', '/category/', '/login', '/author/']):
+            continue
+            
+        # Patrones comunes de URL de mangas
+        if any(x in href.lower() for x in ['/comics/', '/manga/', '/manhwa/', '/comic/', '/library/']):
+            # Ignorar si es un link directo a un capítulo
+            if 'capitulo' not in href.lower() and 'chapter' not in href.lower() and not re.search(r'/\d+$', href):
+                full_url = urljoin(base_url, href)
+                if full_url not in all_manhwas:
+                    all_manhwas.add(full_url)
+                    nuevos_en_pagina += 1
                 
     if nuevos_en_pagina == 0:
         print(f"🏁 No se encontraron más mangas en la página {page_num}. Fin de la búsqueda de links.")

@@ -62,14 +62,19 @@ def scrape_manhwa(url):
     cover_meta = soup.find('meta', property='og:image')
     cover_url = cover_meta['content'] if cover_meta else ""
     
-    # Extraer Sinopsis real
+    # Extraer Sinopsis real (Soporte mejorado para Madara/TMO)
     synopsis = "Sinopsis no disponible."
-    for el in soup.find_all(['div', 'p'], class_=re.compile(r'summary|desc|excerpt|sinopsis|sino', re.IGNORECASE)):
-        text = el.text.strip()
-        if len(text) > 40 and 'traducciones' not in text.lower():
-            synopsis = text
-            break
-    if synopsis == "Sinopsis no disponible.":
+    specific = soup.find(class_=re.compile(r'summary__content|description-summary|manga-excerpt', re.IGNORECASE))
+    if specific:
+        synopsis = specific.text.strip()
+    else:
+        for el in soup.find_all(['div', 'p'], class_=re.compile(r'summary|desc|excerpt|sinopsis|sino', re.IGNORECASE)):
+            text = el.text.strip()
+            if len(text) > 40 and 'traducciones' not in text.lower():
+                synopsis = text
+                break
+                
+    if synopsis == "Sinopsis no disponible." or len(synopsis) < 10:
         meta = soup.find('meta', property='og:description')
         if meta:
             synopsis = meta['content'].strip()
@@ -78,7 +83,7 @@ def scrape_manhwa(url):
     genres = []
     for a in soup.find_all('a', href=True):
         href = a['href'].lower()
-        if '/genero/' in href or '/genre/' in href or '/category/' in href:
+        if 'genero' in href or 'genre' in href or 'category' in href:
             g = a.text.strip()
             if g and g not in genres:
                 genres.append(g)
