@@ -718,11 +718,11 @@ export default function Home() {
             </div>
             <div>
               <h3>Legal y Contacto</h3>
+              <Link href="/dmca">DMCA / Copyright</Link>
               <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "terminos"}); }}>Términos</a>
               <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "privacidad"}); }}>Privacidad</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "derechos"}); }}>Derechos de autor</a>
               <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "cookies"}); }}>Cookies</a>
-              <a href="mailto:soporte@nekutoon.com">soporte@nekutoon.com</a>
+              <a href="mailto:admin@nekutoon.com">admin@nekutoon.com</a>
             </div>
           </nav>
           <div className="store-buttons">
