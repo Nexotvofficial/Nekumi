@@ -62,6 +62,11 @@ def scrape_manhwa(url):
         if meta:
             synopsis = meta['content'].strip()
             
+    # Limpiar basura de la sinopsis (URLs, Markdown links)
+    synopsis = re.sub(r'\[.*?\]\(https?://.*?\)', '', synopsis)
+    synopsis = re.sub(r'\(https?://.*?\)', '', synopsis)
+    synopsis = re.sub(r'https?://\S+', '', synopsis).strip()
+            
     # Extraer Géneros reales
     genres = []
     for a in soup.find_all('a', href=True):
@@ -145,7 +150,7 @@ def scrape_manhwa(url):
         chap_payload = {
             "manhwa_id": manhwa_id,
             "chapter_number": chap_number,
-            "title": f"Capítulo {chap_number}"
+            "title": ""
         }
         c_res = supabase.table("chapters").insert(chap_payload).execute()
         chapter_id = c_res.data[0]['id']
