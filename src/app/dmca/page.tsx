@@ -35,10 +35,10 @@ export default function DMCA() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 blur-[100px] rounded-full pointer-events-none"></div>
             <h2 className="text-xl font-bold text-white mb-4">Declaración de Responsabilidad (Disclaimer)</h2>
             <p className="mb-4">
-              <strong>Nekutoon</strong> es un proveedor de servicios de Internet que actúa únicamente como un motor de búsqueda e indexador de contenido. Nuestra plataforma funciona mediante la recolección automática de enlaces y metadatos alojados en servidores de terceros que son de dominio público en Internet.
+              <strong>Nekutoon</strong> funciona como un índice y repositorio para los fans. Recopilamos, traducimos y organizamos contenido de dominio público en Internet para facilitar su lectura y preservación.
             </p>
             <p>
-              Ningún archivo, imagen, documento o material con derechos de autor se encuentra alojado en los servidores físicos de Nekutoon. Todo el contenido que se muestra en esta plataforma es proveído y servido exclusivamente por sitios web externos e independientes, sobre los cuales Nekutoon no tiene ningún tipo de control administrativo, técnico o legal.
+              Aunque parte del contenido puede estar respaldado en nuestra infraestructura de base de datos para garantizar su disponibilidad técnica, Nekutoon no reclama derechos de propiedad sobre ninguna de las obras mostradas, respetando siempre el crédito de los creadores originales y scanlations.
             </p>
           </section>
 
@@ -75,8 +75,8 @@ export default function DMCA() {
             <p className="mb-4">
               Por favor, envíe todas las notificaciones de infracción de derechos de autor exclusivamente a nuestro correo electrónico de soporte.
             </p>
-            <a href="mailto:admin@nekutoon.com" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-colors">
-              admin@nekutoon.com
+            <a href="mailto:diazmowi07@gmail.com" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-colors">
+              diazmowi07@gmail.com
             </a>
           </section>
         </div>

@@ -707,14 +707,14 @@ export default function AdminProDashboard() {
                         <tr key={u.id} className="hover:bg-white/5 transition-colors">
                           <td className="py-3">
                             <div className="w-10 h-10 rounded-full bg-[#10b981]/20 flex items-center justify-center text-[#34d399] font-bold border border-[#10b981]/30">
-                              {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full rounded-full object-cover" /> : (u.email ? u.email[0].toUpperCase() : 'U')}
+                              {u.avatar_url ? <img src={`/avatars/${u.avatar_url}.svg`} onError={(e) => (e.target as any).style.display='none'} className="w-full h-full rounded-full object-cover" /> : (u.username ? u.username[0].toUpperCase() : 'U')}
                             </div>
                           </td>
-                          <td className="py-3 font-semibold text-white">{u.email}</td>
-                          <td className="py-3 text-[#a7a7b1]">{new Date(u.created_at).toLocaleDateString()}</td>
+                          <td className="py-3 font-semibold text-white">{u.username || 'Usuario anónimo'}</td>
+                          <td className="py-3 text-[#a7a7b1]">{u.updated_at ? new Date(u.updated_at).toLocaleDateString() : 'Desconocida'}</td>
                           <td className="py-3 text-right">
-                            <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${u.email === 'diazmowi07@gmail.com' ? 'bg-[#a855f7]/20 text-[#c084fc]' : 'bg-white/10 text-white/70'}`}>
-                              {u.email === 'diazmowi07@gmail.com' ? 'Admin' : 'Lector'}
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${u.username === 'diazmowi07' || u.role === 'admin' ? 'bg-[#a855f7]/20 text-[#c084fc]' : 'bg-white/10 text-white/70'}`}>
+                              {u.username === 'diazmowi07' || u.role === 'admin' ? 'Admin' : 'Lector'}
                             </span>
                           </td>
                         </tr>

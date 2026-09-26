@@ -162,6 +162,36 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
             />
           </div>
 
+          {isLogin && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!email) {
+                    showToast("Primero escribe tu correo arriba para recuperar la contraseña");
+                    return;
+                  }
+                  try {
+                    setLoading(true);
+                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                      redirectTo: `${window.location.origin}/reset-password`,
+                    });
+                    if (error) throw error;
+                    showToast("Te hemos enviado un correo para restablecer tu contraseña");
+                  } catch (err: any) {
+                    // Fallback a contacto directo si Supabase no está configurado para emails
+                    showToast("Por favor, envía un correo a diazmowi07@gmail.com para recuperar tu cuenta.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="text-xs text-[#a78bfa] hover:text-white transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}

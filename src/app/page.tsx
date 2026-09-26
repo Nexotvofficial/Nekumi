@@ -722,7 +722,7 @@ export default function Home() {
               <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "terminos"}); }}>Términos</a>
               <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "privacidad"}); }}>Privacidad</a>
               <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "cookies"}); }}>Cookies</a>
-              <a href="mailto:admin@nekutoon.com">admin@nekutoon.com</a>
+              <a href="mailto:diazmowi07@gmail.com">diazmowi07@gmail.com</a>
             </div>
           </nav>
           <div className="store-buttons">
