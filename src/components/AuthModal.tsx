@@ -34,11 +34,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Verificar que el Turnstile fue completado
-    if (!turnstileToken) {
-      showToast("Por favor completa la verificación de seguridad ✅");
-      return;
-    }
+    // Verificar que el Turnstile fue completado (desactivado)
+    // if (!turnstileToken) {
+    //   showToast("Por favor completa la verificación de seguridad ✅");
+    //   return;
+    // }
 
     setLoading(true);
 
@@ -205,7 +205,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
             </div>
           )}
 
-          {/* Cloudflare Turnstile - Verificación anti-bots */}
+          {/* Cloudflare Turnstile - Desactivado temporalmente por problemas de dominio
           <div className="flex flex-col items-center gap-2 py-1">
             <Turnstile
               ref={turnstileRef}
@@ -226,10 +226,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
               </p>
             )}
           </div>
+          */}
 
           <button
             type="submit"
-            disabled={loading || !turnstileToken}
+            disabled={loading}
             className="w-full h-[46px] mt-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#d946ef] text-white font-bold text-sm shadow-[0_10px_28px_rgba(139,92,246,0.27)] hover:-translate-y-[2px] hover:shadow-[0_14px_35px_rgba(217,70,239,0.35)] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
