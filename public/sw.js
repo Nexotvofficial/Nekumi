@@ -1,23 +1,10 @@
-// Service Worker - Kill Switch
-// This SW immediately unregisters itself and clears all caches
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
+// DISABLED - Service Worker cleared
+// This file intentionally does nothing to prevent iOS Safari crashes
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    Promise.all([
-      // Clear ALL caches
-      caches.keys().then((cacheNames) =>
-        Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)))
-      ),
-      // Unregister this service worker
-      self.registration.unregister(),
-    ]).then(() => {
-      // Force all clients to reload clean
-      return self.clients.matchAll({ includeUncontrolled: true });
-    }).then((clients) => {
-      clients.forEach((client) => client.navigate(client.url));
-    })
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => self.registration.unregister())
   );
 });

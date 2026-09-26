@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Nekutoon',
     description: 'La mejor plataforma para leer manhwas y webtoons en español.',
     start_url: '/',
-    display: 'standalone',
+    display: 'browser',
     background_color: '#0a0a0a',
     theme_color: '#a855f7',
     orientation: 'portrait',

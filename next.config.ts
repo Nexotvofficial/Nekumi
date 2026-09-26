@@ -1,24 +1,4 @@
 import type { NextConfig } from "next";
-import withSerwistInit from "@serwist/next";
-
-const cspHeader = `
-    default-src 'self' https: http:;
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https: http:;
-    style-src 'self' 'unsafe-inline' https: http:;
-    img-src 'self' blob: data: https: http:;
-    font-src 'self' https: data:;
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-src 'self' https: http:;
-    connect-src 'self' https: http:;
-`;
-
-const withSerwist = withSerwistInit({
-  swSrc: "src/app/sw.ts",
-  swDest: "public/sw.js",
-  disable: true,
-});
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -27,13 +7,10 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: [
           { key: 'X-Robots-Tag', value: 'index, follow' },
-          { key: 'Content-Security-Policy', value: cspHeader.replace(/\n/g, '') },
-          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Referrer-Policy', value: 'no-referrer-when-downgrade' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-          { key: 'X-XSS-Protection', value: '1; mode=block' }
         ],
       },
     ];
@@ -54,4 +31,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default nextConfig;
