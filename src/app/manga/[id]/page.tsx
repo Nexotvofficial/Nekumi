@@ -1,3 +1,4 @@
+import NekuLoading from '@/components/NekuLoading';
 "use client";
 
 import { useState, useEffect } from "react";
@@ -163,13 +164,7 @@ export default function MangaDetail() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#a855f7]" />
-      </div>
-    );
-  }
+  if (loading) return <NekuLoading fullScreen={true} />;
 
   if (!manhwa) {
     return (
@@ -279,7 +274,7 @@ export default function MangaDetail() {
 
           <div className="glass rounded-[22px] overflow-hidden">
             {loading ? (
-              <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-[#a855f7] animate-spin" /></div>
+              <NekuLoading fullScreen={false} />
             ) : chapters.length === 0 ? (
               <div className="p-12 text-center text-[#777782]">
                 Aún no hay capítulos publicados para este manhwa.

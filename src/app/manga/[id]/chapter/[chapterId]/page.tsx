@@ -1,3 +1,4 @@
+import NekuLoading from '@/components/NekuLoading';
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -159,13 +160,7 @@ export default function ChapterReader() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#a855f7]" />
-      </div>
-    );
-  }
+  if (loading) return <NekuLoading fullScreen={true} />;
 
   if (!chapter) {
     return (
@@ -249,13 +244,14 @@ export default function ChapterReader() {
         ) : (
           readMode === "cascade" ? (
             // Modo Cascada
-            pages.map((page) => (
+            pages.map((page, index) => (
               <img 
                 key={page.id}
                 src={page.image_url} 
                 alt={`Página ${page.page_number}`}
-                loading="lazy"
                 className="w-full h-auto block select-none pointer-events-none"
+                fetchPriority={index < 3 ? "high" : "auto"}
+                loading={index < 3 ? "eager" : "lazy"}
               />
             ))
           ) : (
@@ -266,6 +262,8 @@ export default function ChapterReader() {
                 src={pages[currentPageIndex].image_url} 
                 alt={`Página ${pages[currentPageIndex].page_number}`}
                 className="w-full h-auto block select-none pointer-events-none"
+                fetchPriority={index < 3 ? "high" : "auto"}
+                loading={index < 3 ? "eager" : "lazy"}
               />
               
               {/* Navigation Guides Overlay */}

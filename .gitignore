@@ -46,3 +46,4 @@ __pycache__/
 test_*.py
 test_*.ts
 *.dump.html
+*.db
