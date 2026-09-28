@@ -276,7 +276,9 @@ export default function MangaDetail() {
           <div className="flex items-center justify-between mb-6"> <div className="flex items-center gap-3"> <List className="w-6 h-6 text-[#a855f7]" /> <h2 className="text-2xl font-bold">Capítulos</h2> </div> <button onClick={() => setSortDesc(!sortDesc)} className="btn glass border border-white/10 hover:bg-white/5 text-sm"> Ordenar: {sortDesc ? "Más recientes" : "Más antiguos"} </button> </div>
 
           <div className="glass rounded-[22px] overflow-hidden">
-            {chapters.length === 0 ? (
+            {loading ? (
+              <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-[#a855f7] animate-spin" /></div>
+            ) : chapters.length === 0 ? (
               <div className="p-12 text-center text-[#777782]">
                 Aún no hay capítulos publicados para este manhwa.
               </div>

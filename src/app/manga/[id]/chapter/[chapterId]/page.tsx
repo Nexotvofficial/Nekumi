@@ -29,6 +29,7 @@ export default function ChapterReader() {
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Navigation
   const [nextChapter, setNextChapter] = useState<Chapter | null>(null);
@@ -68,12 +69,22 @@ export default function ChapterReader() {
       const { data: pData } = await supabase
         .from("pages").select("*").eq("chapter_id", chapterId)
         .order("page_number", { ascending: true });
-      if (pData) setPages(pData);
-
-      setLoading(false);
+        
+      if (pData && pData.length > 0) {
+        setPages(pData);
+        setLoading(false);
+      } else {
+        if (retryCount < 3) {
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 1500); // Auto reintentar 3 veces cada 1.5s si el scraper está tardando
+        } else {
+          setLoading(false);
+        }
+      }
     }
     if (chapterId) loadData();
-  }, [chapterId, manhwaId, supabase]);
+  }, [chapterId, manhwaId, supabase, retryCount]);
 
   // Image Preloader for Paged Mode
   useEffect(() => {

@@ -105,6 +105,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [manhwas, setManhwas] = useState<Manhwa[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [trending, setTrending] = useState<Manhwa[]>([]);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,6 +128,7 @@ export default function Home() {
     // Fetch real manhwas
     supabase.from('manhwas').select('*').order('created_at', { ascending: false }).then(({ data }) => {
       if (data) setManhwas(data);
+      setIsLoading(false);
     });
 
     // Fetch trending
@@ -637,9 +639,13 @@ export default function Home() {
                     </article>
                   </Link>
                 ))}
-                {manhwas.length === 0 && (
+                {isLoading ? (
+                  Array(6).fill(0).map((_, i) => (
+                    <div key={`skel-${i}`} className="animate-pulse bg-white/5 rounded-xl h-64 border border-white/5"></div>
+                  ))
+                ) : manhwas.length === 0 ? (
                   <p className="text-white/40 col-span-3 text-center py-8">No hay manhwas disponibles aún.</p>
-                )}
+                ) : null}
               </div>
             </section>
           </div>
