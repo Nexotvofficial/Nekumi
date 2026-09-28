@@ -464,7 +464,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
             {displayHeroes.length > 0 && (
               <section className="hero grid" aria-labelledby="heroTitle">
                 {displayHeroes.map((hero, idx) => (
-                  <img 
+                  <img referrerPolicy="no-referrer" 
                     key={`bg-${hero.id}`}
                     className={`hero-bg transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100' : 'opacity-0'}`} 
                     src={(hero as any).banner_url || hero.cover_url} 
@@ -515,7 +515,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                       <Link key={item.id} href={`/manga/${item.id}`} className="block">
                         <article className="media-card h-full" tabIndex={0}>
                           <div className="cover">
-                            <img src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" className="w-full object-cover aspect-[2/3]" />
+                            <img referrerPolicy="no-referrer" src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" className="w-full object-cover aspect-[2/3]" />
                             <span className="card-badge score"><Star />{item.score}</span>
                             
                             {(item.status || 'En emisión') && (
@@ -565,7 +565,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                 {trending.map((item, i) => (
                   <li key={item.id} className="rank-item">
                     <span className="rank-number">{i + 1}</span>
-                    <img className="rank-thumb" src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
+                    <img referrerPolicy="no-referrer" className="rank-thumb" src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" />
                     <div className="rank-copy">
                       <h3 className="rank-name line-clamp-1"><Link href={`/manga/${item.id}`} className="hover:text-[#a855f7]">{item.title}</Link></h3>
                       <p className="rank-genre">{item.genre} • <Star className="w-3 h-3 inline text-[#fbbf24]" /> {item.score}</p>
@@ -626,7 +626,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                   <Link key={item.id} href={`/manga/${item.id}`}>
                     <article className="news-card group cursor-pointer">
                       <div className="news-media">
-                        <img src={item.cover_url} alt={item.title} loading="lazy" className="group-hover:scale-105 transition-transform duration-500" />
+                        <img referrerPolicy="no-referrer" src={item.cover_url} alt={item.title} loading="lazy" className="group-hover:scale-105 transition-transform duration-500" />
                         <span className="news-label">{item.genre}</span>
                       </div>
                       <div className="news-body">

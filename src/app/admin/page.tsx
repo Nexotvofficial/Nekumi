@@ -480,7 +480,7 @@ export default function AdminProDashboard() {
                         {manhwas.map((m) => (
                           <tr key={m.id} className="hover:bg-white/5 transition-colors">
                             <td className="py-3">
-                              <img src={m.cover_url} alt={m.title} className="w-10 h-14 object-cover rounded-md border border-white/10" />
+                              <img referrerPolicy="no-referrer" src={m.cover_url} alt={m.title} className="w-10 h-14 object-cover rounded-md border border-white/10" />
                             </td>
                             <td className="py-3 font-semibold text-white max-w-[200px] truncate">{m.title}</td>
                             <td className="py-3 text-[#a7a7b1]">{m.genre || '-'}</td>
@@ -707,7 +707,7 @@ export default function AdminProDashboard() {
                         <tr key={u.id} className="hover:bg-white/5 transition-colors">
                           <td className="py-3">
                             <div className="w-10 h-10 rounded-full bg-[#10b981]/20 flex items-center justify-center text-[#34d399] font-bold border border-[#10b981]/30">
-                              {u.avatar_url ? <img src={`/avatars/${u.avatar_url}.svg`} onError={(e) => (e.target as any).style.display='none'} className="w-full h-full rounded-full object-cover" /> : (u.username ? u.username[0].toUpperCase() : 'U')}
+                              {u.avatar_url ? <img referrerPolicy="no-referrer" src={`/avatars/${u.avatar_url}.svg`} onError={(e) => (e.target as any).style.display='none'} className="w-full h-full rounded-full object-cover" /> : (u.username ? u.username[0].toUpperCase() : 'U')}
                             </div>
                           </td>
                           <td className="py-3 font-semibold text-white">{u.username || 'Usuario anónimo'}</td>

@@ -120,7 +120,7 @@ export default function ProfilePage() {
             {reviews.map(rev => (
               <div key={rev.id} className="glass rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row gap-6 hover:bg-white/[0.02] transition-colors border border-white/5">
                 {rev.manhwas?.cover_url && (
-                  <img src={rev.manhwas.cover_url} alt="Cover" className="w-20 h-28 object-cover rounded-xl shadow-lg flex-shrink-0 mx-auto sm:mx-0" />
+                  <img referrerPolicy="no-referrer" src={rev.manhwas.cover_url} alt="Cover" className="w-20 h-28 object-cover rounded-xl shadow-lg flex-shrink-0 mx-auto sm:mx-0" />
                 )}
                 <div className="flex-1">
                   <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-2">

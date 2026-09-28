@@ -238,7 +238,7 @@ export default function ClientPage() {
           
           {/* Cover Image */}
           <div className="flex-shrink-0 mx-auto md:mx-0 w-[240px] md:w-[300px]">
-            <img 
+            <img referrerPolicy="no-referrer" 
               src={manhwa.cover_url} 
               alt={manhwa.title} 
               className="w-full h-auto rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-2 border-white/10"

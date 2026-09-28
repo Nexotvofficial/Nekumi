@@ -4,7 +4,9 @@ import requests
 from bs4 import BeautifulSoup
 from pathlib import Path
 from dotenv import load_dotenv
-from supabase import create_client, Client
+from supabase import create_client
+from hidra_engine import buscar_manga_hidra, purificar_imagenes
+from supabase import Client
 import re
 
 # --- 1. CARGAR CONFIGURACIÓN SUPABASE ---
@@ -42,9 +44,25 @@ def scrape_manhwa(url):
     try:
         res = requests.get(url, headers=headers, timeout=15)
         res.encoding = 'utf-8'
+        if res.status_code == 404 or 'página no encontrada' in res.text.lower() or 'no encontrada' in res.text.lower():
+            raise Exception("Página 404 - No Encontrada")
+        res.raise_for_status()
     except Exception as e:
-        print(f"❌ Error al conectar con {url}: {e}")
-        return False
+        print(f"⚠️ Alerta: Error al conectar con {url} ({e})")
+        print("🐉 Invocando Protocolo HIDRA (Multi-Fuente)...")
+        slug = url.rstrip('/').split('/')[-1]
+        nueva_url = buscar_manga_hidra(slug)
+        if nueva_url:
+            print(f"🐉 Hidra redirigiendo el scraping a: {nueva_url}")
+            url = nueva_url
+            try:
+                res = requests.get(url, headers=headers, timeout=15)
+                res.encoding = 'utf-8'
+            except:
+                return False
+        else:
+            print(f"❌ Hidra falló. No se pudo encontrar el manhwa en las fuentes de respaldo.")
+            return False
         
     # Detectar si la web redirigió al home (como hace VerManhwa cuando un manga no existe)
     if res.history and res.url.rstrip('/') in ['https://vermanhwa.com', 'http://vermanhwa.com', 'https://lector-mangas.lat']:
