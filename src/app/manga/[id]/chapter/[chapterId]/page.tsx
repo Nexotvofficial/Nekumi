@@ -4,7 +4,7 @@ import NekuLoading from '@/components/NekuLoading';
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { ArrowLeft, ArrowRight, Loader2, Settings, MessageSquare, MonitorDown, BookOpen } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Settings, MessageSquare, MonitorDown, BookOpen, Play, Pause, FastForward } from "lucide-react";
 import Link from "next/link";
 
 interface Chapter {
@@ -38,6 +38,11 @@ export default function ChapterReader() {
 
   // Reader Settings
   const [readMode, setReadMode] = useState<"cascade" | "paged">("cascade");
+
+  const [autoScroll, setAutoScroll] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(1);
+  const touchStartX = useRef(0);
+
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showReaderHeader, setShowReaderHeader] = useState(true);
@@ -238,6 +243,31 @@ export default function ChapterReader() {
               >
                 <BookOpen className="w-4 h-4" /> Paginado (Manga)
               </button>
+
+              <div className="px-4 py-3 border-t border-white/5">
+                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Lectura Manos Libres</p>
+                {readMode === 'paged' ? (
+                  <p className="text-[10px] text-white/30">Auto-scroll solo funciona en modo Cascada.</p>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setAutoScroll(!autoScroll)}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${autoScroll ? 'bg-[#ec4899] text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]' : 'bg-white/5 text-white hover:bg-white/10'}`}
+                    >
+                      {autoScroll ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      {autoScroll ? 'Pausar' : 'Iniciar'}
+                    </button>
+                    {autoScroll && (
+                      <button 
+                        onClick={() => setScrollSpeed(s => s >= 3 ? 1 : s + 1)}
+                        className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-bold flex items-center gap-1"
+                      >
+                        <FastForward className="w-4 h-4" /> x{scrollSpeed}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

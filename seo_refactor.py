@@ -1,4 +1,16 @@
-import ClientPage from './ClientPage';
+import os
+
+with open("src/app/manga/[id]/ClientPage.tsx", "r") as f:
+    content = f.read()
+
+# Make sure it's a default export
+content = content.replace("export default function MangaDetail(", "export default function ClientPage(")
+
+with open("src/app/manga/[id]/ClientPage.tsx", "w") as f:
+    f.write(content)
+
+# Create the Server Component page.tsx
+server_page = """import ClientPage from './ClientPage';
 import { createClient } from "@supabase/supabase-js";
 
 // Necesitamos un cliente de supabase del lado del servidor limpio (sin auth) solo para metadatos
@@ -36,3 +48,9 @@ export default function MangaDetailServer({ params }: { params: { id: string } }
   // SSR pasa el control al cliente para todo el estado dinámico
   return <ClientPage />;
 }
+"""
+
+with open("src/app/manga/[id]/page.tsx", "w") as f:
+    f.write(server_page)
+
+print("SEO Refactor applied!")
