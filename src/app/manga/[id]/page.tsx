@@ -1,5 +1,5 @@
-import NekuLoading from '@/components/NekuLoading';
 "use client";
+import NekuLoading from '@/components/NekuLoading';
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";

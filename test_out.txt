@@ -1,0 +1,14 @@
+╔══════════════════════════════════════════════════════════════╗
+║         🚀 NEKUTOON SCRAPER INTELIGENTE (HOTLINK)            ║
+╠══════════════════════════════════════════════════════════════╣
+║  1. Masivo    → Escanea catálogo entero (ej. /page/1, 2...)  ║
+║  2. Un Manhwa → Descarga solo 1 manhwa específico por URL    ║
+╚══════════════════════════════════════════════════════════════╝
+💡 Tip: ¡También puedes pegar directamente el link de tu manhwa aquí!
+
+👉 Elige opción (1=Masivo / 2=Individual) o pega tu enlace directamente: 
+🎯 [MODO INDIVIDUAL] Procesando manhwa...
+🌍 Analizando: https://lector-mangas.lat/comics/genre/artes-marciales
+❌ Error: No se encontró un manga válido en esta URL. Asegúrate de copiar el enlace de la portada del manhwa.
+
+✅ ¡Proceso individual finalizado!
