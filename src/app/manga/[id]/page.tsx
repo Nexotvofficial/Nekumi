@@ -6,11 +6,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { data: manhwa } = await supabase
     .from("manhwas")
     .select("title, description, cover_url")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!manhwa) return { title: 'No encontrado | Nekutoon' };
@@ -32,7 +33,8 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   };
 }
 
-export default function MangaDetailServer({ params }: { params: { id: string } }) {
+export default async function MangaDetailServer({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   // SSR pasa el control al cliente para todo el estado dinámico
   return <ClientPage />;
 }
