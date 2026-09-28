@@ -262,8 +262,8 @@ export default function ChapterReader() {
                 src={pages[currentPageIndex].image_url} 
                 alt={`Página ${pages[currentPageIndex].page_number}`}
                 className="w-full h-auto block select-none pointer-events-none"
-                fetchPriority={index < 3 ? "high" : "auto"}
-                loading={index < 3 ? "eager" : "lazy"}
+                fetchPriority={currentPageIndex < 3 ? "high" : "auto"}
+                loading={currentPageIndex < 3 ? "eager" : "lazy"}
               />
               
               {/* Navigation Guides Overlay */}
