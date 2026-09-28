@@ -43,6 +43,34 @@ export default function MangaDetail() {
   const [manhwa, setManhwa] = useState<Manhwa | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+
+  // 🚀 Telepathic Preload: Cargar datos e imágenes antes de que el usuario haga clic
+  const handlePrefetch = async (chapter: any) => {
+    if (typeof window === 'undefined') return;
+    
+    // Guardar la metadata del capitulo
+    sessionStorage.setItem(`nekumi_chap_meta_${chapter.id}`, JSON.stringify(chapter));
+    
+    if (sessionStorage.getItem(`nekumi_chap_${chapter.id}`)) return; // Ya están las páginas en caché
+
+    // Buscar páginas silenciosamente
+    const { data } = await supabase
+      .from("pages")
+      .select("*")
+      .eq("chapter_id", chapter.id)
+      .order("page_number", { ascending: true });
+      
+    if (data && data.length > 0) {
+      // Guardar en RAM/Session
+      sessionStorage.setItem(`nekumi_chap_${chapter.id}`, JSON.stringify(data));
+      // Forzar descarga de las primeras 3 imágenes al disco duro
+      data.slice(0, 3).forEach(p => {
+        const img = new Image();
+        img.src = p.image_url;
+      });
+    }
+  };
+
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -288,6 +316,8 @@ export default function MangaDetail() {
                     .map((chapter) => (
                       <Link 
                         key={chapter.id}
+                        onMouseEnter={() => handlePrefetch(chapter)}
+                        onTouchStart={() => handlePrefetch(chapter)}
                         href={`/manga/${id}/chapter/${chapter.id}`}
                         className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#a855f7]/50 hover:bg-[#a855f7]/10 transition-all group"
                       >

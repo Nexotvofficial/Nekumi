@@ -67,7 +67,19 @@ export default function ChapterReader() {
         if (nextData) setNextChapter(nextData);
       }
 
+      
+      // 🚀 Telepathic Cache: Leer de la RAM instantáneamente si existe
+      const cachedPages = sessionStorage.getItem(`nekumi_chap_${chapterId}`);
+      const cachedMeta = sessionStorage.getItem(`nekumi_chap_meta_${chapterId}`);
+      
+      if (cachedPages && cachedMeta) {
+        setPages(JSON.parse(cachedPages));
+        setChapter(JSON.parse(cachedMeta));
+        setLoading(false); // Render instantáneo absoluto sin esperar red
+      }
+
       const { data: pData } = await supabase
+
         .from("pages").select("*").eq("chapter_id", chapterId)
         .order("page_number", { ascending: true });
         
@@ -182,10 +194,10 @@ export default function ChapterReader() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="font-bold text-white leading-tight">Capítulo {chapter.chapter_number}</h1>
-            {chapter.title &&
-              chapter.title.replace(/[íìîï]/gi, "i").trim().toLowerCase() !== `capitulo ${chapter.chapter_number}` &&
-              <p className="text-xs text-[#a7a7b1]">{chapter.title}</p>
+            <h1 className="font-bold text-white leading-tight">Capítulo {chapter?.chapter_number}</h1>
+            {chapter?.title &&
+              chapter?.title.replace(/[íìîï]/gi, "i").trim().toLowerCase() !== `capitulo ${chapter?.chapter_number}` &&
+              <p className="text-xs text-[#a7a7b1]">{chapter?.title}</p>
             }
           </div>
         </div>
