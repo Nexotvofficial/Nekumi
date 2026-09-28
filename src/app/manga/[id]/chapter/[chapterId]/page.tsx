@@ -289,7 +289,7 @@ export default function ChapterReader() {
           readMode === "cascade" ? (
             // Modo Cascada
             pages.map((page, index) => (
-              <img 
+              <img referrerPolicy="no-referrer" 
                 key={page.id}
                 src={page.image_url} 
                 alt={`Página ${page.page_number}`}
@@ -301,7 +301,7 @@ export default function ChapterReader() {
           ) : (
             // Modo Paginado
             <div className="w-full relative group">
-              <img 
+              <img referrerPolicy="no-referrer" 
                 key={pages[currentPageIndex].id}
                 src={pages[currentPageIndex].image_url} 
                 alt={`Página ${pages[currentPageIndex].page_number}`}
@@ -330,7 +330,7 @@ export default function ChapterReader() {
               {/* Preloader Oculto para Carga Instantánea */}
               <div className="hidden">
                 {pages.slice(currentPageIndex + 1, currentPageIndex + 4).map((p) => (
-                  <img key={`preload-${p.id}`} src={p.image_url} alt="preload" />
+                  <img referrerPolicy="no-referrer" key={`preload-${p.id}`} src={p.image_url} alt="preload" />
                 ))}
               </div>
             </div>
