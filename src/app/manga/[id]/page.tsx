@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
-import { Heart, Star, BookOpen, Clock, List, ChevronRight, ArrowLeft, Loader2, MessageCircle, Send } from "lucide-react";
+import { Heart, Star, BookOpen, Clock, List, ChevronRight, ChevronLeft, ArrowLeft, Loader2, MessageCircle, Send } from "lucide-react";
 import { getAvatarSvg, AVATARS } from "@/lib/avatars";
 import AvatarPicker from "@/components/AvatarPicker";
 
