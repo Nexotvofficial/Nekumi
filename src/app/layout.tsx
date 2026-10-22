@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import MascotBot from "@/components/MascotBot";
+import SecurityShield from "@/components/SecurityShield";
+import Script from "next/script";
+import { AdsterraPopunder } from "@/components/Adsterra";
+import AntiAdblock from "@/components/AntiAdblock";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -12,23 +16,25 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export const metadata: Metadata = {
-  title: "Nekutton — Leer Manhwas y Webtoons",
-  description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekutton. Actualizaciones diarias con la mejor calidad en español.",
-  keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekutton", "manga gratis", "acción", "romance"],
+  title: "Nekutoon — Leer Manhwas y Webtoons",
+  description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekutoon. Actualizaciones diarias con la mejor calidad en español.",
+  keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekutoon", "manga gratis", "acción", "romance"],
   openGraph: {
-    title: "Nekutton — El Mejor Catálogo de Manhwas",
+    title: "Nekutoon — El Mejor Catálogo de Manhwas",
     description: "Lee tus manhwas y webtoons favoritos en la plataforma más rápida y limpia de internet.",
     url: "https://www.nekutoon.com",
-    siteName: "Nekutton",
+    siteName: "Nekutoon",
     locale: "es_LA",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nekutton — Leer Manhwas y Webtoons",
+    title: "Nekutoon — Leer Manhwas y Webtoons",
     description: "Descubre los mejores manhwas actualizados a diario.",
   },
   robots: {
@@ -51,8 +57,37 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if ('serviceWorker' in navigator) {
+                  // Unregister ALL service workers
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for (var i = 0; i < registrations.length; i++) {
+                      registrations[i].unregister();
+                    }
+                  });
+                  // Clear ALL caches to fix broken iOS Safari loads
+                  if ('caches' in window) {
+                    caches.keys().then(function(cacheNames) {
+                      cacheNames.forEach(function(cacheName) {
+                        caches.delete(cacheName);
+                      });
+                    });
+                  }
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} antialiased`}>
         <div id="root-app">
+          <AdsterraPopunder />
+          <SecurityShield />
+          <AntiAdblock />
           {children}
           <MascotBot />
         </div>

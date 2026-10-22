@@ -14,24 +14,21 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     .eq("id", id)
     .single();
 
-  if (!manhwa) return { title: 'No encontrado | Nekutton' };
-
-  const description = (manhwa.description || `Descubre ${manhwa.title} en Nekutton.`).slice(0, 150);
-  const images = manhwa.cover_url ? [manhwa.cover_url] : undefined;
+  if (!manhwa) return { title: 'No encontrado | Nekutoon' };
 
   return {
-    title: `${manhwa.title} - Leer Online | Nekutton`,
-    description,
+    title: `${manhwa.title} - Leer Online | Nekutoon`,
+    description: manhwa.description.slice(0, 150) + '...',
     openGraph: {
-      title: `${manhwa.title} - Leer Online | Nekutton`,
-      description,
-      ...(images ? { images } : {}),
+      title: `${manhwa.title} - Leer Online | Nekutoon`,
+      description: manhwa.description.slice(0, 150) + '...',
+      images: [manhwa.cover_url],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${manhwa.title} | Nekutton`,
-      description,
-      ...(images ? { images } : {}),
+      title: `${manhwa.title} | Nekutoon`,
+      description: manhwa.description.slice(0, 150) + '...',
+      images: [manhwa.cover_url],
     }
   };
 }

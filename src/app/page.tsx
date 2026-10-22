@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 export const metadata = {
-  title: 'Nekutton | Leer Manhwas Online',
+  title: 'Nekutoon | Leer Manhwas Online',
   description: 'Lee tus manhwas favoritos en línea con la mejor calidad.',
 };
 
@@ -18,7 +18,7 @@ export default async function HomePage() {
   const [manhwasRes, trendingRes, reviewsRes] = await Promise.all([
     supabase.from("manhwas").select("*").order("created_at", { ascending: false }).limit(24),
     supabase.from("manhwas").select("*").order("views", { ascending: false }).limit(6),
-    supabase.from("reviews").select("id, manhwa_id, user_id, avatar_key, rating, content, created_at, manhwas(title, cover_url)").order("created_at", { ascending: false }).limit(5)
+    supabase.from("reviews").select("*, manhwas(title, cover_url)").order("created_at", { ascending: false }).limit(5)
   ]);
 
   return <ClientHome 

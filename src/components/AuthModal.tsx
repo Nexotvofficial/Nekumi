@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase";
-import { X, Mail, Lock, User, Loader2 } from "lucide-react";
+import { X, Mail, Lock, User, Loader2, ShieldCheck } from "lucide-react";
 import AvatarPicker from "@/components/AvatarPicker";
 import { getAvatarSvg } from "@/lib/avatars";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,12 +22,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
   const [username, setUsername] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("hunter");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<any>(null);
   const supabase = createClient();
+
+  // Cloudflare Turnstile Site Key (Nekutoon - nekutoon.com)
+  const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAFD90UHKmLECFLzY";
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Verificar que el Turnstile fue completado (desactivado)
+    // if (!turnstileToken) {
+    //   showToast("Por favor completa la verificación de seguridad ✅");
+    //   return;
+    // }
 
     setLoading(true);
 
@@ -41,18 +53,17 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { username: username.trim() } }
+          options: { data: { username } }
         });
         if (error) throw error;
 
         // Create profile with selected avatar
         if (data.user) {
-          const { error: profileError } = await supabase.from("profiles").upsert({
+          await supabase.from("profiles").upsert({
             id: data.user.id,
             avatar_url: selectedAvatar,
-            username: username.trim() || email.split("@")[0],
+            username: username || email.split("@")[0],
           });
-          if (profileError) throw profileError;
         }
 
         showToast("¡Registro exitoso! Inicia sesión para continuar.");
@@ -92,7 +103,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
             <path d="M8 32.5V11.7c0-2.2 2.7-3.2 4.2-1.6L28 27.2V10.9c0-1.6 1.3-2.9 2.9-2.9h2.2c1.6 0 2.9 1.3 2.9 2.9v21c0 2.1-2.6 3.2-4.1 1.7L16 16.4v16.1c0 1.9-1.5 3.5-3.5 3.5h-1C9.6 36 8 34.4 8 32.5Z" fill="url(#lg-auth)" />
           </svg>
           <h2 className="text-2xl font-black tracking-tight mb-2">
-            {isLogin ? "Bienvenido de vuelta" : "Únete a Nekutton"}
+            {isLogin ? "Bienvenido de vuelta" : "Únete a Nekutoon"}
           </h2>
           <p className="text-[#a7a7b1] text-sm">
             {isLogin ? "Inicia sesión para continuar leyendo" : "Crea una cuenta para guardar tus favoritos"}
@@ -132,9 +143,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
                 <input
                   type="text"
                   placeholder="Nombre de usuario"
-                  minLength={3}
-                  maxLength={24}
-                  autoComplete="nickname"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -149,7 +157,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
             <input
               type="email"
               placeholder="Correo electrónico"
-              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -161,8 +168,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
             <input
               type="password"
               placeholder="Contraseña"
-              minLength={8}
-              autoComplete={isLogin ? "current-password" : "new-password"}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -199,6 +204,29 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
               </button>
             </div>
           )}
+
+          {/* Cloudflare Turnstile - Desactivado temporalmente por problemas de dominio
+          <div className="flex flex-col items-center gap-2 py-1">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={TURNSTILE_SITE_KEY}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken(null)}
+              onError={() => setTurnstileToken(null)}
+              options={{
+                theme: 'dark',
+                language: 'es',
+                size: 'normal',
+              }}
+            />
+            {!turnstileToken && (
+              <p className="text-xs text-[#777782] flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                Completa la verificación para continuar
+              </p>
+            )}
+          </div>
+          */}
 
           <button
             type="submit"

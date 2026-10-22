@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
-  BookOpen, FileText, Image as ImageIcon, Zap,
-  Users, MessageSquare, AlertCircle, BarChart3,
+  Shield, BookOpen, FileText, Image as ImageIcon, Zap, LogOut,
+  Users, MessageSquare, AlertCircle, BarChart3, Settings,
   Search, Bell, Plus, Edit2, Trash2, CheckCircle, Loader2,
-  Menu, X, Upload, Calendar, Clock
+  Menu, X, Upload, Calendar, ArrowUpRight, Clock
 } from "lucide-react";
 
 const ALL_GENRES = ['Acción', 'Romance', 'Fantasía', 'Comedia', 'Drama', 'Aventura', 'Misterio', 'Terror', 'Suspenso', 'Ciencia Ficción', 'Harem', 'Isekai', 'Reencarnación', 'Cultivación', '+18', 'Escolar', 'Recuentos de la vida', 'Sobrenatural', 'Deportes', 'Psicológico', 'Sistema'];
@@ -35,10 +36,13 @@ export default function AdminProDashboard() {
   const [isAddManhwaOpen, setIsAddManhwaOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [author, setAuthor] = useState("");
+  const [artist, setArtist] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [genres, setGenres] = useState<string[]>(["Acción"]);
   const [status, setStatus] = useState("En emisión");
+  const [type, setType] = useState("Manhwa");
   const [isHero, setIsHero] = useState(false);
   const [editingId, setEditingId] = useState('');
 
@@ -65,12 +69,6 @@ export default function AdminProDashboard() {
   // UI States
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
-  const [globalSearch, setGlobalSearch] = useState("");
-  const normalizedSearch = globalSearch.trim().toLowerCase();
-  const filteredManhwas = manhwas.filter((m) => `${m.title || ""} ${m.genre || ""} ${m.status || ""}`.toLowerCase().includes(normalizedSearch));
-  const filteredUsers = usersList.filter((u) => `${u.username || ""} ${u.id || ""}`.toLowerCase().includes(normalizedSearch));
-  const filteredReviews = reviewsList.filter((review) => `${review.content || ""} ${review.manhwa?.title || ""}`.toLowerCase().includes(normalizedSearch));
-  const filteredChapters = chapters.filter((chapter) => `${chapter.title || ""} ${chapter.chapter_number ?? ""}`.toLowerCase().includes(normalizedSearch));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -85,34 +83,33 @@ export default function AdminProDashboard() {
   }, [router, supabase]);
 
   const loadDashboardData = async () => {
-    // Load independent dashboard data in parallel to reduce wait time.
-    const [mCountRes, cCountRes, uCountRes, vCountRes, recentRes, manhwasRes, usersRes, reviewsRes] = await Promise.all([
-      supabase.from("manhwas").select("id", { count: "exact", head: true }),
-      supabase.from("chapters").select("id", { count: "exact", head: true }),
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
-      supabase.from("visits").select("id", { count: "exact", head: true }),
-      supabase.from("chapters").select("*, manhwa:manhwas(title)").order("created_at", { ascending: false }).limit(5),
-      supabase.from("manhwas").select("*").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("*").order("updated_at", { ascending: false }),
-      supabase.from("reviews").select("id, manhwa_id, user_id, avatar_key, rating, content, created_at, manhwa:manhwas(title)").order("created_at", { ascending: false }),
-    ]);
-    setStats({ manhwas: mCountRes.count || 0, chapters: cCountRes.count || 0, users: uCountRes.count || 0, views: vCountRes.count || 0 });
-    if (recentRes.data) setRecentChapters(recentRes.data);
-    if (manhwasRes.data) setManhwas(manhwasRes.data);
-    if (usersRes.data) setUsersList(usersRes.data);
-    if (reviewsRes.data) setReviewsList(reviewsRes.data);
+    // 1. Stats
+    const { count: mCount } = await supabase.from("manhwas").select("*", { count: "exact", head: true });
+    const { count: cCount } = await supabase.from("chapters").select("*", { count: "exact", head: true });
+    const { count: uCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: vCount } = await supabase.from('visits').select('*', { count: 'exact', head: true });
+    setStats({ manhwas: mCount || 0, chapters: cCount || 0, users: uCount || 0, views: 0 });
+
+    // 2. Recent chapters
+    const { data: recent } = await supabase
+      .from("chapters")
+      .select("*, manhwa:manhwas(title)")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (recent) setRecentChapters(recent);
+
+    // 3. Manhwas list (needed for selects and table)
+    const { data: mData } = await supabase.from("manhwas").select("*").order("created_at", { ascending: false });
+    if (mData) setManhwas(mData);
+
+    const { data: uData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (uData) setUsersList(uData);
+
+    const { data: rData } = await supabase.from('reviews').select('*, manhwa:manhwas(title)').order('created_at', { ascending: false });
+    if (rData) setReviewsList(rData);
   };
 
-  const handleDeleteReview = async (id: string) => {
-    if (!confirm('¿Borrar este comentario?')) return;
-    setLoading(true);
-    const { error } = await supabase.from('reviews').delete().eq('id', id);
-    setLoading(false);
-    if (error) { alert(`No se pudo borrar el comentario: ${error.message}`); return; }
-    setReviewsList((prev) => prev.filter((review) => review.id !== id));
-    setSuccessMsg('Comentario eliminado');
-    setTimeout(() => setSuccessMsg(''), 3000);
-  };
+  const handleDeleteReview = async (id: string) => { if (!confirm('¿Borrar este comentario?')) return; await supabase.from('reviews').delete().eq('id', id); setReviewsList(prev => prev.filter(r => r.id !== id)); setSuccessMsg('Comentario eliminado'); setTimeout(() => setSuccessMsg(''), 3000); };
 
   const fetchChapters = async (mId: string) => {
     const { data } = await supabase.from("chapters").select("*").eq("manhwa_id", mId).order("chapter_number", { ascending: false });
@@ -160,10 +157,9 @@ export default function AdminProDashboard() {
   const handleDeleteManhwa = async (id: string) => {
     if (!confirm("¿ESTÁS SEGURO? Esto borrará el manhwa y todos sus capítulos y páginas. Esta acción no se puede deshacer.")) return;
     setLoading(true);
-    const { error } = await supabase.from("manhwas").delete().eq("id", id);
+    await supabase.from("manhwas").delete().eq("id", id);
+    setManhwas(manhwas.filter(m => m.id !== id));
     setLoading(false);
-    if (error) { alert(`No se pudo eliminar el manhwa: ${error.message}`); return; }
-    setManhwas((current) => current.filter((m) => m.id !== id));
     setSuccessMsg("Manhwa eliminado por completo");
     setTimeout(() => setSuccessMsg(""), 3000);
   };
@@ -299,7 +295,7 @@ export default function AdminProDashboard() {
             <svg viewBox="0 0 44 44" className="w-6 h-6 fill-white"><path d="M8 32.5V11.7c0-2.2 2.7-3.2 4.2-1.6L28 27.2V10.9c0-1.6 1.3-2.9 2.9-2.9h2.2c1.6 0 2.9 1.3 2.9 2.9v21c0 2.1-2.6 3.2-4.1 1.7L16 16.4v16.1c0 1.9-1.5 3.5-3.5 3.5h-1C9.6 36 8 34.4 8 32.5Z" /></svg>
           </div>
           <div>
-            <h1 className="font-bold text-xl leading-none">Nekutton</h1>
+            <h1 className="font-bold text-xl leading-none">Nekumi</h1>
             <p className="text-[10px] text-[#a7a7b1] tracking-widest uppercase">Admin Pro</p>
           </div>
         </div>
@@ -335,13 +331,14 @@ export default function AdminProDashboard() {
             </button>
             <div className="relative hidden md:block w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-              <input type="search" value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Buscar en esta sección..." aria-label="Buscar en la sección actual" className="w-full h-10 bg-[#121216] border border-white/10 rounded-full pl-10 pr-4 text-sm focus:border-[#a855f7] outline-none transition-all" />
+              <input type="text" placeholder="Buscar en toda la plataforma..." className="w-full h-10 bg-[#121216] border border-white/10 rounded-full pl-10 pr-4 text-sm focus:border-[#a855f7] outline-none transition-all" />
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <button type="button" onClick={() => setActiveView("reports")} aria-label="Abrir reportes" title="Abrir reportes" className="w-10 h-10 rounded-full flex items-center justify-center bg-[#121216] border border-white/10 text-white/70 hover:text-white">
+            <button className="w-10 h-10 rounded-full flex items-center justify-center bg-[#121216] border border-white/10 text-white/70 hover:text-white relative">
               <Bell className="w-5 h-5" />
+              <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#ec4899] rounded-full"></span>
             </button>
             <div className="h-8 w-px bg-white/10 mx-1"></div>
             <div className="flex items-center gap-3">
@@ -374,7 +371,7 @@ export default function AdminProDashboard() {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                   <div>
                     <h2 className="text-3xl font-bold text-white tracking-tight">Panel de administración</h2>
-                    <p className="text-[#a7a7b1] mt-1">Gestiona el contenido, usuarios y toda la plataforma de Nekutton.</p>
+                    <p className="text-[#a7a7b1] mt-1">Gestiona el contenido, usuarios y toda la plataforma de Nekumi.</p>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-[#a7a7b1]">
                     <Calendar className="w-4 h-4" /> {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -480,7 +477,7 @@ export default function AdminProDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {filteredManhwas.map((m) => (
+                        {manhwas.map((m) => (
                           <tr key={m.id} className="hover:bg-white/5 transition-colors">
                             <td className="py-3">
                               <img referrerPolicy="no-referrer" src={m.cover_url} alt={m.title} className="w-10 h-14 object-cover rounded-md border border-white/10" />
@@ -610,7 +607,7 @@ export default function AdminProDashboard() {
                     <label className="text-sm font-semibold text-white/80 block">2. Selecciona el Capítulo</label>
                     <select required value={selectedChapterId} onChange={(e) => setSelectedChapterId(e.target.value)} className="w-full h-11 rounded-xl border border-white/10 bg-black/30 text-white px-4 text-sm focus:border-[#a855f7] outline-none disabled:opacity-50" disabled={chapters.length === 0}>
                       <option value="" className="bg-[#121216]">-- Elige un capítulo --</option>
-                      {filteredChapters.map(c => <option key={c.id} value={c.id} className="bg-[#121216]">Capítulo {c.chapter_number}</option>)}
+                      {chapters.map(c => <option key={c.id} value={c.id} className="bg-[#121216]">Capítulo {c.chapter_number}</option>)}
                     </select>
                   </div>
 
@@ -692,7 +689,7 @@ export default function AdminProDashboard() {
                 <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
                   <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2"><Users className="w-5 h-5 text-[#34d399]" /> Gestión de Usuarios</h3>
-                    <p className="text-sm text-[#a7a7b1]">Lectores registrados en Nekutton.</p>
+                    <p className="text-sm text-[#a7a7b1]">Lectores registrados en Nekutoon.</p>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -706,7 +703,7 @@ export default function AdminProDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {filteredUsers.map((u) => (
+                      {usersList.map((u) => (
                         <tr key={u.id} className="hover:bg-white/5 transition-colors">
                           <td className="py-3">
                             <div className="w-10 h-10 rounded-full bg-[#10b981]/20 flex items-center justify-center text-[#34d399] font-bold border border-[#10b981]/30">
@@ -749,9 +746,9 @@ export default function AdminProDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {filteredReviews.map((r) => (
+                      {reviewsList.map((r) => (
                         <tr key={r.id} className="hover:bg-white/5 transition-colors">
-                          <td className="py-3 text-[#a7a7b1] text-xs max-w-[120px] truncate">{'Usuario'}</td>
+                          <td className="py-3 text-[#a7a7b1] text-xs max-w-[120px] truncate">{r.user_email || 'Anónimo'}</td>
                           <td className="py-3 font-semibold text-white max-w-[150px] truncate">{r.manhwa?.title}</td>
                           <td className="py-3 text-white/80 max-w-[300px] truncate">{r.content}</td>
                           <td className="py-3 text-right">

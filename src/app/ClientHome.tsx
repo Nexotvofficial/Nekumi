@@ -7,18 +7,41 @@ import {
   Heart,
   Menu,
   Star,
+  ExternalLink,
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
   Flame, User, LogOut,
   ArrowRight,
   MessagesSquare,
+  TrendingUp,
   Mail,
+  MessageCircle,
+  Camera,
+  Video,
+  CalendarDays,
   Sparkles,
   Apple,
   Play,
   X as XIcon,
   Shield,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+
+const MEDIA_CONFIG = {
+  hero: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=1800&q=90",
+  avatar: "https://i.pravatar.cc/96?img=47",
+  fantasy: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=900&q=85",
+  action: "https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=900&q=85",
+  romance: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=900&q=85",
+  isekai: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=900&q=85",
+  slice: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85",
+  comedy: "https://images.unsplash.com/photo-1614583225154-5fcdda07019e?auto=format&fit=crop&w=900&q=85",
+  news1: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=900&q=85",
+  news2: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=85",
+  news3: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=900&q=85",
+};
 
 interface Manhwa {
   id: string;
@@ -31,6 +54,29 @@ interface Manhwa {
   isNew?: boolean;
 }
 
+const trends = [
+  { title: 'Solo Leveling', genre: 'Acción • Fantasía', image: MEDIA_CONFIG.action },
+  { title: 'Omniscient Reader', genre: 'Aventura • Drama', image: MEDIA_CONFIG.fantasy },
+  { title: 'Villains Are Destined to Die', genre: 'Romance • Isekai', image: MEDIA_CONFIG.romance },
+  { title: 'Tower of God', genre: 'Fantasía • Misterio', image: MEDIA_CONFIG.fantasy },
+  { title: 'The World After the Fall', genre: 'Acción • Aventura', image: MEDIA_CONFIG.action }
+];
+
+const reviews = [
+  { id: 1, user: 'Luna.art', text: 'Una construcción de mundo increíble. Cada capítulo mejora al anterior.', work: 'El Cazador de Sombras', likes: 82, avatar: 'https://i.pravatar.cc/96?img=47' },
+  { id: 2, user: 'DaniReads', text: 'La evolución del protagonista está muy bien escrita y el arte es espectacular.', work: 'Eternal Legend', likes: 64, avatar: 'https://i.pravatar.cc/96?img=12' },
+  { id: 3, user: 'Mika_07', text: 'Necesito la próxima temporada ya. El final me dejó sin palabras.', work: 'La Heredera Carmesí', likes: 51, avatar: 'https://i.pravatar.cc/96?img=32' }
+];
+
+
+const news = [
+  { label: 'Novedades', title: 'Los estrenos de manhwa que no puedes perderte este mes', date: '18 Sep 2026', comments: 24, image: 'news1' },
+  { label: 'Guías', title: 'Cómo empezar a leer webtoons: guía esencial para nuevos lectores', date: '15 Sep 2026', comments: 18, image: 'news2' },
+  { label: 'Comunidad', title: 'Las historias mejor valoradas por la comunidad de Nekutoon', date: '12 Sep 2026', comments: 37, image: 'news3' }
+] as const;
+
+
+import Script from "next/script";
 import AuthModal from "@/components/AuthModal";
 import { LegalModal } from "@/components/LegalModal";
 import { AdsterraNative, AdsterraBanner300 } from "@/components/Adsterra";
@@ -48,7 +94,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
   const [notificationsRead, setNotificationsRead] = useState(false);
   
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [cardPage, setCardPage] = useState(0);
 
   const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
@@ -65,39 +111,35 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [visibleCount, setVisibleCount] = useState<number>(18);
+  const [siteConfig, setSiteConfig] = useState<any>(null);
   const supabase = createClient();
 
   useEffect(() => {
-    // SSR ya trae estos datos. Consultar solo si el servidor no pudo devolverlos.
-    if (initialManhwas.length === 0) {
-      void (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('manhwas')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(24);
+    try {
+      const saved = new Set<string>(JSON.parse(localStorage.getItem('nekutoon:favorites') || '[]'));
+      setFavorites(saved);
+    } catch {}
 
-          if (!error && data) setManhwas(data);
-        } catch (error) {
-          console.error('Error cargando manhwas:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      })();
-    }
+    // Fetch site config
+    supabase.from('site_config').select('*').eq('id', 1).single().then(({ data }) => {
+      if (data) setSiteConfig(data);
+    });
 
-    if (initialTrending.length === 0) {
-      supabase.from('manhwas').select('*').order('score', { ascending: false }).limit(5).then(({ data }) => {
-        if (data) setTrending(data);
-      });
-    }
+    // Fetch real manhwas
+    supabase.from('manhwas').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+      if (data) setManhwas(data);
+      setIsLoading(false);
+    });
 
-    if (initialReviews.length === 0) {
-      supabase.from('reviews').select('id, manhwa_id, user_id, avatar_key, rating, content, created_at, manhwas(title)').order('created_at', { ascending: false }).limit(3).then(({ data }) => {
-        if (data) setRecentReviews(data);
-      });
-    }
+    // Fetch trending
+    supabase.from('manhwas').select('*').order('score', { ascending: false }).limit(5).then(({ data }) => {
+      if (data) setTrending(data);
+    });
+
+    // Fetch recent reviews with manhwa title
+    supabase.from('reviews').select('*, manhwas(title)').order('created_at', { ascending: false }).limit(3).then(({ data }) => {
+      if (data) setRecentReviews(data);
+    });
 
         const fetchInitialNotifications = async () => {
       const { data } = await supabase
@@ -108,10 +150,10 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
       
       if (data && data.length > 0) {
         setRealNotifications(data);
-        try {
-          const lastReadId = localStorage.getItem('lastReadNotification');
-          setNotificationsRead(lastReadId === data[0].id);
-        } catch { setNotificationsRead(false); }
+        const lastReadId = localStorage.getItem('lastReadNotification');
+        if (lastReadId !== data[0].id) {
+          setNotificationsRead(false);
+        }
       }
     };
     fetchInitialNotifications();
@@ -131,48 +173,38 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
         
         setRealNotifications(prev => [newNotif, ...prev].slice(0, 5));
         setNotificationsRead(false);
-        // The UI notification is sufficient; no missing audio asset is requested.
+        // Play notification sound if possible, or just toast
+        try { new Audio('/notification.mp3').play(); } catch(e) {}
       })
       .subscribe();
 
     // Check active session
-    void supabase.from('visits').insert([{}]).then(() => undefined, () => undefined);
+    supabase.from('visits').insert([{}]).then();
 
-    const fetchProfile = async (sessionUser: any) => {
+    const fetchProfile = (sessionUser: any) => {
       setUser(sessionUser);
       if (sessionUser) {
-        const [{ data: profileData }, { data: favoriteData, error: favoritesError }] = await Promise.all([
-          supabase.from('profiles').select('*').eq('id', sessionUser.id).maybeSingle(),
-          supabase.from('favorites').select('manhwa_id').eq('user_id', sessionUser.id),
-        ]);
-        setUserProfile(profileData || null);
-        setFavorites(favoritesError ? new Set() : new Set((favoriteData || []).map((favorite) => String(favorite.manhwa_id))));
+        supabase.from('profiles').select('*').eq('id', sessionUser.id).single().then(({data}) => {
+          if (data) setUserProfile(data);
+        });
       } else {
         setUserProfile(null);
-        setFavorites(new Set());
       }
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      void fetchProfile(session?.user ?? null).catch(() => { setUser(null); setUserProfile(null); setFavorites(new Set()); });
+      fetchProfile(session?.user ?? null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Defer database queries until the auth callback releases Supabase's auth lock.
-      window.setTimeout(() => {
-        void fetchProfile(session?.user ?? null).catch(() => {
-          setUserProfile(null);
-          setFavorites(new Set());
-        });
-      }, 0);
+      fetchProfile(session?.user ?? null);
     });
 
     return () => { subscription.unsubscribe(); supabase.removeChannel(channel); };
-  }, [supabase, initialManhwas.length, initialTrending.length, initialReviews.length]);
+  }, [supabase]);
 
   const handleCategoryClick = (e: any, category: string) => {
     e?.preventDefault();
-    setFavoritesOnly(false);
     if (category === "+18" && !isAdultConfirmed) {
       setPendingCategory("+18");
       setShowAdultModal(true);
@@ -182,39 +214,31 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) { showToastMessage("No se pudo cerrar la sesión. Inténtalo de nuevo."); return; }
+    await supabase.auth.signOut();
     setShowProfileMenu(false);
     showToastMessage("Sesión cerrada correctamente");
   };
 
-  const toggleFavorite = async (id: string, e: React.MouseEvent) => {
+  const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
+    
     if (!user) {
       showToastMessage('Inicia sesión para guardar favoritos');
       setIsAuthOpen(true);
       return;
     }
 
-    try {
-      const isSaved = favorites.has(id);
-      const result = isSaved
-        ? await supabase.from('favorites').delete().eq('user_id', user.id).eq('manhwa_id', id)
-        : await supabase.from('favorites').insert([{ user_id: user.id, manhwa_id: id }]);
-      if (result.error) throw result.error;
-
-      setFavorites((current) => {
-        const next = new Set(current);
-        if (isSaved) next.delete(id);
-        else next.add(id);
-        return next;
-      });
-      showToastMessage(isSaved ? 'Eliminado de favoritos' : 'Añadido a favoritos');
-    } catch (cause) {
-      showToastMessage(cause instanceof Error ? cause.message : 'No se pudo actualizar favoritos. Inténtalo de nuevo.');
+    const next = new Set(favorites);
+    if (next.has(id)) {
+      next.delete(id);
+      showToastMessage('Eliminado de favoritos');
+    } else {
+      next.add(id);
+      showToastMessage('Añadido a favoritos');
     }
+    setFavorites(next);
+    localStorage.setItem('nekutoon:favorites', JSON.stringify([...next]));
   };
 
   const showToastMessage = (msg: string) => {
@@ -223,20 +247,21 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
     setTimeout(() => setShowToast(false), 1800);
   };
 
-  const filteredManhwas = manhwas.filter((m) => {
-    const title = (m.title || '').toLowerCase();
-    const genre = (m.genre || '').toLowerCase();
-    const matchesSearch = title.includes(searchQuery.toLowerCase()) || genre.includes(searchQuery.toLowerCase());
-    const matchesFavorites = !favoritesOnly || favorites.has(m.id);
-
-    // Ocultar contenido sensible de la vista general por defecto.
+  const filteredManhwas = manhwas.filter(m => {
+    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) || m.genre.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Ocultar +18, BL y Romance de la vista general por defecto
     if (!activeCategory && !searchQuery) {
-      const isSensible = genre.includes('+18') || genre.includes('bl') || genre.includes('boys love') || genre.includes('yuri') || genre.includes('romance');
+      const isSensible = m.genre.toLowerCase().includes('+18') || 
+                         m.genre.toLowerCase().includes('bl') || 
+                         m.genre.toLowerCase().includes('boys love') ||
+                         m.genre.toLowerCase().includes('yuri') ||
+                         m.genre.toLowerCase().includes('romance');
       if (isSensible) return false;
     }
 
-    const matchesCat = activeCategory ? genre.includes(activeCategory.toLowerCase()) : true;
-    return matchesSearch && matchesCat && matchesFavorites;
+    const matchesCat = activeCategory ? m.genre.toLowerCase().includes(activeCategory.toLowerCase()) : true;
+    return matchesSearch && matchesCat;
   });
 
   const maxCardPage = Math.max(0, filteredManhwas.length - 6); // Approximation for desktop
@@ -262,7 +287,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
       <header className="site-header">
         <div className="shell">
           <div className="header-inner">
-            <a href="#" className="brand group" aria-label="Nekutton, inicio">
+            <a href="#" className="brand group" aria-label="Nekumi, inicio">
                 <svg className="brand-mark w-9 h-9 drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-transform group-hover:scale-110 duration-300" viewBox="0 0 44 44" aria-hidden="true">
                   <defs>
                     <linearGradient id="lg-epic" x1="0" y1="0" x2="44" y2="44">
@@ -279,7 +304,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                   <path d="M14.5 31V15.8L28.5 31" fill="none" stroke="url(#lg-epic-2)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <span className="brand-word tracking-[0.02em] text-[24px] font-black uppercase">
-                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">tton</span>
+                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">mi</span>
                 </span>
               </a>
             <nav className="desktop-nav flex items-center gap-5" aria-label="Navegación principal">
@@ -306,7 +331,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
               <div className="notification-wrap">
                 <button className="icon-btn" type="button" aria-label="Notificaciones" onClick={() => setNotificationsOpen(!notificationsOpen)}>
                   <Bell />
-                  {!notificationsRead && realNotifications.length > 0 && <span className="notification-badge">{realNotifications.length}</span>}
+                  {!notificationsRead && <span className="notification-badge">3</span>}
                 </button>
                 <div className={`notification-dropdown glass ${notificationsOpen ? 'open' : ''}`}>
                   <div className="notification-head">
@@ -314,7 +339,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                       <button type="button" onClick={() => { 
                         setNotificationsRead(true); 
                         if (realNotifications.length > 0) {
-                          try { localStorage.setItem('lastReadNotification', realNotifications[0].id); } catch { /* optional */ }
+                          localStorage.setItem('lastReadNotification', realNotifications[0].id);
                         }
                         showToastMessage('Notificaciones marcadas como leídas'); 
                       }}>Marcar leídas</button>
@@ -335,20 +360,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                   </div>
               </div>
               
-              <button
-                className={`icon-btn favorite-toggle ${favoritesOnly ? 'active' : ''}`}
-                type="button"
-                aria-label={favoritesOnly ? "Mostrar todo el catálogo" : "Ver favoritos"}
-                aria-pressed={favoritesOnly}
-                onClick={() => {
-                  if (!user) { setIsAuthOpen(true); return; }
-                  setFavoritesOnly((current) => !current);
-                  setActiveCategory("");
-                  setSearchQuery("");
-                  setVisibleCount(18);
-                  window.setTimeout(() => document.getElementById("recomendados")?.scrollIntoView({ behavior: "smooth" }), 0);
-                }}
-              >
+              <button className={`icon-btn favorite-toggle ${favorites.size > 0 ? 'active' : ''}`} type="button" aria-label="Ver favoritos">
                 <Heart />
               </button>
               {user?.email === 'diazmowi07@gmail.com' && (
@@ -406,6 +418,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
       </header>
 
       <main>
+        {/* Popunder Adsterra es ahora Global en layout.tsx */}
 
         {/* Modal de Advertencia +18 */}
         {showAdultModal && (
@@ -456,8 +469,6 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                     className={`hero-bg transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100' : 'opacity-0'}`} 
                     src={(hero as any).banner_url || hero.cover_url} 
                     alt={`Ilustración de ${hero.title}`} 
-                    loading={idx === currentHeroIndex ? "eager" : "lazy"}
-                    fetchPriority={idx === currentHeroIndex ? "high" : "auto"}
                   />
                 ))}
                 
@@ -489,7 +500,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
             <section id="recomendados" className="section" aria-labelledby="recommendedTitle">
               <div className="section-heading">
                 <h2 id="recommendedTitle" className="section-title">
-                  {favoritesOnly ? 'Mis favoritos' : searchQuery ? `Resultados para "${searchQuery}"` : (activeCategory ? `Categoría: ${activeCategory}` : 'Explorar Catálogo')}
+                  {searchQuery ? `Resultados para "${searchQuery}"` : (activeCategory ? `Categoría: ${activeCategory}` : 'Explorar Catálogo')}
                 </h2>
               </div>
               
@@ -501,24 +512,28 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                 <>
                   <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mt-4">
                     {filteredManhwas.slice(0, visibleCount).map((item) => (
-                      <article key={item.id} className="media-card h-full">
-                        <div className="cover relative">
-                          <Link href={`/manga/${item.id}`} className="block">
+                      <Link key={item.id} href={`/manga/${item.id}`} className="block">
+                        <article className="media-card h-full" tabIndex={0}>
+                          <div className="cover">
                             <img referrerPolicy="no-referrer" src={item.cover_url} alt={`Portada de ${item.title}`} loading="lazy" className="w-full object-cover aspect-[2/3]" />
-                            <span className="card-badge score"><Star />{item.score ?? '—'}</span>
-                            <span className={`absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg ${item.status === 'Finalizado' ? 'bg-[#10b981]/80 text-white border-[#10b981]/30' : 'bg-[#3b82f6]/80 text-white border-[#3b82f6]/30'}`}>
-                              {item.status || 'En emisión'}
-                            </span>
-                          </Link>
-                          <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={favorites.has(item.id) ? `Quitar ${item.title} de favoritos` : `Añadir ${item.title} a favoritos`} aria-pressed={favorites.has(item.id)} onClick={(e) => toggleFavorite(item.id, e)}>
-                            <Heart />
-                          </button>
-                        </div>
-                        <div className="card-info p-3">
-                          <h3 className="card-title line-clamp-1"><Link href={`/manga/${item.id}`} className="hover:text-[#c084fc]">{item.title}</Link></h3>
-                          <p className="card-meta">{item.genre || 'Género sin especificar'}</p>
-                        </div>
-                      </article>
+                            <span className="card-badge score"><Star />{item.score}</span>
+                            
+                            {(item.status || 'En emisión') && (
+                              <span className={`absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg ${item.status === 'Finalizado' ? 'bg-[#10b981]/80 text-white border-[#10b981]/30' : 'bg-[#3b82f6]/80 text-white border-[#3b82f6]/30'}`}>
+                                {item.status || 'En emisión'}
+                              </span>
+                            )}
+
+                            <button className={`card-favorite favorite-toggle ${favorites.has(item.id) ? 'active' : ''}`} type="button" aria-label={`Añadir ${item.title} a favoritos`} onClick={(e) => toggleFavorite(item.id, e)}>
+                              <Heart />
+                            </button>
+                          </div>
+                          <div className="card-info p-3">
+                            <h3 className="card-title line-clamp-1">{item.title}</h3>
+                            <p className="card-meta">{item.genre}</p>
+                          </div>
+                        </article>
+                      </Link>
                     ))}
                   </div>
                   {visibleCount < filteredManhwas.length && (
@@ -579,7 +594,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-sm text-white truncate pr-2">{"Lector"}</span>
+                        <span className="font-bold text-sm text-white truncate pr-2">{item.user_email?.split('@')[0] || "Usuario"}</span>
                         <span className="flex text-[#fbbf24] flex-shrink-0">
                           {[...Array(5)].map((_, i) => <Star key={i} className={`w-3 h-3 ${i < item.rating ? 'fill-current' : 'opacity-20'}`} />)}
                         </span>
@@ -638,14 +653,23 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
           <aside className="newsletter glass" aria-labelledby="newsletterTitle">
             <span className="newsletter-glow"></span>
             <span className="newsletter-icon"><Mail /></span>
-            <h2 id="newsletterTitle">Únete a Nekutton</h2>
+            <h2 id="newsletterTitle">Únete a Nekutoon</h2>
             <p>Suscríbete para recibir recomendaciones, actualizaciones y noticias de manhwas directamente en tu correo.</p>
-            <button type="button" className="newsletter-cta" onClick={() => setIsAuthOpen(true)}>
-              Crear cuenta gratis
-            </button>
+            <form onSubmit={(e) => { e.preventDefault(); showToastMessage("¡Gracias por suscribirte!"); setIsAuthOpen(true); }}>
+              <label className="sr-only" htmlFor="emailInput">Correo electrónico</label>
+              <div className="newsletter-form-row">
+                <input id="emailInput" type="email" placeholder="Introduce tu correo" autoComplete="email" required />
+                <button type="submit">Suscribirse</button>
+              </div>
+            </form>
             <div className="social-block">
               <span>Síguenos en nuestras redes</span>
-              <p className="text-xs text-white/45 mt-3">Próximamente compartiremos los canales oficiales de Nekutton.</p>
+              <div className="social-row">
+                <a href="https://discord.gg" target="_blank" rel="noopener noreferrer" aria-label="Discord"><MessageCircle /></a>
+                <a href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="X"><span className="social-x">𝕏</span></a>
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><Camera /></a>
+                <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><Video /></a>
+              </div>
             </div>
           </aside>
         </div>
@@ -654,7 +678,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
       <footer className="site-footer">
         <div className="shell footer-grid">
           <div className="footer-brand">
-            <a href="#" className="brand group" aria-label="Nekutton, inicio">
+            <a href="#" className="brand group" aria-label="Nekumi, inicio">
                 <svg className="brand-mark w-9 h-9 drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-transform group-hover:scale-110 duration-300" viewBox="0 0 44 44" aria-hidden="true">
                   <defs>
                     <linearGradient id="lg-epic" x1="0" y1="0" x2="44" y2="44">
@@ -671,7 +695,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
                   <path d="M14.5 31V15.8L28.5 31" fill="none" stroke="url(#lg-epic-2)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <span className="brand-word tracking-[0.02em] text-[24px] font-black uppercase">
-                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">tton</span>
+                  <span className="text-white">Neku</span><span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">mi</span>
                 </span>
               </a>
             <p>Tu espacio para descubrir, valorar y compartir las mejores historias del universo manhwa y webtoon.</p>
@@ -689,7 +713,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
               {user ? (
                 <>
                   <Link href="/profile">Mi perfil</Link>
-                  <a href="#recomendados" onClick={(e) => { e.preventDefault(); setFavoritesOnly(true); setActiveCategory(""); setSearchQuery(""); setVisibleCount(18); document.getElementById("recomendados")?.scrollIntoView({ behavior: "smooth" }); }}>Mis Favoritos</a>
+                  <a href="#" onClick={(e) => { e.preventDefault(); showToastMessage("Favoritos en la próxima actualización"); }}>Mis Favoritos</a>
                 </>
               ) : (
                 <>
@@ -720,7 +744,7 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
           </div>
         </div>
         <div className="shell footer-bottom">
-          <span>© 2026 Nekutton. Todos los derechos reservados.</span>
+          <span>© 2026 Nekutoon. Todos los derechos reservados.</span>
           <div>
             <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "privacidad"}); }}>Política de Privacidad</a>
             <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({isOpen: true, type: "terminos"}); }}>Términos de Servicio</a>

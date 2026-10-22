@@ -21,7 +21,7 @@ export function LegalModal({ isOpen, onClose, type }: LegalModalProps) {
   const content = {
     terminos: {
       title: "Términos de Servicio",
-      body: "Al utilizar Nekutton, aceptas nuestras políticas de comunidad. Nos reservamos el derecho de eliminar reseñas tóxicas o cuentas que infrinjan el respeto mutuo. Este es un espacio creado por y para fans."
+      body: "Al utilizar Nekutoon, aceptas nuestras políticas de comunidad. Nos reservamos el derecho de eliminar reseñas tóxicas o cuentas que infrinjan el respeto mutuo. Este es un espacio creado por y para fans."
     },
     privacidad: {
       title: "Política de Privacidad",
@@ -33,7 +33,7 @@ export function LegalModal({ isOpen, onClose, type }: LegalModalProps) {
     },
     derechos: {
       title: "Derechos de Autor",
-      body: "Nekutton es un catálogo creado por la comunidad. Los manhwas listados pertenecen a sus respectivos creadores y editoriales (como Redice Studio, Kakao, Webtoon). Apoya a los creadores leyendo en las plataformas oficiales siempre que sea posible."
+      body: "Nekutoon es un catálogo creado por la comunidad. Los manhwas listados pertenecen a sus respectivos creadores y editoriales (como Redice Studio, Kakao, Webtoon). Apoya a los creadores leyendo en las plataformas oficiales siempre que sea posible."
     }
   };
 

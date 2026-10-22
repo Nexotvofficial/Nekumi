@@ -4,7 +4,7 @@ import NekuLoading from '@/components/NekuLoading';
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { ArrowLeft, ArrowRight, Settings, MonitorDown, BookOpen, Play, Pause, FastForward } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Settings, MessageSquare, MonitorDown, BookOpen, Play, Pause, FastForward } from "lucide-react";
 import Link from "next/link";
 
 interface Chapter {
@@ -41,6 +41,7 @@ export default function ChapterReader() {
 
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
+  const touchStartX = useRef(0);
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -48,31 +49,15 @@ export default function ChapterReader() {
   
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Reset page-local state when navigating directly to another chapter.
-  useEffect(() => {
-    setLoading(true);
-    setPages([]);
-    setChapter(null);
-    setNextChapter(null);
-    setPrevChapter(null);
-    setCurrentPageIndex(0);
-    setRetryCount(0);
-    setAutoScroll(false);
-  }, [chapterId, manhwaId]);
-
   useEffect(() => {
     // Load saved settings
-    try {
-      const savedMode = localStorage.getItem("nekutoon:readMode");
-      if (savedMode === "paged" || savedMode === "cascade") setReadMode(savedMode);
-    } catch { /* storage is optional */ }
-
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const savedMode = localStorage.getItem("nekutoon:readMode");
+    if (savedMode === "paged" || savedMode === "cascade") {
+      setReadMode(savedMode);
+    }
 
     async function loadData() {
       const { data: cData } = await supabase.from("chapters").select("*").eq("id", chapterId).single();
-      if (cancelled) return;
       if (cData) {
         setChapter(cData);
         
@@ -89,61 +74,35 @@ export default function ChapterReader() {
 
       
       // 🚀 Telepathic Cache: Leer de la RAM instantáneamente si existe
-      let cachedPages: string | null = null;
-      let cachedMeta: string | null = null;
-      try {
-        cachedPages = sessionStorage.getItem(`nekumi_chap_${chapterId}`);
-        cachedMeta = sessionStorage.getItem(`nekumi_chap_meta_${chapterId}`);
-        if (cachedPages && cachedMeta) {
-          const parsedPages = JSON.parse(cachedPages) as Page[];
-          const parsedMeta = JSON.parse(cachedMeta) as Chapter;
-          if (Array.isArray(parsedPages) && parsedMeta?.id === chapterId) {
-            setPages(parsedPages);
-            setChapter(parsedMeta);
-            setLoading(false);
-          }
-        }
-      } catch {
-        try {
-          sessionStorage.removeItem(`nekumi_chap_${chapterId}`);
-          sessionStorage.removeItem(`nekumi_chap_meta_${chapterId}`);
-        } catch { /* storage is optional */ }
+      const cachedPages = sessionStorage.getItem(`nekumi_chap_${chapterId}`);
+      const cachedMeta = sessionStorage.getItem(`nekumi_chap_meta_${chapterId}`);
+      
+      if (cachedPages && cachedMeta) {
+        setPages(JSON.parse(cachedPages));
+        setChapter(JSON.parse(cachedMeta));
+        setLoading(false); // Render instantáneo absoluto sin esperar red
       }
 
       const { data: pData } = await supabase
 
         .from("pages").select("*").eq("chapter_id", chapterId)
         .order("page_number", { ascending: true });
-      if (cancelled) return;
         
       if (pData && pData.length > 0) {
         setPages(pData);
         setLoading(false);
       } else {
         if (retryCount < 3) {
-          retryTimer = setTimeout(() => {
-            if (!cancelled) setRetryCount(prev => prev + 1);
-          }, 1500); // Reintentar brevemente si el scraper aún está guardando las páginas
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 1500); // Auto reintentar 3 veces cada 1.5s si el scraper está tardando
         } else {
           setLoading(false);
         }
       }
     }
-    if (chapterId) void loadData();
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-    };
+    if (chapterId) loadData();
   }, [chapterId, manhwaId, supabase, retryCount]);
-
-  // Auto-scroll is opt-in and always stops when the reader changes mode or unmounts.
-  useEffect(() => {
-    if (!autoScroll || readMode !== "cascade") return;
-    const timer = window.setInterval(() => {
-      window.scrollBy({ top: scrollSpeed * 2, left: 0, behavior: "auto" });
-    }, 50);
-    return () => window.clearInterval(timer);
-  }, [autoScroll, readMode, scrollSpeed]);
 
   // Image Preloader for Paged Mode
   useEffect(() => {
@@ -154,7 +113,6 @@ export default function ChapterReader() {
         const nextIndex = currentPageIndex + i;
         if (nextIndex < pages.length) {
           const img = new window.Image();
-          img.decoding = "async";
           img.src = pages[nextIndex].image_url;
         }
       }
@@ -163,8 +121,7 @@ export default function ChapterReader() {
 
   const toggleReadMode = (mode: "cascade" | "paged") => {
     setReadMode(mode);
-    if (mode !== "cascade") setAutoScroll(false);
-    try { localStorage.setItem("nekutoon:readMode", mode); } catch { /* storage is optional */ }
+    localStorage.setItem("nekutoon:readMode", mode);
     setShowSettings(false);
     setCurrentPageIndex(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -268,7 +225,7 @@ export default function ChapterReader() {
             <Settings className="w-5 h-5" />
           </button>
 
-          {/* Settings Dropdown - Nekutton Glassmorphism */}
+          {/* Settings Dropdown - Nekumi Glassmorphism */}
           {showSettings && (
             <div className="absolute right-0 top-14 mt-2 w-64 bg-[#0a0a0c]/95 backdrop-blur-2xl border border-[#a855f7]/30 rounded-2xl shadow-[0_10px_40px_rgba(168,85,247,0.15)] overflow-hidden z-50 transform origin-top-right transition-all">
               <div className="px-5 py-4 border-b border-white/5 bg-gradient-to-r from-transparent to-[#a855f7]/5">
@@ -370,6 +327,12 @@ export default function ChapterReader() {
                 {currentPageIndex + 1} / {pages.length}
               </div>
 
+              {/* Preloader Oculto para Carga Instantánea */}
+              <div className="hidden">
+                {pages.slice(currentPageIndex + 1, currentPageIndex + 4).map((p) => (
+                  <img referrerPolicy="no-referrer" key={`preload-${p.id}`} src={p.image_url} alt="preload" />
+                ))}
+              </div>
             </div>
           )
         )}

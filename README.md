@@ -1,55 +1,36 @@
-# Nekutton
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Aplicación Next.js para descubrir y leer manhwas/webtoons, con catálogo, lector de capítulos, cuentas de usuario y panel administrativo conectado a Supabase.
+## Getting Started
 
-## Requisitos
+First, run the development server:
 
-- Node.js 20 o superior.
-- Un proyecto Supabase con el esquema de tablas y las políticas RLS necesarias.
-- Variables de entorno configuradas antes de ejecutar o compilar.
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-## Configuración local
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-1. Instala dependencias:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-   ```bash
-   npm ci
-   ```
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-2. Crea `.env.local` y configura:
+## Learn More
 
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://TU-PROYECTO.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=TU_CLAVE_ANON_PUBLICA
-   ```
+To learn more about Next.js, take a look at the following resources:
 
-   Usa la clave pública anon/publishable. **Nunca** pongas una clave `service_role` en una variable `NEXT_PUBLIC_*` ni la subas al repositorio.
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-3. Inicia el servidor de desarrollo:
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-   ```bash
-   npm run dev
-   ```
+## Deploy on Vercel
 
-4. Antes de publicar, ejecuta:
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-   ```bash
-   npm run lint
-   npm run build
-   ```
-
-## Base de datos y seguridad
-
-- Revisa `supabase-security-hotfix.sql` antes de ejecutarlo en el SQL Editor de Supabase. Corrige la política conocida que permitía a cualquier usuario autenticado editar manhwas y restringe el acceso a correos de reseñas.
-- Haz una copia de seguridad de la base de datos antes de aplicar migraciones.
-- Confirma las políticas RLS de `manhwas`, `chapters`, `pages`, `profiles`, `reviews`, `favorites`, `visits` y Storage. La seguridad de las operaciones administrativas no debe depender solo de la interfaz.
-- La cuenta administrativa está configurada actualmente con `diazmowi07@gmail.com` en el código y el SQL de migración; actualiza todas las referencias si cambias la cuenta.
-
-## Comandos disponibles
-
-- `npm run dev`: desarrollo.
-- `npm run lint`: análisis estático con ESLint.
-- `npm run build`: compilación de producción.
-- `npm run start`: sirve la compilación de producción.
-
-Consulta `AUDITORIA-NEKUTTON.md` para ver el alcance de las correcciones y las comprobaciones que faltan por ejecutar con credenciales reales.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
