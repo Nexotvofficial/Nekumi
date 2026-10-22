@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Loader2, User, Star, Settings, ArrowLeft } from "lucide-react";
+import { Loader2, Star, Settings, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import AvatarPicker from "@/components/AvatarPicker";
 import { getAvatarSvg } from "@/lib/avatars";
@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   
   const router = useRouter();
   const supabase = createClient();
@@ -33,7 +34,7 @@ export default function ProfilePage() {
 
       const { data: revs } = await supabase
         .from("reviews")
-        .select("*, manhwas(title, cover_url)")
+        .select("id, manhwa_id, user_id, avatar_key, rating, content, created_at, manhwas(title, cover_url)")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
       
@@ -44,7 +45,9 @@ export default function ProfilePage() {
   }, [router, supabase]);
 
   const saveAvatar = async (key: string) => {
+    if (!user?.id) return;
     setSaving(true);
+    setSaveError("");
     const { data, error } = await supabase.from("profiles").upsert({
       id: user.id,
       avatar_url: key,
@@ -54,6 +57,8 @@ export default function ProfilePage() {
     if (!error && data) {
       setProfile(data);
       setShowAvatarPicker(false);
+    } else {
+      setSaveError(error?.message || "No se pudo guardar el avatar. Inténtalo de nuevo.");
     }
     setSaving(false);
   };
@@ -96,6 +101,8 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {saveError && <p role="alert" className="mt-4 text-sm text-red-300">{saveError}</p>}
 
         {showAvatarPicker && (
           <div className="mt-8 p-6 bg-black/20 border border-[#a855f7]/30 rounded-2xl animate-in fade-in slide-in-from-top-4">

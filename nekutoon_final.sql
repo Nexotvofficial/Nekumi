@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS reviews (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Mantener compatible una tabla reviews creada por el script antiguo.
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS avatar_key TEXT DEFAULT 'hunter';
+
 -- 4. Seguridad (RLS) para profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (true);

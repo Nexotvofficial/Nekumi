@@ -2,11 +2,11 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Nekutoon — Catálogo de Manhwas',
-    short_name: 'Nekutoon',
+    name: 'Nekutton — Catálogo de Manhwas',
+    short_name: 'Nekutton',
     description: 'La mejor plataforma para leer manhwas y webtoons en español.',
     start_url: '/',
-    display: 'browser',
+    display: 'standalone',
     background_color: '#0a0a0a',
     theme_color: '#a855f7',
     orientation: 'portrait',

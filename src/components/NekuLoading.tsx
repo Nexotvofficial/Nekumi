@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function NekuLoading({ fullScreen = true }: { fullScreen?: boolean }) {
   const Container = fullScreen ? "div" : "div";
   const containerClasses = fullScreen 

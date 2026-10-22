@@ -5,8 +5,8 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
-import { Heart, Star, BookOpen, Clock, List, ChevronRight, ChevronLeft, ArrowLeft, Loader2, MessageCircle, Send } from "lucide-react";
-import { getAvatarSvg, AVATARS } from "@/lib/avatars";
+import { Heart, Star, BookOpen, List, ChevronRight, ChevronLeft, ArrowLeft, Loader2, MessageCircle, Send } from "lucide-react";
+import { getAvatarSvg } from "@/lib/avatars";
 import AvatarPicker from "@/components/AvatarPicker";
 
 interface Manhwa {
@@ -27,7 +27,6 @@ interface Chapter {
 
 interface Review {
   id: string;
-  user_email?: string;
   avatar_key?: string;
   rating: number;
   content: string;
@@ -48,21 +47,22 @@ export default function ClientPage() {
   const handlePrefetch = async (chapter: any) => {
     if (typeof window === 'undefined') return;
     
-    // Guardar la metadata del capitulo
-    sessionStorage.setItem(`nekumi_chap_meta_${chapter.id}`, JSON.stringify(chapter));
-    
-    if (sessionStorage.getItem(`nekumi_chap_${chapter.id}`)) return; // Ya están las páginas en caché
+    // sessionStorage has a small quota and can be disabled in private browsing.
+    try {
+      sessionStorage.setItem(`nekumi_chap_meta_${chapter.id}`, JSON.stringify(chapter));
+      if (sessionStorage.getItem(`nekumi_chap_${chapter.id}`)) return;
+    } catch { /* Continue loading even if the browser disables storage. */ }
 
     // Buscar páginas silenciosamente
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("pages")
       .select("*")
       .eq("chapter_id", chapter.id)
       .order("page_number", { ascending: true });
       
-    if (data && data.length > 0) {
+    if (!error && data && data.length > 0) {
       // Guardar en RAM/Session
-      sessionStorage.setItem(`nekumi_chap_${chapter.id}`, JSON.stringify(data));
+      try { sessionStorage.setItem(`nekumi_chap_${chapter.id}`, JSON.stringify(data)); } catch { /* cache is optional */ }
       // Forzar descarga de las primeras 3 imágenes al disco duro
       data.slice(0, 3).forEach(p => {
         const img = new Image();
@@ -72,6 +72,7 @@ export default function ClientPage() {
   };
 
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [lastReadChapter, setLastReadChapter] = useState<{id: string, num: string} | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -88,62 +89,80 @@ export default function ClientPage() {
   const [selectedAvatar, setSelectedAvatar] = useState("hunter");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadData() {
-      supabase.from('visits').insert([{}]).then();
-      // Get user session
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      try {
+        // Page-view analytics must never block reading if its table/policy is unavailable.
+        void supabase.from('visits').insert([{}]).then(() => undefined, () => undefined);
 
-      if (session?.user) {
-        const { data: prof } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        if (prof) { setUserProfile(prof); setSelectedAvatar(prof.avatar_url || "hunter"); }
-      }
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (cancelled) return;
+        setUser(session?.user ?? null);
 
-      // Fetch Manhwa details
-      const { data: mData } = await supabase.from("manhwas").select("*").eq("id", id).single();
-      if (mData) setManhwa(mData);
+        if (session?.user) {
+          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
+          if (cancelled) return;
+          if (profile) {
+            setUserProfile(profile);
+            setSelectedAvatar(profile.avatar_url || "hunter");
+          }
+        }
 
-      // Fetch Chapters
-      const { data: cData } = await supabase
-        .from("chapters")
-        .select("*")
-        .eq("manhwa_id", id)
-        .order("chapter_number", { ascending: false });
-      if (cData) setChapters(cData);
+        const { data: manhwaData, error: manhwaError } = await supabase.from("manhwas").select("*").eq("id", id).maybeSingle();
+        if (manhwaError) throw manhwaError;
+        if (cancelled) return;
+        if (manhwaData) setManhwa(manhwaData);
+        else setPageError("No encontramos este manhwa. Puede que haya sido retirado del catálogo.");
 
-      // Fetch Reviews
-      const { data: rData } = await supabase
-        .from("reviews")
-        .select("*")
-        .eq("manhwa_id", id)
-        .order("created_at", { ascending: false });
-      if (rData) setReviews(rData);
-
-      // Check if favorite
-      if (session?.user && mData) {
-        const { data: fData } = await supabase
-          .from("favorites")
-          .select("id")
-          .eq("user_id", session.user.id)
+        const { data: chapterData, error: chapterError } = await supabase
+          .from("chapters")
+          .select("*")
           .eq("manhwa_id", id)
-          .single();
-        if (fData) setIsFavorite(true);
-      }
+          .order("chapter_number", { ascending: false });
+        if (chapterError) throw chapterError;
+        if (cancelled) return;
+        setChapters(chapterData || []);
 
-      setLoading(false);
+        const { data: reviewData, error: reviewError } = await supabase
+          .from("reviews")
+          .select("id, manhwa_id, user_id, avatar_key, rating, content, created_at")
+          .eq("manhwa_id", id)
+          .order("created_at", { ascending: false });
+        if (reviewError) throw reviewError;
+        if (cancelled) return;
+        setReviews(reviewData || []);
+
+        if (session?.user && manhwaData) {
+          const { data: favoriteData, error: favoriteError } = await supabase
+            .from("favorites")
+            .select("id")
+            .eq("user_id", session.user.id)
+            .eq("manhwa_id", id)
+            .maybeSingle();
+          if (cancelled) return;
+          // Favorites are optional; a policy/network issue must not break the detail page.
+          setIsFavorite(Boolean(!favoriteError && favoriteData));
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setPageError(cause instanceof Error ? cause.message : "No pudimos cargar el manhwa. Comprueba tu conexión e inténtalo de nuevo.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
 
-    
-    // Cargar bookmark
-    if (typeof window !== 'undefined') {
+    // Cargar bookmark sin asumir que el navegador permite almacenamiento local.
+    try {
       const lastId = localStorage.getItem(`nekumi_last_read_${id}`);
       const lastNum = localStorage.getItem(`nekumi_last_read_num_${id}`);
-      if (lastId && lastNum) {
-        setLastReadChapter({ id: lastId, num: lastNum });
-      }
-    }
+      if (lastId && lastNum) setLastReadChapter({ id: lastId, num: lastNum });
+    } catch { /* bookmarks are optional */ }
 
-    if (id) loadData();
+    if (id) void loadData();
+    return () => { cancelled = true; };
   }, [id, supabase]);
 
   const toggleFavorite = async () => {
@@ -152,12 +171,14 @@ export default function ClientPage() {
       return;
     }
 
-    if (isFavorite) {
-      await supabase.from("favorites").delete().eq("user_id", user.id).eq("manhwa_id", id);
-      setIsFavorite(false);
-    } else {
-      await supabase.from("favorites").insert([{ user_id: user.id, manhwa_id: id }]);
-      setIsFavorite(true);
+    try {
+      const result = isFavorite
+        ? await supabase.from("favorites").delete().eq("user_id", user.id).eq("manhwa_id", id)
+        : await supabase.from("favorites").insert([{ user_id: user.id, manhwa_id: id }]);
+      if (result.error) throw result.error;
+      setIsFavorite(!isFavorite);
+    } catch (cause) {
+      alert(cause instanceof Error ? cause.message : "No se pudo actualizar tus favoritos. Inténtalo de nuevo.");
     }
   };
 
@@ -169,36 +190,25 @@ export default function ClientPage() {
     }
 
     setReviewLoading(true);
-    const { data, error } = await supabase
-      .from("reviews")
-      .insert([
-        {
+    try {
+      const { data, error } = await supabase
+        .from("reviews")
+        .insert([{
           manhwa_id: id,
           user_id: user.id,
-          user_email: user.email,
+          avatar_key: userProfile?.avatar_url || selectedAvatar || "hunter",
           rating: newRating,
-          content: newReview || "Sin comentario",
-        },
-      ])
-      .select();
+          content: newReview.trim() || "Sin comentario",
+        }])
+        .select("id, manhwa_id, user_id, avatar_key, rating, content, created_at");
 
-    if (error) {
-      alert("Error al calificar: " + error.message);
-      setReviewLoading(false);
-    } else {
+      if (error) throw error;
+      if (data?.[0]) setReviews((current) => [data[0], ...current]);
       setNewReview("");
       setNewRating(5);
-      
-      if (data) {
-        const updatedReviews = [data[0], ...reviews];
-        setReviews(updatedReviews);
-        
-        // Calcular nuevo promedio y actualizar manhwa
-        const sum = updatedReviews.reduce((acc, r) => acc + r.rating, 0);
-        const avg = parseFloat((sum / updatedReviews.length).toFixed(1));
-        await supabase.from("manhwas").update({ score: avg }).eq("id", id);
-        if (manhwa) setManhwa({ ...manhwa, score: avg });
-      }
+    } catch (cause) {
+      alert(cause instanceof Error ? `Error al calificar: ${cause.message}` : "No se pudo publicar la reseña. Inténtalo de nuevo.");
+    } finally {
       setReviewLoading(false);
     }
   };
@@ -210,6 +220,7 @@ export default function ClientPage() {
       <div className="min-h-screen flex items-center justify-center text-center">
         <div>
           <h1 className="text-2xl font-bold mb-4">Manhwa no encontrado</h1>
+          <p className="text-white/60 mb-5">{pageError || "Este manhwa no existe o ha sido eliminado."}</p>
           <Link href="/" className="btn btn-primary inline-flex">Volver al inicio</Link>
         </div>
       </div>
@@ -218,6 +229,7 @@ export default function ClientPage() {
 
   return (
     <div className="min-h-screen pb-20">
+      {pageError && <div role="status" className="mx-auto mt-4 max-w-5xl px-4 text-sm text-amber-200">{pageError}</div>}
       {/* Dynamic Background Banner */}
       <div className="relative w-full h-[400px] overflow-hidden">
         <div 
@@ -454,7 +466,7 @@ export default function ClientPage() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-bold text-white text-sm">{review.user_email?.split('@')[0] || "Usuario"}</p>
+                          <p className="font-bold text-white text-sm">{"Lector"}</p>
                           <p className="text-xs text-white/40">{new Date(review.created_at).toLocaleDateString()}</p>
                         </div>
                         <div className="flex gap-0.5 text-[#fbbf24]">

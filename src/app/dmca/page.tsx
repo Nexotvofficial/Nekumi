@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ShieldAlert, Mail, AlertTriangle } from 'lucide-react';
 
 export const metadata = {
-  title: 'Aviso Legal y DMCA | Nekutoon',
+  title: 'Aviso Legal y DMCA | Nekutton',
   robots: 'noindex, nofollow'
 };
 
@@ -42,10 +42,10 @@ export default function DMCA() {
             </div>
             <div className="space-y-4 text-sm md:text-base">
               <p>
-                <strong>Nekutoon does NOT store any image files, manga, manhwa, or copyrighted media files on our servers.</strong>
+                <strong>Nekutton does NOT store any image files, manga, manhwa, or copyrighted media files on our servers.</strong>
               </p>
               <p>
-                Nekutoon funciona exclusivamente como un <strong>motor de búsqueda y agregador de enlaces</strong> (similar a Google). Todo el contenido visual e imágenes que se muestran en esta plataforma están alojados en servidores externos de terceros (Third-party servers) mediante técnicas de inserción de enlaces directos (Hotlinking).
+                Nekutton funciona exclusivamente como un <strong>motor de búsqueda y agregador de enlaces</strong> (similar a Google). Todo el contenido visual e imágenes que se muestran en esta plataforma están alojados en servidores externos de terceros (Third-party servers) mediante técnicas de inserción de enlaces directos (Hotlinking).
               </p>
               <p>
                 No tenemos ningún tipo de control sobre estos servidores externos, no subimos archivos a ellos, y no nos hacemos responsables por el contenido que otros usuarios puedan haber subido a dichos servidores. Nuestra infraestructura (Vercel/Supabase) almacena únicamente metadatos de texto (títulos y URLs).
@@ -56,7 +56,7 @@ export default function DMCA() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-white">Digital Millennium Copyright Act (DMCA)</h2>
             <p>
-              Nekutoon respeta plenamente la propiedad intelectual de terceros. Si usted es el legítimo propietario de los derechos de autor de algún material y desea que desvinculemos las URLs que apuntan a sus imágenes, cumpliremos de inmediato procesando una solicitud de retiro (Takedown Notice).
+              Nekutton respeta plenamente la propiedad intelectual de terceros. Si usted es el legítimo propietario de los derechos de autor de algún material y desea que desvinculemos las URLs que apuntan a sus imágenes, cumpliremos de inmediato procesando una solicitud de retiro (Takedown Notice).
             </p>
             <p>
               Dado que no alojamos los archivos, <strong>eliminar las URLs de nuestra base de datos no eliminará las imágenes de Internet</strong>, ya que seguirán existiendo en los servidores de terceros donde fueron subidas originalmente. Para eliminarlas permanentemente, deberá contactar a la empresa de alojamiento (Host) real de dichas imágenes.
@@ -68,7 +68,7 @@ export default function DMCA() {
             <p>Para procesar su solicitud de desvinculación de enlaces, envíe un correo con la siguiente información:</p>
             <ul className="list-disc pl-6 space-y-2 text-white/60 text-sm">
               <li>Evidencia o identificación clara del material protegido por derechos de autor.</li>
-              <li>La ubicación exacta (URLs completas de Nekutoon) donde se encuentran los enlaces al material.</li>
+              <li>La ubicación exacta (URLs completas de Nekutton) donde se encuentran los enlaces al material.</li>
               <li>Información de contacto válida (Nombre, empresa, y correo corporativo).</li>
               <li>Una declaración de que la notificación es exacta y se realiza de buena fe.</li>
             </ul>
