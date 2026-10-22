@@ -70,10 +70,21 @@ export default function Home({ initialManhwas = [], initialTrending = [], initia
   useEffect(() => {
     // SSR ya trae estos datos. Consultar solo si el servidor no pudo devolverlos.
     if (initialManhwas.length === 0) {
-      supabase.from('manhwas').select('*').order('created_at', { ascending: false }).limit(24).then(({ data, error }) => {
-        if (!error && data) setManhwas(data);
-        setIsLoading(false);
-      }).catch(() => setIsLoading(false));
+      void (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('manhwas')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(24);
+
+          if (!error && data) setManhwas(data);
+        } catch (error) {
+          console.error('Error cargando manhwas:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      })();
     }
 
     if (initialTrending.length === 0) {
