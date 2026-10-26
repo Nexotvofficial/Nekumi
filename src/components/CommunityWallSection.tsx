@@ -518,6 +518,7 @@ export default function CommunityWallSection({
             </button>
           </div>
         </form>
+      )}
 
         {/* Posts Feed */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
