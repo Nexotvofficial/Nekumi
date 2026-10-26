@@ -102,7 +102,7 @@ export default function CommunityWallSection({
     return [
       {
         id: "seed_wall_1",
-        authorName: "SungJinWoo",
+        authorName: "Equipo Nekutoon",
         avatarKey: "monarch",
         readerXp: 2650,
         frameId: "frame_abyss",
@@ -115,12 +115,12 @@ export default function CommunityWallSection({
         attachedManhwaCover: sample1?.cover_url,
         content:
           "Si buscan una obra con ritmo brutal desde el primer capítulo y un arte de otro nivel, tienen que empezar esta hoy mismo. La velocidad de carga en Nekutoon vuela.",
-        likes: 48,
+        likes: 0,
         createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
       },
       {
         id: "seed_wall_2",
-        authorName: "AriaRoscent",
+        authorName: "Equipo Nekutoon",
         avatarKey: "empress",
         readerXp: 1520,
         channel: "spoilers",
@@ -130,26 +130,26 @@ export default function CommunityWallSection({
         attachedManhwaCover: sample2?.cover_url,
         content:
           "¡No puedo creer ese giro al final del último episodio! Cuando el protagonista descubre que el verdadero traidor era su propio maestro del gremio quedé en shock total.",
-        likes: 34,
+        likes: 0,
         createdAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
       },
       {
         id: "seed_wall_3",
-        authorName: "KaelenV",
+        authorName: "Equipo Nekutoon",
         avatarKey: "knight",
         readerXp: 640,
         channel: "teorias",
         isSpoiler: false,
         content:
           "Acabo de subir a Rango B leyendo capítulos esta semana. [spoiler]Mi teoría es que el jefe oculto del piso 100 es el antiguo Monarca[/spoiler] ¿ustedes qué opinan?",
-        likes: 21,
+        likes: 0,
         createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
       },
     ];
   }, [manhwas]);
 
   const allPosts = useMemo(() => {
-    return [...remotePosts, ...seedPosts];
+    return remotePosts.length > 0 ? remotePosts : seedPosts;
   }, [remotePosts, seedPosts]);
 
   const filteredPosts = useMemo(() => {

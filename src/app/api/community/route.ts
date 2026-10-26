@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL_DEFAULT } from "@/lib/supabase";
 
-const REV_B64 = "=oXNOpERDtEafdmS2MWUnxERUhDRU9kb3UGTV9EN1t2X0VmcjV2cfJ2c";
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
   const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    Buffer.from(REV_B64.split("").reverse().join(""), "base64").toString("utf8");
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!key) throw new Error("Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno");
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
