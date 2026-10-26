@@ -441,11 +441,7 @@ export default function Home({
   }, [manhwas, searchQuery, activeCategory, favorites, sortBy]);
 
   const handleAvatarClick = () => {
-    if (user) {
-      setShowProfileMenu(!showProfileMenu);
-    } else {
-      setIsAuthOpen(true);
-    }
+    setShowProfileMenu(!showProfileMenu);
   };
 
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
@@ -628,8 +624,8 @@ export default function Home({
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "")}
               >
-                <Compass className="w-3.5 h-3.5 text-[#c084fc]" />
-                <span>Explorar</span>
+                <Compass className="w-4 h-4 text-[#c084fc]" />
+                <span>Catálogo</span>
               </a>
               <a
                 className="nav-link"
@@ -639,7 +635,7 @@ export default function Home({
                   document.getElementById("listas-publicas")?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                <Library className="w-3.5 h-3.5 text-emerald-400" />
+                <Library className="w-4 h-4 text-emerald-400" />
                 <span>Listas Públicas</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               </a>
@@ -651,76 +647,17 @@ export default function Home({
                   document.getElementById("muro-comunidad")?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                <MessagesSquare className="w-3.5 h-3.5 text-amber-400" />
+                <MessagesSquare className="w-4 h-4 text-amber-400" />
                 <span>Comunidad</span>
               </a>
-              <a
-                className={`nav-link ${activeCategory === "Acción" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Acción")}
+              <button
+                type="button"
+                onClick={() => setShowGuildShop(true)}
+                className="nav-link cursor-pointer"
               >
-                <Swords className="w-3.5 h-3.5 text-sky-400" />
-                <span>Acción</span>
-              </a>
-              <a
-                className={`nav-link ${activeCategory === "Fantasía" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Fantasía")}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                <span>Fantasía</span>
-              </a>
-              <a
-                className={`nav-link ${activeCategory === "Romance" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Romance")}
-              >
-                <Heart className="w-3.5 h-3.5 text-pink-400" />
-                <span>Romance</span>
-              </a>
-              <a
-                className={`nav-link ${activeCategory === "Isekai" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Isekai")}
-              >
-                <Flame className="w-3.5 h-3.5 text-amber-400" />
-                <span>Isekai</span>
-              </a>
-              <a
-                className={`nav-link ${activeCategory === "Drama" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Drama")}
-              >
-                <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Drama</span>
-              </a>
-              <a
-                className={`nav-link ${activeCategory === "Comedia" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Comedia")}
-              >
-                <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                <span>Comedia</span>
-              </a>
-              <a
-                className={`nav-link ${activeCategory === "BL" || activeCategory === "Boys Love" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "BL")}
-              >
-                <Crown className="w-3.5 h-3.5 text-fuchsia-400" />
-                <span>BL</span>
-              </a>
-              <a
-                className={`nav-link ${
-                  activeCategory === "+18" ? "active" : ""
-                } !text-pink-400 hover:!bg-pink-500/15 hover:!border-pink-500/35`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "+18")}
-              >
-                <span className="px-1.5 py-0.5 rounded bg-pink-500/20 border border-pink-500/40 text-[10px] font-black text-pink-300">
-                  +18
-                </span>
-              </a>
+                <ShoppingBag className="w-4 h-4 text-pink-400" />
+                <span>Tienda</span>
+              </button>
             </nav>
 
             <div className="header-actions">
@@ -896,73 +833,94 @@ export default function Home({
               )}
 
               {readerStats && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setShowGuildShop(true)}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-black transition-all cursor-pointer shadow-[0_0_14px_rgba(251,191,36,0.2)]"
-                    title="Abrir Tienda del Gremio (Marcos Neón y Colores gratis por leer)"
-                  >
-                    <Coins className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{readerStats.coins}</span>
-                    <ShoppingBag className="w-3.5 h-3.5 text-amber-200 ml-0.5" />
-                  </button>
-
-                  <Link
-                    href="/profile"
-                    className="hidden xl:inline-flex items-center hover:scale-105 transition-transform"
-                    title="Ver tu Tarjeta de Rango y Progreso XP"
-                  >
-                    <ReaderRankBadge
-                      xp={readerStats.xp}
-                      customTitleId={readerStats.equipped?.customTitleId}
-                      size="xs"
-                    />
-                  </Link>
-                </>
+                <button
+                  type="button"
+                  onClick={() => setShowGuildShop(true)}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-black transition-all cursor-pointer shadow-[0_0_14px_rgba(251,191,36,0.2)]"
+                  title="Abrir Tienda del Gremio (Marcos Neón y Colores gratis por leer)"
+                >
+                  <Coins className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{readerStats.coins}</span>
+                </button>
               )}
 
               <div className="relative">
                 <button
-                  className="avatar-button"
                   type="button"
                   aria-label="Abrir perfil"
                   onClick={handleAvatarClick}
-                  style={
-                    getShopItemById(readerStats?.equipped?.frameId)?.glowCss
-                      ? { boxShadow: getShopItemById(readerStats?.equipped?.frameId)?.glowCss }
-                      : undefined
-                  }
+                  className="inline-flex items-center gap-2.5 pl-1.5 pr-3.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.11] border border-white/15 hover:border-[#a855f7]/60 transition-all cursor-pointer"
                 >
                   <div
-                    className="rounded-full overflow-hidden bg-black/40 [&>svg]:w-full [&>svg]:h-full [&>svg]:scale-110"
+                    className="w-8 h-8 rounded-full overflow-hidden bg-black/50 p-0.5 flex-shrink-0 border border-[#a855f7]/60"
+                    style={
+                      getShopItemById(readerStats?.equipped?.frameId)?.glowCss
+                        ? { boxShadow: getShopItemById(readerStats?.equipped?.frameId)?.glowCss }
+                        : undefined
+                    }
                     dangerouslySetInnerHTML={{ __html: getAvatarSvg(userProfile?.avatar_url || "hunter") }}
                   />
+                  <div className="hidden sm:flex flex-col items-start leading-tight text-left">
+                    <span className="text-xs font-extrabold text-white">
+                      {userProfile?.username || user?.email?.split("@")[0] || "Mi Perfil"}
+                    </span>
+                    <span className="text-[10px] font-bold text-[#c084fc]">
+                      {readerStats
+                        ? `Rango ${readerStats.currentRank.code} · Nv.${readerStats.level}`
+                        : "Ver Rango"}
+                    </span>
+                  </div>
                 </button>
 
-                {showProfileMenu && user && (
-                  <div className="absolute right-0 mt-2 w-48 bg-[#121216] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 flex flex-col animate-in fade-in zoom-in-95">
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2.5 w-56 bg-[#12131a]/95 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden z-50 flex flex-col animate-in fade-in zoom-in-95">
                     <Link
                       href="/profile"
-                      className="px-4 py-3 text-sm text-white hover:bg-white/5 border-b border-white/5 flex items-center gap-2"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="px-4 py-3 text-xs font-extrabold text-white hover:bg-white/5 border-b border-white/5 flex items-center gap-2.5"
                     >
-                      <User className="w-4 h-4" /> Mi Perfil
+                      <User className="w-4 h-4 text-[#c084fc]" /> Mi Perfil y Tarjeta de Rango
                     </Link>
                     <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowGuildShop(true);
+                      }}
+                      className="px-4 py-3 text-xs font-extrabold text-amber-300 hover:bg-white/5 border-b border-white/5 text-left flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <ShoppingBag className="w-4 h-4 text-amber-400" /> Tienda del Gremio ({readerStats?.coins ?? 250} Coins)
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setShowProfileMenu(false);
                         handleFavoritesFilterClick();
                       }}
-                      className="px-4 py-3 text-sm text-white hover:bg-white/5 border-b border-white/5 text-left flex items-center gap-2"
+                      className="px-4 py-3 text-xs font-extrabold text-white hover:bg-white/5 border-b border-white/5 text-left flex items-center gap-2.5 cursor-pointer"
                     >
                       <Heart className="w-4 h-4 text-[#ec4899]" /> Mis Favoritos ({favorites.size})
                     </button>
-                    <button
-                      onClick={handleLogout}
-                      className="px-4 py-3 text-sm text-red-400 hover:bg-white/5 text-left flex items-center gap-2"
-                    >
-                      <LogOut className="w-4 h-4" /> Cerrar Sesión
-                    </button>
+                    {user ? (
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="px-4 py-3 text-xs font-extrabold text-red-400 hover:bg-white/5 text-left flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <LogOut className="w-4 h-4" /> Cerrar Sesión
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          setIsAuthOpen(true);
+                        }}
+                        className="px-4 py-3 text-xs font-extrabold text-[#c084fc] hover:bg-white/5 text-left flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4" /> Iniciar Sesión / Registrarse
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -975,6 +933,86 @@ export default function Home({
               >
                 {mobileNavOpen ? <XIcon /> : <Menu />}
               </button>
+            </div>
+          </div>
+
+          {/* Segunda Fila Armónica: Cinta de Categorías / Géneros */}
+          <div className="genre-ribbon hidden md:block">
+            <div className="genre-ribbon-inner">
+              <a
+                className={`genre-pill ${!activeCategory ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "")}
+              >
+                <Compass className="w-3.5 h-3.5 text-[#c084fc]" />
+                <span>Todos los Géneros</span>
+              </a>
+              <a
+                className={`genre-pill ${activeCategory === "Acción" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "Acción")}
+              >
+                <Swords className="w-3.5 h-3.5 text-sky-400" />
+                <span>Acción</span>
+              </a>
+              <a
+                className={`genre-pill ${activeCategory === "Fantasía" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "Fantasía")}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>Fantasía</span>
+              </a>
+              <a
+                className={`genre-pill ${activeCategory === "Romance" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "Romance")}
+              >
+                <Heart className="w-3.5 h-3.5 text-pink-400" />
+                <span>Romance</span>
+              </a>
+              <a
+                className={`genre-pill ${activeCategory === "Isekai" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "Isekai")}
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <span>Isekai</span>
+              </a>
+              <a
+                className={`genre-pill ${activeCategory === "Drama" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "Drama")}
+              >
+                <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Drama</span>
+              </a>
+              <a
+                className={`genre-pill ${activeCategory === "Comedia" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "Comedia")}
+              >
+                <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                <span>Comedia</span>
+              </a>
+              <a
+                className={`genre-pill ${activeCategory === "BL" || activeCategory === "Boys Love" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "BL")}
+              >
+                <Crown className="w-3.5 h-3.5 text-fuchsia-400" />
+                <span>BL</span>
+              </a>
+              <a
+                className={`genre-pill ${
+                  activeCategory === "+18" ? "active" : ""
+                } !text-pink-300 !border-pink-500/30 hover:!bg-pink-500/15`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "+18")}
+              >
+                <Shield className="w-3.5 h-3.5 text-pink-400" />
+                <span>+18 Adulto</span>
+              </a>
             </div>
           </div>
 
@@ -1606,34 +1644,34 @@ export default function Home({
                   <MessagesSquare />
                 </span>
               </div>
-              <div className="review-list space-y-2">
+              <div className="review-list space-y-3.5">
                 {recentReviews.length === 0 && (
                   <p className="text-sm text-center py-4 text-white/50">Aún no hay reseñas en la plataforma.</p>
                 )}
                 {recentReviews.map((item) => (
                   <article
                     key={item.id}
-                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors border border-white/5"
+                    className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-black/25 hover:bg-white/[0.04] transition-colors border border-white/[0.07]"
                   >
                     <div
                       className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 bg-black/40"
                       dangerouslySetInnerHTML={{ __html: getAvatarSvg(item.avatar_key || "hunter") }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1 gap-1.5">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-bold text-xs text-white truncate">
-                            {item.user_email?.split("@")[0] || "Cazador"}
-                          </span>
-                          <ReaderRankBadge xp={60} size="xs" showLevel={false} />
-                        </div>
+                      <div className="flex justify-between items-center gap-2 mb-1">
+                        <span className="font-extrabold text-xs text-white truncate">
+                          {item.user_email?.split("@")[0] || "Cazador"}
+                        </span>
                         <span className="flex text-[#fbbf24] flex-shrink-0 gap-0.5">
                           {[...Array(5)].map((_, i) => (
                             <Star key={i} className={`w-3 h-3 ${i < item.rating ? "fill-current" : "opacity-20"}`} />
                           ))}
                         </span>
                       </div>
-                      <p className="text-white/80 text-xs line-clamp-2 mb-1.5 leading-relaxed">"{item.content}"</p>
+                      <div className="mb-1.5">
+                        <ReaderRankBadge xp={60} size="xs" showLevel={false} />
+                      </div>
+                      <p className="text-white/80 text-xs line-clamp-2 mb-2 leading-relaxed">"{item.content}"</p>
                       <Link
                         href={`/manga/${item.manhwa_id}`}
                         className="text-[#c084fc] hover:text-white text-[11px] font-bold uppercase tracking-wider inline-flex items-center gap-1 truncate transition-colors"
@@ -1649,8 +1687,8 @@ export default function Home({
           </aside>
         </div>
 
-        {/* Full-Width Section: Listas Públicas + Catálogo Oficial (Cero Huecos Laterales) */}
-        <div className="shell pb-10">
+        {/* Full-Width Section: Listas Públicas + Catálogo Oficial + Muro Global (Espaciado Armónico) */}
+        <div className="shell pb-16 space-y-16 mt-6">
           {!activeCategory && !searchQuery && (
             <PublicListsSection
               manhwas={manhwas}
@@ -1664,7 +1702,7 @@ export default function Home({
             />
           )}
 
-          <section id="recomendados" className="section mt-6" aria-labelledby="recommendedTitle">
+          <section id="recomendados" className="section pt-2" aria-labelledby="recommendedTitle">
             <div className="section-heading flex-wrap gap-3 mb-5">
               <h2 id="recommendedTitle" className="section-title">
                 {searchQuery
@@ -1744,7 +1782,7 @@ export default function Home({
               </div>
             ) : (
               <>
-                <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 mt-5">
+                <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 mt-6">
                   {filteredManhwas.slice(0, visibleCount).map((item, idx) => {
                     const latestChapNum = latestChapByManhwa.get(item.id);
                     const hasRating = Number(item.score) > 0;
