@@ -16,6 +16,7 @@ import {
   Plus,
   X as XIcon,
   Search,
+  Lock,
 } from "lucide-react";
 import { getAvatarSvg } from "@/lib/avatars";
 import {
@@ -48,6 +49,8 @@ interface CommunityWallSectionProps {
   stats: ReaderStats | null;
   onStatsChange: (next: ReaderStats) => void;
   onOpenShop: () => void;
+  user?: any;
+  onRequireAuth?: () => void;
   userName?: string;
   userAvatar?: string;
 }
@@ -57,6 +60,8 @@ export default function CommunityWallSection({
   stats,
   onStatsChange,
   onOpenShop,
+  user,
+  onRequireAuth,
   userName = "Cazador",
   userAvatar = "hunter",
 }: CommunityWallSectionProps) {
@@ -163,16 +168,15 @@ export default function CommunityWallSection({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
     if (!content.trim()) return;
     setSubmitting(true);
 
     const updatedStats = recordCommentForRank();
     onStatsChange(updatedStats);
-
-    const finalNick = nick.trim() || "Cazador";
-    try {
-      localStorage.setItem("nekumi_reader_nick", finalNick);
-    } catch {}
 
     try {
       const res = await fetch("/api/community", {
@@ -180,9 +184,8 @@ export default function CommunityWallSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "post_global_wall",
-          authorName: finalNick,
+          userId: user.id,
           avatarKey: userAvatar || "hunter",
-          readerXp: updatedStats.xp,
           frameId: updatedStats.equipped?.frameId,
           nameColorId: updatedStats.equipped?.nameColorId,
           customTitleId: updatedStats.equipped?.customTitleId,
@@ -359,54 +362,72 @@ export default function CommunityWallSection({
           ))}
         </div>
 
-        {/* Composer Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-black/45 border border-white/10 rounded-2xl p-4 sm:p-5 mb-6 relative z-10 space-y-3"
-        >
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={nick}
-              onChange={(e) => setNick(e.target.value)}
-              maxLength={26}
-              placeholder="Tu apodo de Cazador"
-              className="sm:w-48 h-10 rounded-xl bg-black/50 border border-white/10 px-3.5 text-xs sm:text-sm text-white focus:outline-none focus:border-[#a855f7]"
-            />
-
-            <select
-              value={postChannel}
-              onChange={(e) => setPostChannel(e.target.value as any)}
-              aria-label="Canal del mensaje"
-              className="sm:w-48 h-10 rounded-xl bg-[#12141c] border border-white/10 px-3 text-xs font-bold text-white focus:outline-none focus:border-[#a855f7]"
-            >
-              <option value="general">Canal: General</option>
-              <option value="recomendaciones">Canal: Recomendaciones</option>
-              <option value="teorias">Canal: Debate y Teorías</option>
-              <option value="spoilers">Canal: Spoilers</option>
-            </select>
-
-            <div className="flex flex-wrap items-center gap-2 ml-auto">
-              <button
-                type="button"
-                onClick={handleInsertSpoilerTag}
-                className="px-3 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                title="Insertar texto oculto anti-spoiler"
-              >
-                <EyeOff className="w-3.5 h-3.5 text-[#c084fc]" />
-                <span>+ Etiqueta [Spoiler]</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowManhwaPicker(!showManhwaPicker)}
-                className="px-3 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-[#c084fc]" />
-                <span>{attachedManhwa ? "Cambiar Obra" : "+ Adjuntar Manhwa"}</span>
-              </button>
+        {/* Composer Form or Login Banner */}
+        {!user ? (
+          <div className="bg-black/45 border border-white/10 rounded-2xl p-5 sm:p-6 mb-6 relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/25 flex items-center justify-center text-[#c084fc] flex-shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-white">Inicia sesión para publicar en la comunidad</h3>
+                <p className="text-xs text-white/50 mt-0.5">
+                  Solo los Cazadores registrados pueden compartir recomendaciones, teorías y ganar XP de Rango.
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={onRequireAuth}
+              className="btn btn-primary px-5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer self-stretch sm:self-auto"
+            >
+              Iniciar Sesión / Registrarse
+            </button>
           </div>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="bg-black/45 border border-white/10 rounded-2xl p-4 sm:p-5 mb-6 relative z-10 space-y-3"
+          >
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="sm:w-52 h-10 rounded-xl bg-black/60 border border-white/10 px-3.5 flex items-center text-xs font-bold text-white/80">
+                <span className="text-[#c084fc] mr-1.5">@</span>
+                <span className="truncate">{userName}</span>
+              </div>
+
+              <select
+                value={postChannel}
+                onChange={(e) => setPostChannel(e.target.value as any)}
+                aria-label="Canal del mensaje"
+                className="sm:w-48 h-10 rounded-xl bg-[#12141c] border border-white/10 px-3 text-xs font-bold text-white focus:outline-none focus:border-[#a855f7]"
+              >
+                <option value="general">Canal: General</option>
+                <option value="recomendaciones">Canal: Recomendaciones</option>
+                <option value="teorias">Canal: Debate y Teorías</option>
+                <option value="spoilers">Canal: Spoilers</option>
+              </select>
+
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={handleInsertSpoilerTag}
+                  className="px-3 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                  title="Insertar texto oculto anti-spoiler"
+                >
+                  <EyeOff className="w-3.5 h-3.5 text-[#c084fc]" />
+                  <span>+ Etiqueta [Spoiler]</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowManhwaPicker(!showManhwaPicker)}
+                  className="px-3 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-[#c084fc]" />
+                  <span>{attachedManhwa ? "Cambiar Obra" : "+ Adjuntar Manhwa"}</span>
+                </button>
+              </div>
+            </div>
 
           {attachedManhwa && (
             <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-[#a855f7]/15 border border-[#a855f7]/35">

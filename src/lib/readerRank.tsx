@@ -33,8 +33,8 @@ export const READER_RANKS: ReaderRankTier[] = [
     code: "D",
     title: "Explorador",
     subtitle: "Rastreador de Mazmorras",
-    minXp: 50,
-    minChaptersHint: 5,
+    minXp: 150,
+    minChaptersHint: 15,
     color: "#d4d4d8",
     borderClass: "border-white/12",
     bgClass: "bg-white/[0.05]",
@@ -45,8 +45,8 @@ export const READER_RANKS: ReaderRankTier[] = [
     code: "C",
     title: "Cazador",
     subtitle: "Vanguardia del Gremio",
-    minXp: 150,
-    minChaptersHint: 15,
+    minXp: 600,
+    minChaptersHint: 60,
     color: "#c4b5fd",
     borderClass: "border-violet-400/25",
     bgClass: "bg-violet-500/10",
@@ -57,8 +57,8 @@ export const READER_RANKS: ReaderRankTier[] = [
     code: "B",
     title: "Cazador Élite",
     subtitle: "Capitán de Incursión",
-    minXp: 350,
-    minChaptersHint: 35,
+    minXp: 1800,
+    minChaptersHint: 180,
     color: "#c084fc",
     borderClass: "border-purple-400/30",
     bgClass: "bg-purple-500/12",
@@ -69,8 +69,8 @@ export const READER_RANKS: ReaderRankTier[] = [
     code: "A",
     title: "Gran Maestro",
     subtitle: "Comandante de Orden",
-    minXp: 700,
-    minChaptersHint: 70,
+    minXp: 5000,
+    minChaptersHint: 500,
     color: "#e879f9",
     borderClass: "border-fuchsia-400/35",
     bgClass: "bg-fuchsia-500/12",
@@ -81,8 +81,8 @@ export const READER_RANKS: ReaderRankTier[] = [
     code: "S",
     title: "Soberano",
     subtitle: "Autoridad Nacional",
-    minXp: 1300,
-    minChaptersHint: 130,
+    minXp: 12000,
+    minChaptersHint: 1200,
     color: "#f5d0fe",
     borderClass: "border-purple-300/45",
     bgClass: "bg-purple-500/15",
@@ -93,8 +93,8 @@ export const READER_RANKS: ReaderRankTier[] = [
     code: "SS",
     title: "Monarca",
     subtitle: "Monarca de las Sombras",
-    minXp: 2500,
-    minChaptersHint: 250,
+    minXp: 30000,
+    minChaptersHint: 3000,
     color: "#e879f9",
     borderClass: "border-[#c084fc]/55",
     bgClass: "bg-gradient-to-r from-[#a855f7]/20 to-[#ec4899]/15",
@@ -297,12 +297,13 @@ export function computeReaderStats(
       ? Math.floor(overrideXp)
       : safeChapters * 10 + safeComments * 25 + safeReactions * 5;
 
-  // NekuCoins: 250 welcome bonus + 20 per chapter + 40 per comment/post + 10 per reaction
+  // NekuCoins: 250 welcome bonus + 15 per chapter + 25 per comment/post + 5 per reaction
   const totalEarnedCoins =
-    WELCOME_BONUS_COINS + safeChapters * 20 + safeComments * 40 + safeReactions * 10;
+    WELCOME_BONUS_COINS + safeChapters * 15 + safeComments * 25 + safeReactions * 5;
   const coins = Math.max(0, totalEarnedCoins - Math.max(0, spentCoins));
 
-  const level = Math.max(1, Math.floor(xp / 30) + 1);
+  // Escala de nivel equilibrada: sube progresivamente cada 75 XP
+  const level = Math.max(1, Math.floor(xp / 75) + 1);
 
   let currentIdx = 0;
   for (let i = 0; i < READER_RANKS.length; i++) {

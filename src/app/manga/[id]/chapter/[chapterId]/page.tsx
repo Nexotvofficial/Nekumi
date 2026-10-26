@@ -79,6 +79,7 @@ export default function ChapterReader() {
   const [showReaderHeader, setShowReaderHeader] = useState(true);
 
   // Chapter Reactions & In-Chapter Comments
+  const [sessionUser, setSessionUser] = useState<any>(null);
   const [voterId, setVoterId] = useState("");
   const [userName, setUserName] = useState("");
   const [userAvatar, setUserAvatar] = useState("hunter");
@@ -119,6 +120,7 @@ export default function ChapterReader() {
     document.addEventListener("visibilitychange", onHide);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      setSessionUser(session?.user || null);
       if (session?.user) {
         syncUserId = session.user.id;
         syncReaderProgress(supabase, session.user.id).then((ok) => {
@@ -138,7 +140,26 @@ export default function ChapterReader() {
       }
     });
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUser(session?.user || null);
+      if (session?.user) {
+        setVoterId(session.user.id);
+        supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.username) setUserName(data.username);
+            if (data?.avatar_url) setUserAvatar(data.avatar_url);
+          });
+      }
+    });
+
     return () => {
+      subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onHide);
       if (syncUserId) syncReaderProgress(supabase, syncUserId);
     };
@@ -200,12 +221,13 @@ export default function ChapterReader() {
 
   const handlePostChapterComment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!sessionUser) {
+      alert("Debes iniciar sesión para comentar en este capítulo.");
+      return;
+    }
     if (!commentInput.trim()) return;
     setCommentSubmitting(true);
-    const finalName = userName.trim() || "Cazador";
-    try {
-      localStorage.setItem("nekumi_reader_nick", finalName);
-    } catch {}
+    const finalName = userName.trim() || sessionUser.email?.split("@")[0] || "Cazador";
 
     const updatedStats = recordCommentForRank();
     setReaderStats(updatedStats);
@@ -217,10 +239,9 @@ export default function ChapterReader() {
         body: JSON.stringify({
           action: "comment_chapter",
           chapterId,
+          userId: sessionUser.id,
           authorName: finalName,
           avatarKey: userAvatar,
-          readerXp: updatedStats.xp,
-          chaptersRead: updatedStats.chaptersRead,
           frameId: updatedStats.equipped?.frameId,
           nameColorId: updatedStats.equipped?.nameColorId,
           customTitleId: updatedStats.equipped?.customTitleId,
@@ -1033,36 +1054,52 @@ export default function ChapterReader() {
               )}
             </div>
 
-            <form onSubmit={handlePostChapterComment} className="space-y-3 mb-6">
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <input
-                  type="text"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  placeholder="Tu apodo (ej. SungJinWoo)"
-                  maxLength={30}
-                  className="sm:w-52 h-10 rounded-xl bg-black/40 border border-white/10 px-3.5 text-xs sm:text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#a855f7]"
-                />
-                <div className="flex-1 flex gap-2">
-                  <input
-                    type="text"
-                    value={commentInput}
-                    onChange={(e) => setCommentInput(e.target.value)}
-                    placeholder="Escribe tu opinión sobre este capítulo (+25 XP)..."
-                    maxLength={500}
-                    className="flex-1 h-10 rounded-xl bg-black/40 border border-white/10 px-3.5 text-xs sm:text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#a855f7]"
+            {sessionUser ? (
+              <form onSubmit={handlePostChapterComment} className="space-y-3 mb-6">
+                <div className="flex gap-2.5 items-center">
+                  <div
+                    className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-black/50 border border-[#a855f7]/40 p-0.5"
+                    dangerouslySetInnerHTML={{ __html: getAvatarSvg(userAvatar) }}
                   />
-                  <button
-                    type="submit"
-                    disabled={commentSubmitting || !commentInput.trim()}
-                    className="btn btn-primary px-4 h-10 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 disabled:opacity-40"
-                  >
-                    {commentSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Enviar
-                  </button>
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={commentInput}
+                      onChange={(e) => setCommentInput(e.target.value)}
+                      placeholder={`Comentar como ${userName || sessionUser.email?.split("@")[0] || "Cazador"} (+25 XP)...`}
+                      maxLength={500}
+                      className="flex-1 h-11 rounded-xl bg-black/40 border border-white/10 px-3.5 text-xs sm:text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#a855f7]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={commentSubmitting || !commentInput.trim()}
+                      className="btn btn-primary px-4 sm:px-5 h-11 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                    >
+                      {commentSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      <span className="hidden sm:inline">Enviar</span>
+                    </button>
+                  </div>
                 </div>
+              </form>
+            ) : (
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-[#c084fc] flex-shrink-0">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-white">Inicia sesión para comentar</p>
+                    <p className="text-[11px] text-white/50">Solo los Cazadores registrados pueden participar en la comunidad y ganar +25 XP.</p>
+                  </div>
+                </div>
+                <Link
+                  href="/profile"
+                  className="btn btn-primary px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap"
+                >
+                  Iniciar Sesión
+                </Link>
               </div>
-            </form>
+            )}
 
             {chapterComments.length === 0 ? (
               <p className="text-center text-xs sm:text-sm text-white/45 py-6">

@@ -18,6 +18,14 @@ function getSocialShardId(chapterId: string): number {
   return 3000 + (num % 256);
 }
 
+function calculateVerifiedXp(progress?: any): number {
+  if (!progress || typeof progress !== "object") return 0;
+  const readChapters = Array.isArray(progress.readChapters) ? progress.readChapters.length : 0;
+  const comments = typeof progress.comments === "number" ? Math.max(0, progress.comments) : 0;
+  const reactions = typeof progress.reactions === "number" ? Math.max(0, progress.reactions) : 0;
+  return readChapters * 10 + comments * 25 + reactions * 5;
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
@@ -207,22 +215,107 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ counts, userReactions });
     }
 
+    if (action === "change_username") {
+      const { userId, newUsername } = body;
+      if (!userId || !newUsername?.trim()) {
+        return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+      }
+
+      const cleanName = newUsername.trim();
+      if (cleanName.length < 3 || cleanName.length > 20) {
+        return NextResponse.json({ error: "El nombre debe tener entre 3 y 20 caracteres." }, { status: 400 });
+      }
+      if (!/^[a-zA-Z0-9_]+$/.test(cleanName)) {
+        return NextResponse.json({ error: "El nombre solo puede contener letras, números y guiones bajos (_)." }, { status: 400 });
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("id, username, reader_progress")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (profErr || !prof) {
+        return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+      }
+
+      const rp = (prof.reader_progress && typeof prof.reader_progress === "object" ? prof.reader_progress : {}) as any;
+      if (rp.username_changed) {
+        return NextResponse.json({ error: "Ya has utilizado tu único cambio de nombre permitido." }, { status: 403 });
+      }
+
+      // Comprobar que nadie más tenga ese nombre
+      const { data: duplicate } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("username", cleanName)
+        .neq("id", userId)
+        .maybeSingle();
+
+      if (duplicate) {
+        return NextResponse.json({ error: "Ese nombre de Cazador ya está ocupado por otro usuario." }, { status: 400 });
+      }
+
+      const updatedRp = {
+        ...rp,
+        username_changed: true,
+        username_changed_at: new Date().toISOString(),
+        previous_username: prof.username || null,
+      };
+
+      const { error: updateErr } = await supabase
+        .from("profiles")
+        .update({
+          username: cleanName,
+          reader_progress: updatedRp,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+
+      if (updateErr) {
+        return NextResponse.json({ error: "No se pudo actualizar el nombre: " + updateErr.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, username: cleanName });
+    }
+
     if (action === "comment_chapter") {
       const {
         chapterId,
+        userId,
         authorName,
         avatarKey,
         content,
-        readerXp,
-        chaptersRead,
         frameId,
         nameColorId,
         customTitleId,
         isSpoiler,
       } = body;
+
+      if (!userId) {
+        return NextResponse.json({ error: "Debes iniciar sesión para comentar en los capítulos." }, { status: 401 });
+      }
       if (!chapterId || !content?.trim()) {
         return NextResponse.json({ error: "Comentario vacío" }, { status: 400 });
       }
+
+      // Validar perfil y XP legítimo desde la base de datos
+      const { data: verifiedUser } = await supabase
+        .from("profiles")
+        .select("username, avatar_url, reader_progress")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!verifiedUser) {
+        return NextResponse.json({ error: "Cuenta no encontrada. Inicia sesión nuevamente." }, { status: 401 });
+      }
+
+      const verifiedXp = calculateVerifiedXp(verifiedUser.reader_progress);
+      const readChaptersCount = Array.isArray(verifiedUser.reader_progress?.readChapters)
+        ? verifiedUser.reader_progress.readChapters.length
+        : 1;
+      const finalAuthorName = verifiedUser.username || (authorName ? String(authorName).slice(0, 28) : "Cazador");
+      const finalAvatar = verifiedUser.avatar_url || avatarKey || "hunter";
 
       const shardId = getSocialShardId(chapterId);
       const { data: existing } = await supabase
@@ -241,10 +334,10 @@ export async function POST(req: NextRequest) {
 
       const newComment = {
         id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        authorName: (authorName || "Cazador").slice(0, 32),
-        avatarKey: avatarKey || "hunter",
-        readerXp: typeof readerXp === "number" ? Math.max(0, Math.floor(readerXp)) : 30,
-        chaptersRead: typeof chaptersRead === "number" ? Math.max(1, Math.floor(chaptersRead)) : 3,
+        authorName: finalAuthorName,
+        avatarKey: finalAvatar,
+        readerXp: verifiedXp,
+        chaptersRead: readChaptersCount,
         frameId: frameId || undefined,
         nameColorId: nameColorId || undefined,
         customTitleId: customTitleId || undefined,
@@ -263,10 +356,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "create_public_list") {
-      const { title, description, authorName, avatarKey, readerXp, isAdult, manhwaIds } = body;
+      const { userId, title, description, avatarKey, isAdult, manhwaIds } = body;
+
+      if (!userId) {
+        return NextResponse.json({ error: "Debes iniciar sesión para crear una lista pública." }, { status: 401 });
+      }
       if (!title?.trim() || !Array.isArray(manhwaIds) || manhwaIds.length === 0) {
         return NextResponse.json({ error: "Selecciona al menos un manhwa y escribe un título" }, { status: 400 });
       }
+
+      // Validar usuario real en DB
+      const { data: verifiedUser } = await supabase
+        .from("profiles")
+        .select("username, avatar_url, reader_progress")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!verifiedUser) {
+        return NextResponse.json({ error: "Cuenta no encontrada. Inicia sesión nuevamente." }, { status: 401 });
+      }
+
+      const verifiedXp = calculateVerifiedXp(verifiedUser.reader_progress);
+      const finalAuthorName = verifiedUser.username || "Cazador";
+      const finalAvatar = verifiedUser.avatar_url || avatarKey || "hunter";
 
       const { data: existing } = await supabase
         .from("site_config")
@@ -282,9 +394,9 @@ export async function POST(req: NextRequest) {
         id: `list_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         title: title.trim().slice(0, 75),
         description: (description || "Selección recomendada para la comunidad de Nekutoon.").trim().slice(0, 220),
-        authorName: (authorName || "Cazador").trim().slice(0, 28),
-        avatarKey: avatarKey || "hunter",
-        readerXp: typeof readerXp === "number" ? Math.max(50, readerXp) : 180,
+        authorName: finalAuthorName,
+        avatarKey: finalAvatar,
+        readerXp: verifiedXp,
         isAdult: Boolean(isAdult),
         manhwaIds: manhwaIds.slice(0, 100).map(String),
         views: 1,
@@ -332,9 +444,8 @@ export async function POST(req: NextRequest) {
 
     if (action === "post_global_wall") {
       const {
-        authorName,
+        userId,
         avatarKey,
-        readerXp,
         frameId,
         nameColorId,
         customTitleId,
@@ -345,9 +456,28 @@ export async function POST(req: NextRequest) {
         attachedManhwaCover,
         content,
       } = body;
+
+      if (!userId) {
+        return NextResponse.json({ error: "Debes iniciar sesión para publicar en el muro." }, { status: 401 });
+      }
       if (!content?.trim()) {
         return NextResponse.json({ error: "Escribe un mensaje" }, { status: 400 });
       }
+
+      // Validar usuario real en DB
+      const { data: verifiedUser } = await supabase
+        .from("profiles")
+        .select("username, avatar_url, reader_progress")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!verifiedUser) {
+        return NextResponse.json({ error: "Cuenta no encontrada. Inicia sesión nuevamente." }, { status: 401 });
+      }
+
+      const verifiedXp = calculateVerifiedXp(verifiedUser.reader_progress);
+      const finalAuthorName = verifiedUser.username || "Cazador";
+      const finalAvatar = verifiedUser.avatar_url || avatarKey || "hunter";
 
       const { data: existing } = await supabase
         .from("site_config")
@@ -361,9 +491,9 @@ export async function POST(req: NextRequest) {
 
       const newPost = {
         id: `wall_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        authorName: (authorName || "Cazador").trim().slice(0, 28),
-        avatarKey: avatarKey || "hunter",
-        readerXp: typeof readerXp === "number" ? Math.max(10, readerXp) : 120,
+        authorName: finalAuthorName,
+        avatarKey: finalAvatar,
+        readerXp: verifiedXp,
         frameId: frameId || undefined,
         nameColorId: nameColorId || undefined,
         customTitleId: customTitleId || undefined,

@@ -39,6 +39,8 @@ interface PublicListsSectionProps {
   manhwas: any[];
   isAdultConfirmed: boolean;
   onRequireAdultConfirm: (onUnlocked: () => void) => void;
+  user?: any;
+  onRequireAuth?: () => void;
   userName?: string;
   userAvatar?: string;
 }
@@ -47,6 +49,8 @@ export default function PublicListsSection({
   manhwas,
   isAdultConfirmed,
   onRequireAdultConfirm,
+  user,
+  onRequireAuth,
   userName = "Cazador",
   userAvatar = "hunter",
 }: PublicListsSectionProps) {
@@ -256,6 +260,10 @@ export default function PublicListsSection({
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
     if (!newTitle.trim() || selectedIds.length === 0) return;
     setSubmitting(true);
 
@@ -266,11 +274,10 @@ export default function PublicListsSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "create_public_list",
+          userId: user.id,
           title: newTitle.trim(),
           description: newDesc.trim(),
-          authorName: newAuthor.trim() || "Cazador",
           avatarKey: userAvatar || "hunter",
-          readerXp: stats.xp,
           isAdult: newIsAdult,
           manhwaIds: selectedIds,
         }),
@@ -321,7 +328,13 @@ export default function PublicListsSection({
 
         <button
           type="button"
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            if (!user) {
+              if (onRequireAuth) onRequireAuth();
+              return;
+            }
+            setShowCreateModal(true);
+          }}
           className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-[#a855f7]/25 border border-white/12 hover:border-[#a855f7]/50 text-white text-xs font-bold inline-flex items-center gap-2 self-start sm:self-auto transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4 text-[#c084fc]" />

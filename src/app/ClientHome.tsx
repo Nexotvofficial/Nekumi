@@ -1619,6 +1619,8 @@ export default function Home({
                 setPendingCategory("+18");
                 setShowAdultModal(true);
               }}
+              user={user}
+              onRequireAuth={() => setIsAuthOpen(true)}
               userName={userProfile?.username || user?.email?.split("@")[0] || "Cazador"}
               userAvatar={userProfile?.avatar_url || "hunter"}
             />
@@ -1878,6 +1880,8 @@ export default function Home({
               stats={readerStats}
               onStatsChange={(next) => setReaderStats(next)}
               onOpenShop={() => setShowGuildShop(true)}
+              user={user}
+              onRequireAuth={() => setIsAuthOpen(true)}
               userName={userProfile?.username || user?.email?.split("@")[0] || "Cazador"}
               userAvatar={userProfile?.avatar_url || "hunter"}
             />

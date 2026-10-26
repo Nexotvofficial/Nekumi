@@ -2,7 +2,8 @@
 -- Pegar en Supabase -> SQL Editor -> Run
 
 alter table public.profiles
-  add column if not exists reader_progress jsonb not null default '{}'::jsonb;
+  add column if not exists reader_progress jsonb not null default '{}'::jsonb,
+  add column if not exists username_changed boolean not null default false;
 
 -- Asegurar que cada usuario solo pueda leer/editar SU propio perfil
 alter table public.profiles enable row level security;
