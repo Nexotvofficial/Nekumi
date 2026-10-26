@@ -22,6 +22,7 @@ import {
   CloudRain,
   Swords,
   List,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { getAvatarSvg } from "@/lib/avatars";
