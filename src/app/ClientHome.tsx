@@ -89,10 +89,12 @@ export default function Home({
   initialManhwas = [],
   initialTrending = [],
   initialReviews = [],
+  initialChapters = [],
 }: {
   initialManhwas?: Manhwa[];
   initialTrending?: Manhwa[];
   initialReviews?: any[];
+  initialChapters?: any[];
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
@@ -100,7 +102,7 @@ export default function Home({
   const [showAdultModal, setShowAdultModal] = useState(false);
   const [pendingCategory, setPendingCategory] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [realNotifications, setRealNotifications] = useState<any[]>([]);
+  const [realNotifications, setRealNotifications] = useState<any[]>(initialChapters.slice(0, 5));
   const [notificationsRead, setNotificationsRead] = useState(true);
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -125,7 +127,7 @@ export default function Home({
   const [sortBy, setSortBy] = useState<"recent" | "top" | "az" | "completed" | "ongoing">("recent");
   const [rankTab, setRankTab] = useState<"top" | "ongoing" | "completed">("top");
   const [activityTab, setActivityTab] = useState<"updates" | "history">("updates");
-  const [recentChaptersRaw, setRecentChaptersRaw] = useState<any[]>([]);
+  const [recentChaptersRaw, setRecentChaptersRaw] = useState<any[]>(initialChapters);
   const [visibleCount, setVisibleCount] = useState<number>(36);
   const [readerStats, setReaderStats] = useState<ReaderStats | null>(null);
   const [showGuildShop, setShowGuildShop] = useState<boolean>(false);
@@ -171,75 +173,68 @@ export default function Home({
       }
     } catch {}
 
-    // Always fetch full catalog from Supabase so all manhwas are present and up to date
-    supabase
-      .from("manhwas")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1000)
-      .then(({ data }) => {
-        if (data && data.length > 0) setManhwas(data);
-        setIsLoading(false);
-      });
+    // Fallback client fetch ONLY if ISR initial props came back empty
+    if (initialManhwas.length === 0) {
+      supabase
+        .from("manhwas")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1000)
+        .then(({ data }) => {
+          if (data && data.length > 0) setManhwas(data);
+          setIsLoading(false);
+        });
+    }
 
-    supabase
-      .from("manhwas")
-      .select("*")
-      .order("score", { ascending: false })
-      .limit(6)
-      .then(({ data }) => {
-        if (data && data.length > 0) setTrending(data);
-      });
+    if (initialTrending.length === 0) {
+      supabase
+        .from("manhwas")
+        .select("*")
+        .order("score", { ascending: false })
+        .limit(6)
+        .then(({ data }) => {
+          if (data && data.length > 0) setTrending(data);
+        });
+    }
 
-    supabase
-      .from("reviews")
-      .select("*, manhwas(title, cover_url)")
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .then(({ data }) => {
-        if (data) setRecentReviews(data);
-      });
+    if (initialReviews.length === 0) {
+      supabase
+        .from("reviews")
+        .select("*, manhwas(title, cover_url)")
+        .order("created_at", { ascending: false })
+        .limit(5)
+        .then(({ data }) => {
+          if (data) setRecentReviews(data);
+        });
+    }
 
-    // Fetch notifications and latest chapter releases (Olympus style)
-    const fetchInitialNotifications = async () => {
-      const { data } = await supabase
+    if (initialChapters.length > 0) {
+      try {
+        const lastReadId = localStorage.getItem("lastReadNotification");
+        setNotificationsRead(lastReadId === initialChapters[0].id);
+      } catch {
+        setNotificationsRead(false);
+      }
+    } else {
+      supabase
         .from("chapters")
         .select("id, manhwa_id, chapter_number, created_at, manhwa:manhwas(id, title)")
         .not("manhwa_id", "is", null)
         .order("created_at", { ascending: false })
-        .limit(500);
-
-      if (data && data.length > 0) {
-        setRecentChaptersRaw(data);
-        setRealNotifications(data.slice(0, 5));
-        try {
-          const lastReadId = localStorage.getItem("lastReadNotification");
-          setNotificationsRead(lastReadId === data[0].id);
-        } catch {
-          setNotificationsRead(false);
-        }
-      }
-    };
-    fetchInitialNotifications();
-
-    const channel = supabase
-      .channel("realtime-chapters")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chapters" }, async (payload) => {
-        const { manhwa_id, chapter_number, id, created_at } = payload.new;
-        const { data: mData } = await supabase.from("manhwas").select("title").eq("id", manhwa_id).single();
-        const title = mData?.title || "Un manhwa";
-
-        const newNotif = {
-          id,
-          chapter_number,
-          created_at,
-          manhwa: { id: manhwa_id, title },
-        };
-
-        setRealNotifications((prev) => [newNotif, ...prev].slice(0, 5));
-        setNotificationsRead(false);
-      })
-      .subscribe();
+        .limit(120)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setRecentChaptersRaw(data);
+            setRealNotifications(data.slice(0, 5));
+            try {
+              const lastReadId = localStorage.getItem("lastReadNotification");
+              setNotificationsRead(lastReadId === data[0].id);
+            } catch {
+              setNotificationsRead(false);
+            }
+          }
+        });
+    }
 
     // Deduplicate visit tracking per browser session
     try {
@@ -284,7 +279,6 @@ export default function Home({
 
     return () => {
       subscription.unsubscribe();
-      supabase.removeChannel(channel);
     };
   }, []);
 

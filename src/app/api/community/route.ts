@@ -90,7 +90,10 @@ export async function GET(req: NextRequest) {
     const lists = Array.isArray((row?.category_images as any)?.lists)
       ? (row?.category_images as any).lists
       : [];
-    return NextResponse.json({ lists });
+    return NextResponse.json(
+      { lists },
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } }
+    );
   }
 
   if (type === "global_wall") {
@@ -103,7 +106,10 @@ export async function GET(req: NextRequest) {
     const posts = Array.isArray((row?.category_images as any)?.posts)
       ? (row?.category_images as any).posts
       : [];
-    return NextResponse.json({ posts });
+    return NextResponse.json(
+      { posts },
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } }
+    );
   }
 
   return NextResponse.json({ ok: true });
