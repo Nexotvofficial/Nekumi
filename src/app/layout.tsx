@@ -20,20 +20,20 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Nekumi — Leer Manhwas, Webtoons y Mangas Online",
-  description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekumi. Actualizaciones diarias con la mejor calidad y velocidad en español.",
-  keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekumi", "Nekutoon", "manga gratis", "acción", "romance", "fantasía", "isekai"],
+  title: "Nekutoon — Leer Manhwas, Webtoons y Mangas Online",
+  description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekutoon. Actualizaciones diarias con la mejor calidad y velocidad en español.",
+  keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekutoon", "manga gratis", "acción", "romance", "fantasía", "isekai"],
   openGraph: {
-    title: "Nekumi — El Mejor Catálogo de Manhwas y Webtoons",
+    title: "Nekutoon — El Mejor Catálogo de Manhwas y Webtoons",
     description: "Lee tus manhwas y webtoons favoritos en la plataforma más rápida y limpia de internet.",
     url: "https://www.nekutoon.com",
-    siteName: "Nekumi",
+    siteName: "Nekutoon",
     locale: "es_LA",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nekumi — Leer Manhwas y Webtoons",
+    title: "Nekutoon — Leer Manhwas y Webtoons",
     description: "Descubre los mejores manhwas actualizados a diario.",
   },
   robots: {

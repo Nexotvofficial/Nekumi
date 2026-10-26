@@ -409,8 +409,8 @@ export default function ClientPage({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${manhwa?.title || "Manhwa"} — Nekumi`,
-          text: `Lee ${manhwa?.title || "este manhwa"} en español en Nekumi`,
+          title: `${manhwa?.title || "Manhwa"} — Nekutoon`,
+          text: `Lee ${manhwa?.title || "este manhwa"} en español en Nekutoon`,
           url: shareUrl,
         });
         return;
@@ -458,14 +458,58 @@ export default function ClientPage({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c]/80 to-transparent" />
 
-        <div className="absolute top-6 left-4 sm:left-8 z-10">
-          <Link
-            href="/"
-            className="icon-btn bg-black/50 hover:bg-black/70 text-white backdrop-blur-md rounded-full w-11 h-11 flex items-center justify-center transition-colors border border-white/10"
-            aria-label="Volver al catálogo"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+        <div className="absolute top-0 inset-x-0 z-20 bg-gradient-to-b from-[#07070b]/90 via-[#07070b]/45 to-transparent">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/55 hover:bg-black/75 text-white backdrop-blur-md transition-all border border-white/12 text-xs font-bold tracking-wide"
+              aria-label="Volver al catálogo"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#c084fc]" />
+              <span>Volver al Catálogo</span>
+            </Link>
+
+            <Link href="/" className="brand" aria-label="Nekutoon Inicio">
+              <svg className="brand-mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="nkDetailBg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#1b1332" />
+                    <stop offset="55%" stopColor="#0d0918" />
+                    <stop offset="100%" stopColor="#06040b" />
+                  </linearGradient>
+                  <linearGradient id="nkDetailRim" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#e879f9" stopOpacity="0.85" />
+                    <stop offset="50%" stopColor="#9333ea" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#ec4899" stopOpacity="0.8" />
+                  </linearGradient>
+                  <linearGradient id="nkDetailLeft" x1="12" y1="10" x2="19" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#f5d0fe" />
+                    <stop offset="45%" stopColor="#c084fc" />
+                    <stop offset="100%" stopColor="#6b21a8" />
+                  </linearGradient>
+                  <linearGradient id="nkDetailRight" x1="29" y1="10" x2="36" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#f472b6" />
+                    <stop offset="55%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#4c1d95" />
+                  </linearGradient>
+                  <linearGradient id="nkDetailSlash" x1="12" y1="10" x2="36" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#ffffff" />
+                    <stop offset="28%" stopColor="#e879f9" />
+                    <stop offset="72%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#ec4899" />
+                  </linearGradient>
+                </defs>
+                <rect x="2" y="2" width="44" height="44" rx="13.5" fill="url(#nkDetailBg)" stroke="url(#nkDetailRim)" strokeWidth="1.6" />
+                <path d="M12 12.5C12 11.3954 12.8954 10.5 14 10.5H19V35.5C19 36.6046 18.1046 37.5 17 37.5H12V12.5Z" fill="url(#nkDetailLeft)" />
+                <path d="M29 12.5C29 11.3954 29.8954 10.5 31 10.5H36V35.5C36 36.6046 35.1046 37.5 34 37.5H29V12.5Z" fill="url(#nkDetailRight)" />
+                <path d="M12 10.5H19.2L36 37.5H28.8L12 10.5Z" fill="url(#nkDetailSlash)" />
+                <path d="M19.2 10.5L36 37.5" stroke="#ffffff" strokeOpacity="0.65" strokeWidth="1" strokeLinecap="round" />
+              </svg>
+              <span className="brand-word">
+                Neku<span>toon</span>
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -871,7 +915,7 @@ export default function ClientPage({
             </form>
           ) : (
             <div className="glass rounded-[22px] p-8 text-center mb-12">
-              <p className="text-white/80 mb-3 text-sm">Inicia sesión en Nekumi para calificar y dejar tu reseña.</p>
+              <p className="text-white/80 mb-3 text-sm">Inicia sesión en Nekutoon para calificar y dejar tu reseña.</p>
               <Link href="/" className="btn btn-secondary text-xs">
                 Ir a Iniciar Sesión
               </Link>

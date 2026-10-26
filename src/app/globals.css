@@ -96,17 +96,17 @@ a {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   flex: none;
   font-weight: 800;
-  letter-spacing: -.045em;
+  letter-spacing: -.03em;
   font-size: 20px;
 }
 
 .brand-mark {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 5px 14px rgba(168, 85, 247, .32));
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 6px 18px rgba(168, 85, 247, .38));
 }
 
 .desktop-nav {
@@ -361,9 +361,9 @@ a {
 .hero-title {
   margin: 0;
   max-width: 560px;
-  font-size: clamp(42px, 4.3vw, 72px);
-  line-height: .92;
-  letter-spacing: -.065em;
+  font-size: clamp(28px, 3.1vw, 48px);
+  line-height: 1.08;
+  letter-spacing: -.03em;
   font-weight: 900;
 }
 

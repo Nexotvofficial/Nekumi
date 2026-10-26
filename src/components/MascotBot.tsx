@@ -128,7 +128,7 @@ export default function MascotBot() {
         window.scrollTo({ top: 0, behavior: "smooth" });
         response = "Volviendo al inicio de la página.";
       } else if (c.includes("hola") || c.includes("neku")) {
-        response = "¡Hola! Soy Neku AI, tu asistente de lectura en Nekumi.";
+        response = "¡Hola! Soy Neku AI, tu asistente de lectura en Nekutoon.";
       }
 
       setChatLog((prev) => [...prev, { role: "neku" as const, text: response }]);
@@ -164,7 +164,7 @@ export default function MascotBot() {
         >
           <div className="bg-green-700 text-white p-2 font-bold flex items-center gap-4 text-sm">
             <span>Reporte_Mensual_Final_v3.xlsx - Excel</span>
-            <span className="font-normal text-xs opacity-80">(Haz clic en cualquier lugar para volver a Nekumi)</span>
+            <span className="font-normal text-xs opacity-80">(Haz clic en cualquier lugar para volver a Nekutoon)</span>
           </div>
           <div className="bg-gray-100 border-b border-gray-300 p-2 flex gap-4 text-xs">
             <span>Archivo</span>
@@ -249,23 +249,23 @@ export default function MascotBot() {
             <button
               type="button"
               onClick={() => processCommand(isAutoScrolling ? "detener" : "auto scroll")}
-              className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#a855f7]/20 text-[#d8b4fe] border border-white/10 transition-colors"
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#a855f7]/20 text-[#d8b4fe] border border-white/10 transition-colors"
             >
-              {isAutoScrolling ? "⏸ Pausar Scroll" : "▶ Auto Scroll"}
+              {isAutoScrolling ? "Pausar Scroll" : "Auto Scroll"}
             </button>
             <button
               type="button"
               onClick={() => processCommand("modo cine")}
-              className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#a855f7]/20 text-[#d8b4fe] border border-white/10 transition-colors"
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#a855f7]/20 text-[#d8b4fe] border border-white/10 transition-colors"
             >
-              🎬 Modo Cine
+              Modo Cine
             </button>
             <button
               type="button"
               onClick={() => processCommand("arriba")}
-              className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#a855f7]/20 text-[#d8b4fe] border border-white/10 transition-colors"
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#a855f7]/20 text-[#d8b4fe] border border-white/10 transition-colors"
             >
-              ↑ Subir
+              Ir arriba
             </button>
           </div>
 

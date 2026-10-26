@@ -72,24 +72,37 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
 
         <div className="text-center mb-8">
           <svg
-            className="w-10 h-10 mx-auto mb-4 filter drop-shadow-[0_5px_14px_rgba(168,85,247,0.32)]"
-            viewBox="0 0 44 44"
+            className="w-12 h-12 mx-auto mb-4 filter drop-shadow-[0_6px_18px_rgba(168,85,247,0.4)]"
+            viewBox="0 0 48 48"
             aria-hidden="true"
           >
             <defs>
-              <linearGradient id="lg-auth" x1="2" y1="3" x2="42" y2="42">
-                <stop stopColor="#7c3aed" />
-                <stop offset=".52" stopColor="#c026d3" />
-                <stop offset="1" stopColor="#f472b6" />
+              <linearGradient id="nk-auth-bg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#1a1033" />
+                <stop offset="100%" stopColor="#090711" />
+              </linearGradient>
+              <linearGradient id="nk-auth-rim" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#c084fc" stopOpacity="0.8" />
+                <stop offset="50%" stopColor="#a855f7" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#ec4899" stopOpacity="0.7" />
+              </linearGradient>
+              <linearGradient id="nk-auth-pillar" x1="0" y1="10" x2="0" y2="38" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#d8b4fe" />
+                <stop offset="100%" stopColor="#7c3aed" />
+              </linearGradient>
+              <linearGradient id="nk-auth-slash" x1="12" y1="10" x2="36" y2="38" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#f472b6" />
+                <stop offset="50%" stopColor="#d946ef" />
+                <stop offset="100%" stopColor="#8b5cf6" />
               </linearGradient>
             </defs>
-            <path
-              d="M8 32.5V11.7c0-2.2 2.7-3.2 4.2-1.6L28 27.2V10.9c0-1.6 1.3-2.9 2.9-2.9h2.2c1.6 0 2.9 1.3 2.9 2.9v21c0 2.1-2.6 3.2-4.1 1.7L16 16.4v16.1c0 1.9-1.5 3.5-3.5 3.5h-1C9.6 36 8 34.4 8 32.5Z"
-              fill="url(#lg-auth)"
-            />
+            <rect x="3" y="3" width="42" height="42" rx="13" fill="url(#nk-auth-bg)" stroke="url(#nk-auth-rim)" strokeWidth="1.5" />
+            <path d="M12 13C12 11.6 13.1 10.5 14.5 10.5H17.2V37.5H14.5C13.1 37.5 12 36.4 12 35V13Z" fill="url(#nk-auth-pillar)" />
+            <path d="M30.8 10.5H33.5C34.9 10.5 36 11.6 36 13V35C36 36.4 34.9 37.5 33.5 37.5H30.8V10.5Z" fill="url(#nk-auth-pillar)" />
+            <path d="M13 10.5H19.4L35 37.5H28.6L13 10.5Z" fill="url(#nk-auth-slash)" />
           </svg>
           <h2 className="text-2xl font-black tracking-tight mb-2">
-            {isLogin ? "Bienvenido de vuelta" : "Únete a Nekumi"}
+            {isLogin ? "Bienvenido de vuelta" : "Únete a Nekutoon"}
           </h2>
           <p className="text-[#a7a7b1] text-sm">
             {isLogin ? "Inicia sesión para continuar leyendo" : "Crea una cuenta para sincronizar tus favoritos"}
@@ -112,7 +125,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
                     onClick={() => setShowAvatarPicker(!showAvatarPicker)}
                     className="text-sm font-semibold text-[#c084fc] hover:text-white transition-colors"
                   >
-                    {showAvatarPicker ? "Cerrar selección" : "Cambiar avatar →"}
+                    {showAvatarPicker ? "Cerrar selección" : "Cambiar avatar"}
                   </button>
                 </div>
               </div>

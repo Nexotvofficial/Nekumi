@@ -523,40 +523,86 @@ export default function Home({
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               className="brand group"
-              aria-label="Nekumi, inicio"
+              aria-label="Nekutoon, inicio"
             >
               <svg
-                className="brand-mark w-9 h-9 drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-transform group-hover:scale-110 duration-300"
-                viewBox="0 0 44 44"
+                className="brand-mark w-10 h-10 drop-shadow-[0_6px_20px_rgba(168,85,247,0.45)] transition-transform group-hover:scale-105 duration-300"
+                viewBox="0 0 48 48"
                 aria-hidden="true"
               >
                 <defs>
-                  <linearGradient id="lg-epic-header" x1="0" y1="0" x2="44" y2="44">
-                    <stop offset="0%" stopColor="#c084fc" />
-                    <stop offset="50%" stopColor="#a855f7" />
-                    <stop offset="100%" stopColor="#ec4899" />
+                  <linearGradient id="nk-bg-hdr" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#1d1138" />
+                    <stop offset="55%" stopColor="#0f091d" />
+                    <stop offset="100%" stopColor="#07050e" />
                   </linearGradient>
-                  <linearGradient id="lg-epic-header-2" x1="44" y1="0" x2="0" y2="44">
+                  <linearGradient id="nk-rim-hdr" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#e879f9" stopOpacity="0.9" />
+                    <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#f472b6" stopOpacity="0.8" />
+                  </linearGradient>
+                  <linearGradient id="nk-left-hdr" x1="14" y1="10" x2="14" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#e9d5ff" />
+                    <stop offset="45%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#5b21b6" />
+                  </linearGradient>
+                  <linearGradient id="nk-right-hdr" x1="34" y1="10" x2="34" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#f5d0fe" />
+                    <stop offset="55%" stopColor="#c084fc" />
+                    <stop offset="100%" stopColor="#6d28d9" />
+                  </linearGradient>
+                  <linearGradient id="nk-slash-hdr" x1="12" y1="10" x2="36" y2="38" gradientUnits="userSpaceOnUse">
                     <stop offset="0%" stopColor="#f472b6" />
-                    <stop offset="100%" stopColor="#d946ef" />
+                    <stop offset="48%" stopColor="#d946ef" />
+                    <stop offset="100%" stopColor="#7c3aed" />
                   </linearGradient>
                 </defs>
+                {/* Escudo facetado Obsidian con corona sutil */}
+                <rect
+                  x="2.5"
+                  y="2.5"
+                  width="43"
+                  height="43"
+                  rx="13.5"
+                  fill="url(#nk-bg-hdr)"
+                  stroke="url(#nk-rim-hdr)"
+                  strokeWidth="1.5"
+                />
+                <rect
+                  x="5.5"
+                  y="5.5"
+                  width="37"
+                  height="37"
+                  rx="10.5"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth="1"
+                />
+                {/* Pilares verticales biselados de la N */}
                 <path
-                  d="M8 32.5V11.7c0-2.2 2.7-3.2 4.2-1.6L28 27.2V10.9c0-1.6 1.3-2.9 2.9-2.9h2.2c1.6 0 2.9 1.3 2.9 2.9v21c0 2.1-2.6 3.2-4.1 1.7L16 16.4v16.1c0 1.9-1.5 3.5-3.5 3.5h-1C9.6 36 8 34.4 8 32.5Z"
-                  fill="url(#lg-epic-header)"
+                  d="M11.5 13C11.5 11.6 12.6 10.5 14 10.5H17.4V37.5H14C12.6 37.5 11.5 36.4 11.5 35V13Z"
+                  fill="url(#nk-left-hdr)"
                 />
                 <path
-                  d="M14.5 31V15.8L28.5 31"
-                  fill="none"
-                  stroke="url(#lg-epic-header-2)"
-                  strokeWidth="2.5"
+                  d="M30.6 10.5H34C35.4 10.5 36.5 11.6 36.5 13V35C36.5 36.4 35.4 37.5 34 37.5H30.6V10.5Z"
+                  fill="url(#nk-right-hdr)"
+                />
+                {/* Sombra profunda bajo la cinta diagonal */}
+                <path d="M12.5 12.2H19.8L35.8 37.5H28.5L12.5 12.2Z" fill="rgba(0,0,0,0.55)" />
+                {/* Cinta diagonal 3D principal */}
+                <path d="M12 10.5H19.2L36 37.5H28.8L12 10.5Z" fill="url(#nk-slash-hdr)" />
+                {/* Brillo especular superior en la diagonal */}
+                <path
+                  d="M13.2 11.2L29.3 36.8"
+                  stroke="rgba(255,255,255,0.5)"
+                  strokeWidth="1.1"
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="brand-word tracking-[0.02em] text-[24px] font-black uppercase">
+              <span className="brand-word tracking-[-0.03em] text-[23px] font-black uppercase flex items-center">
                 <span className="text-white">Neku</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">
-                  mi
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c084fc] via-[#e879f9] to-[#f472b6] drop-shadow-[0_2px_14px_rgba(236,72,153,0.45)]">
+                  toon
                 </span>
               </span>
             </a>
@@ -1080,7 +1126,7 @@ export default function Home({
                           {Number(hero.score) > 0 ? Number(hero.score).toFixed(1) : "Destacado"}
                         </span>
                         <span className="meta-separator"></span>
-                        <span>Catálogo Oficial Nekumi</span>
+                        <span>Catálogo Oficial Nekutoon</span>
                       </div>
                       <p className="hero-copy line-clamp-3">{hero.description}</p>
                       <div className="hero-actions">
@@ -1116,19 +1162,52 @@ export default function Home({
                   );
                 })}
 
+                {/* Selector interactivo de mini-pósters + flechas en el Hero (Estilo Olympus / Asura) */}
                 {displayHeroes.length > 1 && (
-                  <div className="slider-dots z-20" role="tablist" aria-label="Obras destacadas">
-                    {displayHeroes.map((hero, idx) => (
+                  <div className="absolute right-5 bottom-5 z-20 flex items-center gap-3">
+                    <div className="hidden md:flex items-center gap-2 bg-black/55 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10">
+                      {displayHeroes.map((hero, idx) => (
+                        <button
+                          key={`thumb-${hero.id}`}
+                          type="button"
+                          onClick={() => setCurrentHeroIndex(idx)}
+                          aria-label={`Ver ${hero.title}`}
+                          className={`relative w-10 h-14 rounded-xl overflow-hidden transition-all cursor-pointer ${
+                            idx === currentHeroIndex
+                              ? "ring-2 ring-[#c084fc] scale-105 opacity-100 shadow-[0_0_15px_rgba(192,132,252,0.5)]"
+                              : "opacity-45 hover:opacity-80"
+                          }`}
+                        >
+                          <img
+                            referrerPolicy="no-referrer"
+                            src={hero.cover_url}
+                            alt={hero.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
                       <button
-                        key={`dot-${hero.id}`}
                         type="button"
-                        role="tab"
-                        aria-selected={idx === currentHeroIndex}
-                        aria-label={`Ver ${hero.title}`}
-                        className={idx === currentHeroIndex ? "active" : ""}
-                        onClick={() => setCurrentHeroIndex(idx)}
-                      />
-                    ))}
+                        aria-label="Destacado anterior"
+                        onClick={() =>
+                          setCurrentHeroIndex((prev) => (prev - 1 + displayHeroes.length) % displayHeroes.length)
+                        }
+                        className="w-9 h-9 rounded-full bg-black/55 hover:bg-[#a855f7]/35 border border-white/15 text-white flex items-center justify-center backdrop-blur-md transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Siguiente destacado"
+                        onClick={() => setCurrentHeroIndex((prev) => (prev + 1) % displayHeroes.length)}
+                        className="w-9 h-9 rounded-full bg-black/55 hover:bg-[#a855f7]/35 border border-white/15 text-white flex items-center justify-center backdrop-blur-md transition-colors cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </section>
@@ -1430,7 +1509,7 @@ export default function Home({
                             {/* Hover Synopsis & Quick Chapter Preview (Olympus / Asura style) */}
                             <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pt-10 bg-gradient-to-t from-black/95 via-black/75 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[3] flex flex-col justify-end">
                               <p className="text-[11px] text-white/85 line-clamp-3 leading-snug mb-2">
-                                {item.description || "Explora esta historia en español en Nekumi."}
+                                {item.description || "Explora esta historia en español en Nekutoon."}
                               </p>
                               <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-[#c084fc]">
                                 <BookOpen className="w-3 h-3" /> Leer ahora <ChevronRight className="w-3 h-3" />
@@ -1505,7 +1584,7 @@ export default function Home({
             <section className="side-panel glass" aria-labelledby="trendingTitle">
               <div className="side-header">
                 <h2 id="trendingTitle" className="side-title">
-                  Ranking Nekumi
+                  Ranking Nekutoon
                 </h2>
                 <span className="side-title-icon">
                   <Flame />
@@ -1705,7 +1784,7 @@ export default function Home({
             <span className="newsletter-icon">
               <Mail />
             </span>
-            <h2 id="newsletterTitle">Comunidad Nekumi</h2>
+            <h2 id="newsletterTitle">Comunidad Nekutoon</h2>
             <p>
               Crea tu cuenta gratuita para sincronizar tus manhwas favoritos en la nube y calificar tus historias
               preferidas.
@@ -1752,40 +1831,81 @@ export default function Home({
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               className="brand group"
-              aria-label="Nekumi, inicio"
+              aria-label="Nekutoon, inicio"
             >
               <svg
-                className="brand-mark w-9 h-9 drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-transform group-hover:scale-110 duration-300"
-                viewBox="0 0 44 44"
+                className="brand-mark w-10 h-10 drop-shadow-[0_6px_20px_rgba(168,85,247,0.45)] transition-transform group-hover:scale-105 duration-300"
+                viewBox="0 0 48 48"
                 aria-hidden="true"
               >
                 <defs>
-                  <linearGradient id="lg-epic-footer" x1="0" y1="0" x2="44" y2="44">
-                    <stop offset="0%" stopColor="#c084fc" />
-                    <stop offset="50%" stopColor="#a855f7" />
-                    <stop offset="100%" stopColor="#ec4899" />
+                  <linearGradient id="nk-bg-ftr" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#1d1138" />
+                    <stop offset="55%" stopColor="#0f091d" />
+                    <stop offset="100%" stopColor="#07050e" />
                   </linearGradient>
-                  <linearGradient id="lg-epic-footer-2" x1="44" y1="0" x2="0" y2="44">
+                  <linearGradient id="nk-rim-ftr" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#e879f9" stopOpacity="0.9" />
+                    <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#f472b6" stopOpacity="0.8" />
+                  </linearGradient>
+                  <linearGradient id="nk-left-ftr" x1="14" y1="10" x2="14" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#e9d5ff" />
+                    <stop offset="45%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#5b21b6" />
+                  </linearGradient>
+                  <linearGradient id="nk-right-ftr" x1="34" y1="10" x2="34" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#f5d0fe" />
+                    <stop offset="55%" stopColor="#c084fc" />
+                    <stop offset="100%" stopColor="#6d28d9" />
+                  </linearGradient>
+                  <linearGradient id="nk-slash-ftr" x1="12" y1="10" x2="36" y2="38" gradientUnits="userSpaceOnUse">
                     <stop offset="0%" stopColor="#f472b6" />
-                    <stop offset="100%" stopColor="#d946ef" />
+                    <stop offset="48%" stopColor="#d946ef" />
+                    <stop offset="100%" stopColor="#7c3aed" />
                   </linearGradient>
                 </defs>
-                <path
-                  d="M8 32.5V11.7c0-2.2 2.7-3.2 4.2-1.6L28 27.2V10.9c0-1.6 1.3-2.9 2.9-2.9h2.2c1.6 0 2.9 1.3 2.9 2.9v21c0 2.1-2.6 3.2-4.1 1.7L16 16.4v16.1c0 1.9-1.5 3.5-3.5 3.5h-1C9.6 36 8 34.4 8 32.5Z"
-                  fill="url(#lg-epic-footer)"
+                <rect
+                  x="2.5"
+                  y="2.5"
+                  width="43"
+                  height="43"
+                  rx="13.5"
+                  fill="url(#nk-bg-ftr)"
+                  stroke="url(#nk-rim-ftr)"
+                  strokeWidth="1.5"
+                />
+                <rect
+                  x="5.5"
+                  y="5.5"
+                  width="37"
+                  height="37"
+                  rx="10.5"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth="1"
                 />
                 <path
-                  d="M14.5 31V15.8L28.5 31"
-                  fill="none"
-                  stroke="url(#lg-epic-footer-2)"
-                  strokeWidth="2.5"
+                  d="M11.5 13C11.5 11.6 12.6 10.5 14 10.5H17.4V37.5H14C12.6 37.5 11.5 36.4 11.5 35V13Z"
+                  fill="url(#nk-left-ftr)"
+                />
+                <path
+                  d="M30.6 10.5H34C35.4 10.5 36.5 11.6 36.5 13V35C36.5 36.4 35.4 37.5 34 37.5H30.6V10.5Z"
+                  fill="url(#nk-right-ftr)"
+                />
+                <path d="M12.5 12.2H19.8L35.8 37.5H28.5L12.5 12.2Z" fill="rgba(0,0,0,0.55)" />
+                <path d="M12 10.5H19.2L36 37.5H28.8L12 10.5Z" fill="url(#nk-slash-ftr)" />
+                <path
+                  d="M13.2 11.2L29.3 36.8"
+                  stroke="rgba(255,255,255,0.5)"
+                  strokeWidth="1.1"
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="brand-word tracking-[0.02em] text-[24px] font-black uppercase">
+              <span className="brand-word tracking-[-0.03em] text-[23px] font-black uppercase flex items-center">
                 <span className="text-white">Neku</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#a855f7] to-[#ec4899] drop-shadow-[0_2px_12px_rgba(236,72,153,0.4)]">
-                  mi
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c084fc] via-[#e879f9] to-[#f472b6] drop-shadow-[0_2px_14px_rgba(236,72,153,0.45)]">
+                  toon
                 </span>
               </span>
             </a>
@@ -1925,7 +2045,7 @@ export default function Home({
           </div>
         </div>
         <div className="shell footer-bottom">
-          <span>© 2026 Nekumi. Todos los derechos reservados.</span>
+          <span>© 2026 Nekutoon. Todos los derechos reservados.</span>
           <div>
             <a
               href="#"

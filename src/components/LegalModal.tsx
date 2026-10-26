@@ -23,7 +23,7 @@ export function LegalModal({ isOpen, onClose, type }: LegalModalProps) {
   const content = {
     terminos: {
       title: "Términos de Servicio",
-      body: "Al utilizar Nekumi, aceptas nuestras políticas de comunidad. Nos reservamos el derecho de moderar reseñas o cuentas que infrinjan el respeto mutuo. Este es un espacio creado por y para apasionados del manhwa y webtoon.",
+      body: "Al utilizar Nekutoon, aceptas nuestras políticas de comunidad. Nos reservamos el derecho de moderar reseñas o cuentas que infrinjan el respeto mutuo. Este es un espacio creado por y para apasionados del manhwa y webtoon.",
     },
     privacidad: {
       title: "Política de Privacidad",
@@ -35,7 +35,7 @@ export function LegalModal({ isOpen, onClose, type }: LegalModalProps) {
     },
     derechos: {
       title: "Derechos de Autor",
-      body: "Nekumi es un índice y lector comunitario. Las obras listadas pertenecen a sus respectivos autores y estudios originales. Apoya siempre a los creadores en sus lanzamientos oficiales.",
+      body: "Nekutoon es un índice y lector comunitario. Las obras listadas pertenecen a sus respectivos autores y estudios originales. Apoya siempre a los creadores en sus lanzamientos oficiales.",
     },
   };
 

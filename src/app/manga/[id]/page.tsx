@@ -17,28 +17,28 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       .eq("id", id)
       .single();
 
-    if (!manhwa) return { title: "Obra no encontrada | Nekumi" };
+    if (!manhwa) return { title: "Obra no encontrada | Nekutoon" };
 
-    const safeDesc = (manhwa.description || `Lee ${manhwa.title} online en español con la mejor calidad en Nekumi.`).slice(0, 155);
+    const safeDesc = (manhwa.description || `Lee ${manhwa.title} online en español con la mejor calidad en Nekutoon.`).slice(0, 155);
     const images = manhwa.cover_url ? [manhwa.cover_url] : [];
 
     return {
-      title: `${manhwa.title} — Leer Online | Nekumi`,
+      title: `${manhwa.title} — Leer Online | Nekutoon`,
       description: safeDesc,
       openGraph: {
-        title: `${manhwa.title} — Leer Online | Nekumi`,
+        title: `${manhwa.title} — Leer Online | Nekutoon`,
         description: safeDesc,
         images,
       },
       twitter: {
         card: "summary_large_image",
-        title: `${manhwa.title} | Nekumi`,
+        title: `${manhwa.title} | Nekutoon`,
         description: safeDesc,
         images,
       },
     };
   } catch {
-    return { title: "Leer Online | Nekumi" };
+    return { title: "Leer Online | Nekutoon" };
   }
 }
 
