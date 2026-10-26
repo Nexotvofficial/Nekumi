@@ -14,6 +14,29 @@ const KEYS = {
   equipped: "nekutoon_equipped_cosmetics_v1",
 };
 
+export interface HistoryItem {
+  manhwaId: string;
+  manhwaTitle: string;
+  coverUrl: string;
+  chapterId: string;
+  chapterNumber: number | string;
+  updatedAt: number;
+}
+
+const HISTORY_KEY = "nekumi_reading_history";
+
+function readLastRead(): Record<string, { id: string; num: string; at?: number }> {
+  const out: Record<string, { id: string; num: string; at?: number }> = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith("nekumi_last_read_") || k.startsWith("nekumi_last_read_num_")) continue;
+    const mid = k.slice("nekumi_last_read_".length);
+    const id = localStorage.getItem(k) || "";
+    if (id) out[mid] = { id, num: localStorage.getItem(`nekumi_last_read_num_${mid}`) || "" };
+  }
+  return out;
+}
+
 export interface ReaderProgress {
   readChapters: string[];
   comments: number;
@@ -21,6 +44,8 @@ export interface ReaderProgress {
   spentCoins: number;
   ownedItems: string[];
   equipped: Record<string, string>;
+  history?: HistoryItem[];
+  lastRead?: Record<string, { id: string; num: string; at?: number }>;
   updatedAt?: string;
 }
 
@@ -40,6 +65,8 @@ function readLocal(): ReaderProgress {
     spentCoins: parseInt(localStorage.getItem(KEYS.spent) || "0", 10) || 0,
     ownedItems: safeJson<string[]>(localStorage.getItem(KEYS.owned), []),
     equipped: safeJson<Record<string, string>>(localStorage.getItem(KEYS.equipped), {}),
+    history: safeJson<HistoryItem[]>(localStorage.getItem(HISTORY_KEY), []),
+    lastRead: readLastRead(),
   };
 }
 
@@ -50,6 +77,24 @@ function writeLocal(p: ReaderProgress) {
   localStorage.setItem(KEYS.spent, String(p.spentCoins));
   localStorage.setItem(KEYS.owned, JSON.stringify(p.ownedItems));
   localStorage.setItem(KEYS.equipped, JSON.stringify(p.equipped));
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(p.history || []));
+  for (const [mid, v] of Object.entries(p.lastRead || {})) {
+    if (!v?.id) continue;
+    localStorage.setItem(`nekumi_last_read_${mid}`, v.id);
+    if (v.num) localStorage.setItem(`nekumi_last_read_num_${mid}`, String(v.num));
+  }
+}
+
+function mergeHistory(a: HistoryItem[] = [], b: HistoryItem[] = []): HistoryItem[] {
+  const byManhwa = new Map<string, HistoryItem>();
+  for (const it of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]) {
+    if (!it?.manhwaId) continue;
+    const prev = byManhwa.get(it.manhwaId);
+    if (!prev || (it.updatedAt || 0) > (prev.updatedAt || 0)) byManhwa.set(it.manhwaId, it);
+  }
+  return Array.from(byManhwa.values())
+    .sort((x, y) => (y.updatedAt || 0) - (x.updatedAt || 0))
+    .slice(0, 50);
 }
 
 function merge(a: ReaderProgress, b: Partial<ReaderProgress> | null): ReaderProgress {
@@ -62,6 +107,16 @@ function merge(a: ReaderProgress, b: Partial<ReaderProgress> | null): ReaderProg
     ownedItems: Array.from(new Set([...(a.ownedItems || []), ...(b.ownedItems || [])])),
     // Local device wins for currently equipped cosmetics (latest user choice)
     equipped: { ...(b.equipped || {}), ...(a.equipped || {}) },
+    history: mergeHistory(a.history, b.history),
+    lastRead: (() => {
+      const hist = mergeHistory(a.history, b.history);
+      const out = { ...(b.lastRead || {}), ...(a.lastRead || {}) };
+      // The most recent history entry decides the bookmark per manhwa
+      for (const h of hist) {
+        if (h.chapterId) out[h.manhwaId] = { id: String(h.chapterId), num: String(h.chapterNumber ?? "") };
+      }
+      return out;
+    })(),
   };
 }
 
@@ -102,4 +157,15 @@ export function syncReaderProgress(supabase: any, userId?: string | null): Promi
   })();
 
   return inFlight;
+}
+
+/** Remove a manhwa from the cloud history (so a deleted item doesn't come back on next merge). */
+export async function removeHistoryRemote(supabase: any, userId: string | null | undefined, manhwaId: string) {
+  if (!userId) return;
+  try {
+    const { data } = await supabase.from("profiles").select("reader_progress").eq("id", userId).maybeSingle();
+    const rp = (data?.reader_progress || {}) as ReaderProgress;
+    const history = (rp.history || []).filter((h) => h.manhwaId !== manhwaId);
+    await supabase.from("profiles").update({ reader_progress: { ...rp, history } }).eq("id", userId);
+  } catch {}
 }
