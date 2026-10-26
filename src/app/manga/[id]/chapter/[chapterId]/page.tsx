@@ -23,6 +23,7 @@ import {
   Swords,
   List,
   Lock,
+  Share2,
 } from "lucide-react";
 import Link from "next/link";
 import { getAvatarSvg } from "@/lib/avatars";
@@ -256,6 +257,25 @@ export default function ChapterReader() {
       }
     } catch {}
     setCommentSubmitting(false);
+  };
+
+  const handleShareChapter = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const title = `Capítulo ${chapter?.chapter_number || ""} en Nekutoon`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text: `¡Mira el capítulo ${chapter?.chapter_number || ""} en Nekutoon!`,
+          url,
+        });
+        return;
+      } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("¡Enlace del capítulo copiado al portapapeles!");
+    } catch {}
   };
 
   // Fetch chapter, pages, neighbors, and record reading history
@@ -676,6 +696,15 @@ export default function ChapterReader() {
           )}
           <button
             type="button"
+            onClick={handleShareChapter}
+            aria-label="Compartir capítulo"
+            title="Compartir capítulo con amigos"
+            className="icon-btn text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors hover:bg-white/10"
+          >
+            <Share2 className="w-5 h-5 text-[#c084fc]" />
+          </button>
+          <button
+            type="button"
             onClick={() => setShowSettings(!showSettings)}
             aria-label="Configuración de lectura"
             className={`icon-btn text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors ${
@@ -982,6 +1011,45 @@ export default function ChapterReader() {
                   Al día — Volver a la Obra
                 </Link>
               )}
+            </div>
+          </div>
+
+          {/* Barra viral para compartir el capítulo */}
+          <div className="glass rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 border border-white/10 text-center sm:text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#a855f7]/15 border border-[#a855f7]/30 flex items-center justify-center text-[#c084fc] flex-shrink-0">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-white">¿Te gustó el episodio {chapter.chapter_number}?</p>
+                <p className="text-xs text-white/50">Compártelo con amigos para apoyar la lectura en Nekutoon</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Lee el capítulo ${chapter.chapter_number} de este manhwa en Nekutoon gratis! https://www.nekutoon.com/manga/${manhwaId}/chapter/${chapterId}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-bold transition-all"
+              >
+                WhatsApp
+              </a>
+              <a
+                href={`https://t.me/share/url?url=${encodeURIComponent(`https://www.nekutoon.com/manga/${manhwaId}/chapter/${chapterId}`)}&text=${encodeURIComponent(`Lee el capítulo ${chapter.chapter_number} en Nekutoon`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/35 text-sky-300 text-xs font-bold transition-all"
+              >
+                Telegram
+              </a>
+              <button
+                type="button"
+                onClick={handleShareChapter}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Share2 className="w-3.5 h-3.5 text-[#c084fc]" />
+                <span>Copiar Enlace</span>
+              </button>
             </div>
           </div>
 

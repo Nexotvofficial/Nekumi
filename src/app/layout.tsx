@@ -49,6 +49,24 @@ export const metadata: Metadata = {
   },
 };
 
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Nekutoon",
+  alternateName: ["Nekutoon Manhwas", "Nekumi"],
+  url: "https://www.nekutoon.com",
+  inLanguage: "es",
+  description: "Lee manhwas, webtoons y mangas online en español con la mejor calidad y velocidad.",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: "https://www.nekutoon.com/?q={search_term_string}",
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -56,6 +74,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+      </head>
       <body className={`${inter.variable} antialiased`}>
         <div id="root-app">
           <AdsterraPopunder />

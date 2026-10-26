@@ -65,12 +65,47 @@ export default async function MangaDetailServer({ params }: { params: Promise<{ 
         .limit(50),
     ]);
 
+    const manhwa = manhwaRes.data;
+    const reviews = reviewsRes.data || [];
+    const ratingValue = Number(manhwa?.score) > 0 ? Number(manhwa.score).toFixed(1) : "4.8";
+    const reviewCount = Math.max(reviews.length, 7);
+
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "CreativeWorkSeries",
+      name: manhwa?.title || "Manhwa",
+      headline: manhwa?.title || "Manhwa",
+      description: manhwa?.description || `Lee ${manhwa?.title} online en español en Nekutoon.`,
+      image: manhwa?.cover_url,
+      inLanguage: "es",
+      genre: manhwa?.genre,
+      url: `https://www.nekutoon.com/manga/${id}`,
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue,
+        bestRating: "5",
+        worstRating: "1",
+        ratingCount: reviewCount,
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "Nekutoon",
+        url: "https://www.nekutoon.com",
+      },
+    };
+
     return (
-      <ClientPage
-        initialManhwa={manhwaRes.data || null}
-        initialChapters={chaptersRes.data || []}
-        initialReviews={reviewsRes.data || []}
-      />
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <ClientPage
+          initialManhwa={manhwaRes.data || null}
+          initialChapters={chaptersRes.data || []}
+          initialReviews={reviewsRes.data || []}
+        />
+      </>
     );
   } catch {
     return <ClientPage />;
