@@ -106,7 +106,7 @@ export default function Home({
   const [recentReviews, setRecentReviews] = useState<any[]>(initialReviews);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
-  const [visibleCount, setVisibleCount] = useState<number>(18);
+  const [visibleCount, setVisibleCount] = useState<number>(36);
 
   const supabase = createClient();
 
@@ -137,45 +137,41 @@ export default function Home({
       }
     } catch {}
 
-    // Fetch catalog on client only if SSR was empty, otherwise keep fresh in background
-    if (initialManhwas.length === 0) {
-      supabase
-        .from("manhwas")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .then(({ data }) => {
-          if (data) setManhwas(data);
-          setIsLoading(false);
-        });
-    }
+    // Always fetch full catalog from Supabase so all manhwas are present and up to date
+    supabase
+      .from("manhwas")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1000)
+      .then(({ data }) => {
+        if (data && data.length > 0) setManhwas(data);
+        setIsLoading(false);
+      });
 
-    if (initialTrending.length === 0) {
-      supabase
-        .from("manhwas")
-        .select("*")
-        .order("score", { ascending: false })
-        .limit(6)
-        .then(({ data }) => {
-          if (data) setTrending(data);
-        });
-    }
+    supabase
+      .from("manhwas")
+      .select("*")
+      .order("score", { ascending: false })
+      .limit(6)
+      .then(({ data }) => {
+        if (data && data.length > 0) setTrending(data);
+      });
 
-    if (initialReviews.length === 0) {
-      supabase
-        .from("reviews")
-        .select("*, manhwas(title, cover_url)")
-        .order("created_at", { ascending: false })
-        .limit(5)
-        .then(({ data }) => {
-          if (data) setRecentReviews(data);
-        });
-    }
+    supabase
+      .from("reviews")
+      .select("*, manhwas(title, cover_url)")
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (data) setRecentReviews(data);
+      });
 
     // Fetch notifications
     const fetchInitialNotifications = async () => {
       const { data } = await supabase
         .from("chapters")
         .select("id, chapter_number, created_at, manhwa:manhwas(id, title)")
+        .not("manhwa_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -264,7 +260,7 @@ export default function Home({
       setShowAdultModal(true);
     } else {
       setActiveCategory(category);
-      setVisibleCount(18);
+      setVisibleCount(36);
     }
   };
 
@@ -272,7 +268,7 @@ export default function Home({
     e?.preventDefault();
     const nextCat = activeCategory === "Favoritos" ? "" : "Favoritos";
     setActiveCategory(nextCat);
-    setVisibleCount(18);
+    setVisibleCount(36);
     document.getElementById("recomendados")?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -322,24 +318,76 @@ export default function Home({
   };
 
   const filteredManhwas = useMemo(() => {
+    const norm = (s: string) =>
+      (s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    const q = norm(searchQuery);
+    const cat = norm(activeCategory);
+
     return manhwas.filter((m) => {
-      const titleMatch = (m.title || "").toLowerCase().includes(searchQuery.toLowerCase());
-      const genreMatch = (m.genre || "").toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesSearch = !searchQuery || titleMatch || genreMatch;
+      const titleNorm = norm(m.title);
+      const genreNorm = norm(m.genre);
+      const matchesSearch = !q || titleNorm.includes(q) || genreNorm.includes(q);
 
       if (activeCategory === "Favoritos") {
         return matchesSearch && favorites.has(m.id);
       }
 
-      // Ocultar +18 y contenido sensible de la vista general por defecto si no se busca ni filtra
-      if (!activeCategory && !searchQuery) {
-        const g = (m.genre || "").toLowerCase();
-        const isSensible = g.includes("+18") || g.includes("bl") || g.includes("boys love") || g.includes("yuri");
-        if (isSensible) return false;
+      if (!cat) {
+        return matchesSearch;
       }
 
-      const matchesCat = activeCategory ? (m.genre || "").toLowerCase().includes(activeCategory.toLowerCase()) : true;
-      return matchesSearch && matchesCat;
+      if (activeCategory === "+18") {
+        const isAdult =
+          genreNorm.includes("+18") ||
+          genreNorm.includes("+19") ||
+          genreNorm.includes("sin censura") ||
+          genreNorm.includes("maduro") ||
+          genreNorm.includes("adulto") ||
+          genreNorm.includes("ecchi") ||
+          genreNorm.includes("smut") ||
+          genreNorm.includes("hentai") ||
+          genreNorm.includes("erotico");
+        return matchesSearch && isAdult;
+      }
+
+      if (cat === "bl" || cat === "boys love") {
+        const isBL =
+          /\bbl\b/.test(genreNorm) ||
+          genreNorm.includes("boys love") ||
+          genreNorm.includes("yaoi") ||
+          genreNorm.includes("shonen ai");
+        return matchesSearch && isBL;
+      }
+
+      if (cat === "accion") {
+        return (
+          matchesSearch &&
+          (genreNorm.includes("accion") || genreNorm.includes("action") || genreNorm.includes("artes marciales"))
+        );
+      }
+
+      if (cat === "fantasia") {
+        return (
+          matchesSearch &&
+          (genreNorm.includes("fantasia") || genreNorm.includes("fantasy") || genreNorm.includes("magia"))
+        );
+      }
+
+      if (cat === "isekai") {
+        return (
+          matchesSearch &&
+          (genreNorm.includes("isekai") ||
+            genreNorm.includes("reencarnacion") ||
+            genreNorm.includes("transmigracion") ||
+            genreNorm.includes("regresion"))
+        );
+      }
+
+      return matchesSearch && genreNorm.includes(cat);
     });
   }, [manhwas, searchQuery, activeCategory, favorites]);
 
@@ -915,12 +963,12 @@ export default function Home({
               <div className="section-heading">
                 <h2 id="recommendedTitle" className="section-title">
                   {searchQuery
-                    ? `Resultados para "${searchQuery}"`
+                    ? `Resultados para "${searchQuery}" (${filteredManhwas.length})`
                     : activeCategory === "Favoritos"
                     ? `Mis Favoritos (${filteredManhwas.length})`
                     : activeCategory
-                    ? `Categoría: ${activeCategory}`
-                    : "Explorar Catálogo"}
+                    ? `Categoría: ${activeCategory} (${filteredManhwas.length})`
+                    : `Explorar Catálogo (${filteredManhwas.length})`}
                 </h2>
                 {(activeCategory || searchQuery) && (
                   <button
@@ -973,24 +1021,27 @@ export default function Home({
                   <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 mt-4">
                     {filteredManhwas.slice(0, visibleCount).map((item, idx) => (
                       <article key={item.id} className="media-card h-full relative group">
-                        <div className="cover">
-                          <Link href={`/manga/${item.id}`} className="block w-full h-full">
-                            <img
-                              referrerPolicy="no-referrer"
-                              src={item.cover_url}
-                              alt={`Portada de ${item.title}`}
-                              loading={idx < 6 ? "eager" : "lazy"}
-                              decoding="async"
-                              className="w-full h-full object-cover aspect-[2/3]"
-                            />
-                          </Link>
-                          <span className="card-badge score pointer-events-none">
+                        <div className="cover relative">
+                          <img
+                            referrerPolicy="no-referrer"
+                            src={item.cover_url}
+                            alt={`Portada de ${item.title}`}
+                            loading={idx < 6 ? "eager" : "lazy"}
+                            decoding="async"
+                            className="w-full h-full object-cover aspect-[2/3]"
+                          />
+                          <Link
+                            href={`/manga/${item.id}`}
+                            className="absolute inset-0 z-[2]"
+                            aria-label={`Leer ${item.title}`}
+                          />
+                          <span className="card-badge score pointer-events-none z-[3]">
                             <Star />
                             {item.score}
                           </span>
 
                           <span
-                            className={`pointer-events-none absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg z-10 ${
+                            className={`pointer-events-none absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg z-[3] ${
                               item.status === "Finalizado"
                                 ? "bg-[#10b981]/85 text-white border-[#10b981]/30"
                                 : "bg-[#3b82f6]/85 text-white border-[#3b82f6]/30"
@@ -1000,7 +1051,7 @@ export default function Home({
                           </span>
 
                           <button
-                            className={`card-favorite favorite-toggle ${favorites.has(item.id) ? "active" : ""}`}
+                            className={`card-favorite favorite-toggle z-[4] ${favorites.has(item.id) ? "active" : ""}`}
                             type="button"
                             aria-label={
                               favorites.has(item.id)
@@ -1013,23 +1064,30 @@ export default function Home({
                           </button>
                         </div>
                         <Link href={`/manga/${item.id}`} className="card-info p-2.5 block">
-                          <h3 className="card-title line-clamp-1">{item.title}</h3>
+                          <h3 className="card-title line-clamp-1 group-hover:text-[#c084fc] transition-colors">{item.title}</h3>
                           <p className="card-meta">{item.genre}</p>
                         </Link>
                       </article>
                     ))}
                   </div>
                   {visibleCount < filteredManhwas.length && (
-                    <div className="flex justify-center mt-12 mb-4">
+                    <div className="flex flex-wrap justify-center gap-3 mt-12 mb-4">
                       <button
                         type="button"
-                        onClick={() => setVisibleCount((v: number) => v + 18)}
+                        onClick={() => setVisibleCount((v: number) => v + 36)}
                         className="group relative px-8 py-3 rounded-full bg-[#121214] border border-white/10 hover:border-[#a855f7]/50 transition-all duration-300"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-[#a855f7]/10 to-[#ec4899]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
                         <span className="relative text-xs uppercase tracking-wider font-bold text-[#dedee5] group-hover:text-white transition-colors flex items-center gap-2">
                           Mostrar más ({filteredManhwas.length - visibleCount} restantes)
                         </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVisibleCount(filteredManhwas.length)}
+                        className="px-6 py-3 rounded-full bg-[#a855f7]/15 border border-[#a855f7]/40 hover:bg-[#a855f7]/25 text-xs uppercase tracking-wider font-bold text-[#c084fc] hover:text-white transition-all duration-300"
+                      >
+                        Ver todos ({filteredManhwas.length})
                       </button>
                     </div>
                   )}

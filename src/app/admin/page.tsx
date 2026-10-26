@@ -33,6 +33,8 @@ export default function AdminProDashboard() {
 
   // Estados de Manhwas
   const [manhwas, setManhwas] = useState<any[]>([]);
+  const [selectedManhwaIds, setSelectedManhwaIds] = useState<string[]>([]);
+  const [manhwaSearch, setManhwaSearch] = useState("");
   const [isAddManhwaOpen, setIsAddManhwaOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -94,11 +96,11 @@ export default function AdminProDashboard() {
       { data: rData },
     ] = await Promise.all([
       supabase.from("manhwas").select("*", { count: "exact", head: true }),
-      supabase.from("chapters").select("*", { count: "exact", head: true }),
+      supabase.from("chapters").select("*", { count: "exact", head: true }).not("manhwa_id", "is", null),
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("visits").select("*", { count: "exact", head: true }),
-      supabase.from("chapters").select("*, manhwa:manhwas(title)").order("created_at", { ascending: false }).limit(5),
-      supabase.from("manhwas").select("*").order("created_at", { ascending: false }),
+      supabase.from("chapters").select("*, manhwa:manhwas(title)").not("manhwa_id", "is", null).order("created_at", { ascending: false }).limit(5),
+      supabase.from("manhwas").select("*").order("created_at", { ascending: false }).limit(1000),
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("reviews").select("*, manhwa:manhwas(title)").order("created_at", { ascending: false }),
     ]);
@@ -155,14 +157,94 @@ export default function AdminProDashboard() {
     setIsAddManhwaOpen(true);
   };
 
+  const cascadeDeleteManhwas = async (ids: string[]) => {
+    if (ids.length === 0) return { error: null };
+
+    // 1. Desvincular los capítulos (manhwa_id = null) para evitar el timeout de PostgreSQL
+    // al escanear las +900,000 filas de pages sin índice en chapter_id.
+    const { error: chapErr } = await supabase
+      .from("chapters")
+      .update({ manhwa_id: null })
+      .in("manhwa_id", ids);
+
+    if (chapErr) {
+      console.warn("Aviso al desvincular capítulos:", chapErr.message);
+    }
+
+    // 2. Eliminar reseñas y favoritos asociados a estos manhwas
+    await supabase.from("reviews").delete().in("manhwa_id", ids);
+    await supabase.from("favorites").delete().in("manhwa_id", ids);
+
+    // 3. Eliminar los manhwas de forma instantánea
+    const { error } = await supabase.from("manhwas").delete().in("id", ids);
+    return { error };
+  };
+
   const handleDeleteManhwa = async (id: string) => {
     if (!confirm("¿ESTÁS SEGURO? Esto borrará el manhwa y todos sus capítulos y páginas. Esta acción no se puede deshacer.")) return;
     setLoading(true);
-    await supabase.from("manhwas").delete().eq("id", id);
-    setManhwas(manhwas.filter(m => m.id !== id));
+    const { error } = await cascadeDeleteManhwas([id]);
     setLoading(false);
+    if (error) {
+      alert("Error al eliminar el manhwa: " + error.message);
+      return;
+    }
+    setManhwas((prev) => prev.filter((m) => m.id !== id));
+    setSelectedManhwaIds((prev) => prev.filter((item) => item !== id));
+    setStats((prev) => ({ ...prev, manhwas: Math.max(0, prev.manhwas - 1) }));
     setSuccessMsg("Manhwa eliminado por completo");
     setTimeout(() => setSuccessMsg(""), 3000);
+  };
+
+  const handleBulkDeleteManhwas = async () => {
+    if (selectedManhwaIds.length === 0) return;
+    if (
+      !confirm(
+        `¿ESTÁS SEGURO de eliminar los ${selectedManhwaIds.length} manhwas seleccionados junto con todos sus capítulos y páginas? Esta acción no se puede deshacer.`
+      )
+    )
+      return;
+    setLoading(true);
+    const idsToDelete = [...selectedManhwaIds];
+    const { error } = await cascadeDeleteManhwas(idsToDelete);
+    setLoading(false);
+    if (error) {
+      alert("Error al eliminar los manhwas seleccionados: " + error.message);
+      return;
+    }
+    const deletedSet = new Set(idsToDelete);
+    setManhwas((prev) => prev.filter((m) => !deletedSet.has(m.id)));
+    setSelectedManhwaIds([]);
+    setStats((prev) => ({ ...prev, manhwas: Math.max(0, prev.manhwas - idsToDelete.length) }));
+    setSuccessMsg(`${idsToDelete.length} manhwas eliminados por completo`);
+    setTimeout(() => setSuccessMsg(""), 3500);
+  };
+
+  const toggleSelectManhwa = (id: string) => {
+    setSelectedManhwaIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const filteredAdminManhwas = manhwas.filter((m) => {
+    if (!manhwaSearch.trim()) return true;
+    const q = manhwaSearch.toLowerCase();
+    return (
+      (m.title || "").toLowerCase().includes(q) ||
+      (m.genre || "").toLowerCase().includes(q)
+    );
+  });
+
+  const toggleSelectAllVisible = () => {
+    const visibleIds = filteredAdminManhwas.map((m) => m.id);
+    const allSelected =
+      visibleIds.length > 0 && visibleIds.every((id) => selectedManhwaIds.includes(id));
+    if (allSelected) {
+      const visibleSet = new Set(visibleIds);
+      setSelectedManhwaIds((prev) => prev.filter((id) => !visibleSet.has(id)));
+    } else {
+      setSelectedManhwaIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
   };
 
   const handleCreateChapter = async (e: React.FormEvent) => {
@@ -458,18 +540,78 @@ export default function AdminProDashboard() {
                 <div className={`flex-1 bg-[#121216] border border-white/5 rounded-2xl p-6 transition-all duration-300 ${isAddManhwaOpen ? 'lg:w-2/3' : 'w-full'}`}>
                   <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
                     <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#a855f7]" /> Gestión de manhwas</h3>
-                      <p className="text-sm text-[#a7a7b1]">Administra el catálogo de la plataforma.</p>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#a855f7]" /> Gestión de manhwas ({filteredAdminManhwas.length})</h3>
+                      <p className="text-sm text-[#a7a7b1]">Selecciona uno o varios manhwas con las casillas para editarlos o borrarlos.</p>
                     </div>
-                    <button onClick={() => { setEditingId(""); setTitle(""); setDescription(""); setCoverUrl(""); setBannerUrl(""); setIsHero(false); setIsAddManhwaOpen(!isAddManhwaOpen); }} className="btn bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-[#a855f7]/20">
-                      {isAddManhwaOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {isAddManhwaOpen ? 'Cerrar panel' : 'Nuevo manhwa'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {selectedManhwaIds.length > 0 && (
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={handleBulkDeleteManhwas}
+                          className="btn bg-[#ef4444] hover:bg-[#dc2626] text-white flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-[#ef4444]/20 transition-all"
+                        >
+                          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          Eliminar seleccionados ({selectedManhwaIds.length})
+                        </button>
+                      )}
+                      <button onClick={() => { setEditingId(""); setTitle(""); setDescription(""); setCoverUrl(""); setBannerUrl(""); setIsHero(false); setIsAddManhwaOpen(!isAddManhwaOpen); }} className="btn bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-[#a855f7]/20">
+                        {isAddManhwaOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {isAddManhwaOpen ? 'Cerrar panel' : 'Nuevo manhwa'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Buscador y barra de selección */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                      <input
+                        type="search"
+                        value={manhwaSearch}
+                        onChange={(e) => setManhwaSearch(e.target.value)}
+                        placeholder="Filtrar manhwas por título o género..."
+                        className="w-full h-10 bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 text-sm text-white focus:border-[#a855f7] outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={toggleSelectAllVisible}
+                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white transition-colors"
+                      >
+                        {filteredAdminManhwas.length > 0 &&
+                        filteredAdminManhwas.every((m) => selectedManhwaIds.includes(m.id))
+                          ? "Deseleccionar todos"
+                          : `Seleccionar todos (${filteredAdminManhwas.length})`}
+                      </button>
+                      {selectedManhwaIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedManhwaIds([])}
+                          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-[#a7a7b1] hover:text-white transition-colors"
+                        >
+                          Limpiar ({selectedManhwaIds.length})
+                        </button>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto max-h-[68vh] overflow-y-auto custom-scrollbar">
                     <table className="w-full text-sm text-left">
-                      <thead className="text-[#a7a7b1] border-b border-white/5">
+                      <thead className="text-[#a7a7b1] border-b border-white/5 sticky top-0 bg-[#121216] z-10">
                         <tr>
+                          <th className="pb-3 pr-2 w-10">
+                            <input
+                              type="checkbox"
+                              aria-label="Seleccionar todos los manhwas visibles"
+                              checked={
+                                filteredAdminManhwas.length > 0 &&
+                                filteredAdminManhwas.every((m) => selectedManhwaIds.includes(m.id))
+                              }
+                              onChange={toggleSelectAllVisible}
+                              className="w-4 h-4 rounded border-white/20 bg-black/40 accent-[#a855f7] cursor-pointer"
+                            />
+                          </th>
                           <th className="pb-3 font-medium">Portada</th>
                           <th className="pb-3 font-medium">Título</th>
                           <th className="pb-3 font-medium">Género</th>
@@ -478,21 +620,40 @@ export default function AdminProDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {manhwas.map((m) => (
-                          <tr key={m.id} className="hover:bg-white/5 transition-colors">
-                            <td className="py-3">
-                              <img referrerPolicy="no-referrer" src={m.cover_url} alt={m.title} className="w-10 h-14 object-cover rounded-md border border-white/10" />
-                            </td>
-                            <td className="py-3 font-semibold text-white max-w-[200px] truncate">{m.title}</td>
-                            <td className="py-3 text-[#a7a7b1]">{m.genre || '-'}</td>
-                            <td className="py-3"><span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${m.status === 'Finalizado' ? 'bg-[#10b981]/20 text-[#34d399]' : 'bg-[#3b82f6]/20 text-[#60a5fa]'}`}>{m.status || 'En emisión'}</span></td>
-                            <td className="py-3 text-right">
-                              <div className="flex justify-end gap-2">
-                                <button onClick={() => handleEditManhwa(m)} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button> <button onClick={() => handleDeleteManhwa(m.id)} className="p-2 bg-[#ef4444]/10 hover:bg-[#ef4444]/20 rounded-lg text-[#ef4444] transition-colors" title="Borrar"><Trash2 className="w-4 h-4" /></button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredAdminManhwas.map((m) => {
+                          const isSelected = selectedManhwaIds.includes(m.id);
+                          return (
+                            <tr
+                              key={m.id}
+                              onClick={() => toggleSelectManhwa(m.id)}
+                              className={`cursor-pointer transition-colors ${
+                                isSelected ? "bg-[#a855f7]/15 hover:bg-[#a855f7]/20" : "hover:bg-white/5"
+                              }`}
+                            >
+                              <td className="py-3 pr-2" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Seleccionar ${m.title}`}
+                                  checked={isSelected}
+                                  onChange={() => toggleSelectManhwa(m.id)}
+                                  className="w-4 h-4 rounded border-white/20 bg-black/40 accent-[#a855f7] cursor-pointer"
+                                />
+                              </td>
+                              <td className="py-3">
+                                <img referrerPolicy="no-referrer" src={m.cover_url} alt={m.title} className="w-10 h-14 object-cover rounded-md border border-white/10" loading="lazy" />
+                              </td>
+                              <td className="py-3 font-semibold text-white max-w-[220px] truncate">{m.title}</td>
+                              <td className="py-3 text-[#a7a7b1] max-w-[180px] truncate">{m.genre || '-'}</td>
+                              <td className="py-3"><span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${m.status === 'Finalizado' ? 'bg-[#10b981]/20 text-[#34d399]' : 'bg-[#3b82f6]/20 text-[#60a5fa]'}`}>{m.status || 'En emisión'}</span></td>
+                              <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex justify-end gap-2">
+                                  <button type="button" onClick={() => handleEditManhwa(m)} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
+                                  <button type="button" disabled={loading} onClick={() => handleDeleteManhwa(m.id)} className="p-2 bg-[#ef4444]/10 hover:bg-[#ef4444]/20 rounded-lg text-[#ef4444] transition-colors" title="Borrar"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

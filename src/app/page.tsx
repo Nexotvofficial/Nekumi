@@ -1,7 +1,8 @@
 import ClientHome from "./ClientHome";
 import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_URL_DEFAULT, SUPABASE_ANON_KEY_DEFAULT } from "@/lib/supabase";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 export const metadata = {
   title: "Nekumi — Leer Manhwas y Webtoons Online",
@@ -9,18 +10,14 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return <ClientHome initialManhwas={[]} initialTrending={[]} initialReviews={[]} />;
-  }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_DEFAULT;
 
   try {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     const [manhwasRes, trendingRes, reviewsRes] = await Promise.all([
-      supabase.from("manhwas").select("*").order("created_at", { ascending: false }),
+      supabase.from("manhwas").select("*").order("created_at", { ascending: false }).limit(1000),
       supabase.from("manhwas").select("*").order("score", { ascending: false }).limit(6),
       supabase.from("reviews").select("*, manhwas(title, cover_url)").order("created_at", { ascending: false }).limit(5),
     ]);
