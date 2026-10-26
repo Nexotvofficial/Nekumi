@@ -3,38 +3,37 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import MascotBot from "@/components/MascotBot";
 import SecurityShield from "@/components/SecurityShield";
-import Script from "next/script";
 import { AdsterraPopunder } from "@/components/Adsterra";
-import AntiAdblock from "@/components/AntiAdblock";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#0a0a0c",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export const metadata: Metadata = {
-  title: "Nekutoon — Leer Manhwas y Webtoons",
-  description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekutoon. Actualizaciones diarias con la mejor calidad en español.",
-  keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekutoon", "manga gratis", "acción", "romance"],
+  title: "Nekumi — Leer Manhwas, Webtoons y Mangas Online",
+  description: "Descubre, lee y sigue los mejores manhwas, webtoons y mangas en Nekumi. Actualizaciones diarias con la mejor calidad y velocidad en español.",
+  keywords: ["manhwa", "webtoon", "leer manga", "manhwa español", "Nekumi", "Nekutoon", "manga gratis", "acción", "romance", "fantasía", "isekai"],
   openGraph: {
-    title: "Nekutoon — El Mejor Catálogo de Manhwas",
+    title: "Nekumi — El Mejor Catálogo de Manhwas y Webtoons",
     description: "Lee tus manhwas y webtoons favoritos en la plataforma más rápida y limpia de internet.",
     url: "https://www.nekutoon.com",
-    siteName: "Nekutoon",
+    siteName: "Nekumi",
     locale: "es_LA",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nekutoon — Leer Manhwas y Webtoons",
+    title: "Nekumi — Leer Manhwas y Webtoons",
     description: "Descubre los mejores manhwas actualizados a diario.",
   },
   robots: {
@@ -43,9 +42,9 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
 };
@@ -57,37 +56,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                if ('serviceWorker' in navigator) {
-                  // Unregister ALL service workers
-                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for (var i = 0; i < registrations.length; i++) {
-                      registrations[i].unregister();
-                    }
-                  });
-                  // Clear ALL caches to fix broken iOS Safari loads
-                  if ('caches' in window) {
-                    caches.keys().then(function(cacheNames) {
-                      cacheNames.forEach(function(cacheName) {
-                        caches.delete(cacheName);
-                      });
-                    });
-                  }
-                }
-              })();
-            `,
-          }}
-        />
-      </head>
       <body className={`${inter.variable} antialiased`}>
         <div id="root-app">
           <AdsterraPopunder />
           <SecurityShield />
-          <AntiAdblock />
           {children}
           <MascotBot />
         </div>
@@ -95,4 +67,3 @@ export default function RootLayout({
     </html>
   );
 }
-

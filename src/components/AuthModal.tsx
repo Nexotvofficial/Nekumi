@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { X, Mail, Lock, User, Loader2, ShieldCheck } from "lucide-react";
+import { X, Mail, Lock, User, Loader2 } from "lucide-react";
 import AvatarPicker from "@/components/AvatarPicker";
 import { getAvatarSvg } from "@/lib/avatars";
-import { Turnstile } from "@marsidev/react-turnstile";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,24 +21,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
   const [username, setUsername] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("hunter");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRef = useRef<any>(null);
   const supabase = createClient();
-
-  // Cloudflare Turnstile Site Key (Nekutoon - nekutoon.com)
-  const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAFD90UHKmLECFLzY";
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Verificar que el Turnstile fue completado (desactivado)
-    // if (!turnstileToken) {
-    //   showToast("Por favor completa la verificación de seguridad ✅");
-    //   return;
-    // }
-
     setLoading(true);
 
     try {
@@ -53,11 +40,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { username } }
+          options: { data: { username } },
         });
         if (error) throw error;
 
-        // Create profile with selected avatar
         if (data.user) {
           await supabase.from("profiles").upsert({
             id: data.user.id,
@@ -66,7 +52,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
           });
         }
 
-        showToast("¡Registro exitoso! Inicia sesión para continuar.");
+        showToast("¡Registro exitoso! Ya puedes iniciar sesión.");
         setIsLogin(true);
       }
     } catch (err: any) {
@@ -78,21 +64,18 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md glass rounded-[22px] p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 icon-btn"
-          aria-label="Cerrar modal"
-        >
+        <button onClick={onClose} className="absolute top-4 right-4 icon-btn" aria-label="Cerrar modal">
           <X className="w-5 h-5" />
         </button>
 
         <div className="text-center mb-8">
-          <svg className="w-10 h-10 mx-auto mb-4 filter drop-shadow-[0_5px_14px_rgba(168,85,247,0.32)]" viewBox="0 0 44 44" aria-hidden="true">
+          <svg
+            className="w-10 h-10 mx-auto mb-4 filter drop-shadow-[0_5px_14px_rgba(168,85,247,0.32)]"
+            viewBox="0 0 44 44"
+            aria-hidden="true"
+          >
             <defs>
               <linearGradient id="lg-auth" x1="2" y1="3" x2="42" y2="42">
                 <stop stopColor="#7c3aed" />
@@ -100,20 +83,22 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
                 <stop offset="1" stopColor="#f472b6" />
               </linearGradient>
             </defs>
-            <path d="M8 32.5V11.7c0-2.2 2.7-3.2 4.2-1.6L28 27.2V10.9c0-1.6 1.3-2.9 2.9-2.9h2.2c1.6 0 2.9 1.3 2.9 2.9v21c0 2.1-2.6 3.2-4.1 1.7L16 16.4v16.1c0 1.9-1.5 3.5-3.5 3.5h-1C9.6 36 8 34.4 8 32.5Z" fill="url(#lg-auth)" />
+            <path
+              d="M8 32.5V11.7c0-2.2 2.7-3.2 4.2-1.6L28 27.2V10.9c0-1.6 1.3-2.9 2.9-2.9h2.2c1.6 0 2.9 1.3 2.9 2.9v21c0 2.1-2.6 3.2-4.1 1.7L16 16.4v16.1c0 1.9-1.5 3.5-3.5 3.5h-1C9.6 36 8 34.4 8 32.5Z"
+              fill="url(#lg-auth)"
+            />
           </svg>
           <h2 className="text-2xl font-black tracking-tight mb-2">
-            {isLogin ? "Bienvenido de vuelta" : "Únete a Nekutoon"}
+            {isLogin ? "Bienvenido de vuelta" : "Únete a Nekumi"}
           </h2>
           <p className="text-[#a7a7b1] text-sm">
-            {isLogin ? "Inicia sesión para continuar leyendo" : "Crea una cuenta para guardar tus favoritos"}
+            {isLogin ? "Inicia sesión para continuar leyendo" : "Crea una cuenta para sincronizar tus favoritos"}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <>
-              {/* Avatar preview + picker toggle */}
               <div className="flex items-center gap-4 p-3 rounded-xl border border-white/10 bg-white/5">
                 <div
                   className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer border-2 border-[#a855f7]/50"
@@ -134,7 +119,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
 
               {showAvatarPicker && (
                 <div className="p-4 rounded-xl border border-[#a855f7]/20 bg-[#a855f7]/5">
-                  <AvatarPicker selected={selectedAvatar} onChange={(key) => { setSelectedAvatar(key); setShowAvatarPicker(false); }} />
+                  <AvatarPicker
+                    selected={selectedAvatar}
+                    onChange={(key) => {
+                      setSelectedAvatar(key);
+                      setShowAvatarPicker(false);
+                    }}
+                  />
                 </div>
               )}
 
@@ -191,9 +182,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
                     });
                     if (error) throw error;
                     showToast("Te hemos enviado un correo para restablecer tu contraseña");
-                  } catch (err: any) {
-                    // Fallback a contacto directo si Supabase no está configurado para emails
-                    showToast("Por favor, envía un correo a diazmowi07@gmail.com para recuperar tu cuenta.");
+                  } catch {
+                    showToast("Envía un correo a diazmowi07@gmail.com para asistencia con tu cuenta.");
                   } finally {
                     setLoading(false);
                   }
@@ -204,29 +194,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
               </button>
             </div>
           )}
-
-          {/* Cloudflare Turnstile - Desactivado temporalmente por problemas de dominio
-          <div className="flex flex-col items-center gap-2 py-1">
-            <Turnstile
-              ref={turnstileRef}
-              siteKey={TURNSTILE_SITE_KEY}
-              onSuccess={(token) => setTurnstileToken(token)}
-              onExpire={() => setTurnstileToken(null)}
-              onError={() => setTurnstileToken(null)}
-              options={{
-                theme: 'dark',
-                language: 'es',
-                size: 'normal',
-              }}
-            />
-            {!turnstileToken && (
-              <p className="text-xs text-[#777782] flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" />
-                Completa la verificación para continuar
-              </p>
-            )}
-          </div>
-          */}
 
           <button
             type="submit"
@@ -242,7 +209,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
           {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
           <button
             type="button"
-            onClick={() => { setIsLogin(!isLogin); setShowAvatarPicker(false); }}
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setShowAvatarPicker(false);
+            }}
             className="text-[#a78bfa] font-semibold hover:text-white transition-colors"
           >
             {isLogin ? "Regístrate aquí" : "Inicia sesión"}

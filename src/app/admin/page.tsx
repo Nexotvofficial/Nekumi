@@ -80,32 +80,33 @@ export default function AdminProDashboard() {
       }
       setLoadingUser(false);
     });
-  }, [router, supabase]);
+  }, [router]);
 
   const loadDashboardData = async () => {
-    // 1. Stats
-    const { count: mCount } = await supabase.from("manhwas").select("*", { count: "exact", head: true });
-    const { count: cCount } = await supabase.from("chapters").select("*", { count: "exact", head: true });
-    const { count: uCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    const { count: vCount } = await supabase.from('visits').select('*', { count: 'exact', head: true });
-    setStats({ manhwas: mCount || 0, chapters: cCount || 0, users: uCount || 0, views: 0 });
+    const [
+      { count: mCount },
+      { count: cCount },
+      { count: uCount },
+      { count: vCount },
+      { data: recent },
+      { data: mData },
+      { data: uData },
+      { data: rData },
+    ] = await Promise.all([
+      supabase.from("manhwas").select("*", { count: "exact", head: true }),
+      supabase.from("chapters").select("*", { count: "exact", head: true }),
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("visits").select("*", { count: "exact", head: true }),
+      supabase.from("chapters").select("*, manhwa:manhwas(title)").order("created_at", { ascending: false }).limit(5),
+      supabase.from("manhwas").select("*").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      supabase.from("reviews").select("*, manhwa:manhwas(title)").order("created_at", { ascending: false }),
+    ]);
 
-    // 2. Recent chapters
-    const { data: recent } = await supabase
-      .from("chapters")
-      .select("*, manhwa:manhwas(title)")
-      .order("created_at", { ascending: false })
-      .limit(5);
+    setStats({ manhwas: mCount || 0, chapters: cCount || 0, users: uCount || 0, views: vCount || 0 });
     if (recent) setRecentChapters(recent);
-
-    // 3. Manhwas list (needed for selects and table)
-    const { data: mData } = await supabase.from("manhwas").select("*").order("created_at", { ascending: false });
     if (mData) setManhwas(mData);
-
-    const { data: uData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
     if (uData) setUsersList(uData);
-
-    const { data: rData } = await supabase.from('reviews').select('*, manhwa:manhwas(title)').order('created_at', { ascending: false });
     if (rData) setReviewsList(rData);
   };
 

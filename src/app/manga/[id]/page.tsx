@@ -1,40 +1,49 @@
-import ClientPage from './ClientPage';
+import ClientPage from "./ClientPage";
 import { createClient } from "@supabase/supabase-js";
-
-// Necesitamos un cliente de supabase del lado del servidor limpio (sin auth) solo para metadatos
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { data: manhwa } = await supabase
-    .from("manhwas")
-    .select("title, description, cover_url")
-    .eq("id", id)
-    .single();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!manhwa) return { title: 'No encontrado | Nekutoon' };
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { title: "Leer Online | Nekumi" };
+  }
 
-  return {
-    title: `${manhwa.title} - Leer Online | Nekutoon`,
-    description: manhwa.description.slice(0, 150) + '...',
-    openGraph: {
-      title: `${manhwa.title} - Leer Online | Nekutoon`,
-      description: manhwa.description.slice(0, 150) + '...',
-      images: [manhwa.cover_url],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${manhwa.title} | Nekutoon`,
-      description: manhwa.description.slice(0, 150) + '...',
-      images: [manhwa.cover_url],
-    }
-  };
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: manhwa } = await supabase
+      .from("manhwas")
+      .select("title, description, cover_url")
+      .eq("id", id)
+      .single();
+
+    if (!manhwa) return { title: "Obra no encontrada | Nekumi" };
+
+    const safeDesc = (manhwa.description || `Lee ${manhwa.title} online en español con la mejor calidad en Nekumi.`).slice(0, 155);
+    const images = manhwa.cover_url ? [manhwa.cover_url] : [];
+
+    return {
+      title: `${manhwa.title} — Leer Online | Nekumi`,
+      description: safeDesc,
+      openGraph: {
+        title: `${manhwa.title} — Leer Online | Nekumi`,
+        description: safeDesc,
+        images,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `${manhwa.title} | Nekumi`,
+        description: safeDesc,
+        images,
+      },
+    };
+  } catch {
+    return { title: "Leer Online | Nekumi" };
+  }
 }
 
 export default async function MangaDetailServer({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  // SSR pasa el control al cliente para todo el estado dinámico
+  await params;
   return <ClientPage />;
 }

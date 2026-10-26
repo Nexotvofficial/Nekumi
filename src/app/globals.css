@@ -119,7 +119,7 @@ a {
 .nav-link {
   position: relative;
   color: #a7a7b1;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 600;
   transition: color .22s;
 }
@@ -182,7 +182,7 @@ a {
   background: rgba(255, 255, 255, .047);
   color: #fff;
   padding: 0 16px 0 40px;
-  font-size: 12px;
+  font-size: 13.5px;
   transition: .2s;
 }
 
@@ -341,10 +341,10 @@ a {
 .tag {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 10px;
+  min-height: 25px;
+  padding: 0 11px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -404,10 +404,10 @@ a {
 }
 
 .hero-copy {
-  max-width: 500px;
+  max-width: 520px;
   margin: 14px 0 23px;
-  color: #aaaab4;
-  font-size: 12.5px;
+  color: #c2c2cc;
+  font-size: 14px;
   line-height: 1.7;
 }
 
@@ -425,7 +425,7 @@ a {
   align-items: center;
   justify-content: center;
   gap: 9px;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 700;
   transition: .22s;
 }
@@ -598,11 +598,11 @@ a {
   top: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  height: 20px;
-  padding: 0 7px;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   backdrop-filter: blur(10px);
 }
@@ -632,7 +632,7 @@ a {
 }
 
 .card-title {
-  font-size: 11px;
+  font-size: 13.5px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -645,9 +645,9 @@ a {
 }
 
 .card-meta {
-  margin-top: 5px;
-  font-size: 9px;
-  color: #777781;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #9b9ba6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -697,7 +697,8 @@ a {
 
 .rank-item {
   display: grid;
-  grid-template-columns: 18px 48px minmax(0, 1fr) 18px;
+  grid-template-columns: 22px 46px minmax(0, 1fr);
+  padding-inline: 6px;
   align-items: center;
   gap: 10px;
   min-height: 66px;
@@ -734,7 +735,7 @@ a {
 }
 
 .rank-name {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -743,8 +744,8 @@ a {
 
 .rank-genre {
   margin-top: 4px;
-  font-size: 8.5px;
-  color: #777781;
+  font-size: 11.5px;
+  color: #9b9ba6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -768,13 +769,13 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 31px;
-  padding: 0 13px;
+  height: 34px;
+  padding: 0 14px;
   border-radius: 999px;
-  color: #bdbdc6;
+  color: #dedee6;
   background: rgba(255, 255, 255, .05);
   border: 1px solid rgba(255, 255, 255, .075);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   transition: .2s;
 }
@@ -1109,12 +1110,13 @@ a {
 }
 
 .notification-head strong {
-  font-size: 12px;
+  font-size: 13.5px;
 }
 
 .notification-head button {
   color: #c084fc;
-  font-size: 9px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .notification-item {
@@ -1152,13 +1154,13 @@ a {
 }
 
 .notification-item b {
-  font-size: 10px;
+  font-size: 12.5px;
 }
 
 .notification-item small {
   margin-top: 3px;
-  color: #7e7e89;
-  font-size: 8.5px;
+  color: #9b9ba6;
+  font-size: 11px;
 }
 
 .favorite-toggle.active {
@@ -1333,8 +1335,8 @@ a {
 .newsletter>p {
   position: relative;
   margin: 10px auto 19px;
-  color: #9696a1;
-  font-size: 10.5px;
+  color: #b4b4be;
+  font-size: 13px;
   line-height: 1.65;
   max-width: 270px;
 }
@@ -1407,8 +1409,8 @@ a {
 }
 
 .social-block>span {
-  color: #787883;
-  font-size: 8.5px;
+  color: #9b9ba6;
+  font-size: 12px;
 }
 
 .social-row {
@@ -1486,10 +1488,10 @@ a {
   position: absolute;
   left: 9px;
   top: 9px;
-  padding: 5px 8px;
+  padding: 4px 10px;
   border-radius: 99px;
   background: linear-gradient(90deg, #7c3aed, #d946ef);
-  font-size: 7px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: .07em;
   text-transform: uppercase;
@@ -1500,7 +1502,7 @@ a {
 }
 
 .news-body h3 {
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.45;
   font-weight: 700;
   display: -webkit-box;
@@ -1514,8 +1516,8 @@ a {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  color: #74747f;
-  font-size: 8px;
+  color: #9b9ba6;
+  font-size: 12px;
 }
 
 .news-meta span {
@@ -1541,10 +1543,10 @@ a {
 }
 
 .footer-brand p {
-  max-width: 285px;
+  max-width: 300px;
   margin-top: 14px;
-  color: #7f7f89;
-  font-size: 10px;
+  color: #9b9ba6;
+  font-size: 13px;
   line-height: 1.65;
 }
 
@@ -1556,7 +1558,7 @@ a {
 
 .footer-links h3 {
   margin-bottom: 14px;
-  font-size: 11px;
+  font-size: 13.5px;
   font-weight: 750;
 }
 
@@ -1564,8 +1566,8 @@ a {
   display: block;
   width: max-content;
   margin-top: 9px;
-  color: #777782;
-  font-size: 9.5px;
+  color: #9b9ba6;
+  font-size: 13px;
   transition: .2s;
 }
 
@@ -1577,8 +1579,9 @@ a {
 .store-buttons>span {
   display: block;
   margin-bottom: 11px;
-  color: #9b9ba6;
-  font-size: 9px;
+  color: #b4b4be;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .store-buttons>a {
@@ -1611,8 +1614,8 @@ a {
 
 .store-buttons small {
   display: block;
-  color: #777782;
-  font-size: 7px;
+  color: #9b9ba6;
+  font-size: 10px;
   font-weight: 500;
 }
 
@@ -1622,8 +1625,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #61616b;
-  font-size: 8.5px;
+  color: #8e8e99;
+  font-size: 12px;
 }
 
 .footer-bottom div {
@@ -1761,8 +1764,8 @@ a {
 .catalog-grid .media-card:hover { transform: translateY(-4px); }
 .catalog-grid .cover { aspect-ratio: 2 / 3; }
 .catalog-grid .card-info { padding: 11px 4px 2px; }
-.catalog-grid .card-title { font-size: 12px; }
-.catalog-grid .card-meta { font-size: 10px; }
+.catalog-grid .card-title { font-size: 13.5px; }
+.catalog-grid .card-meta { font-size: 11.5px; }
 .category-section { margin-top: 42px; padding: 24px; border: 1px solid rgba(255,255,255,.07); border-radius: 22px; background: linear-gradient(135deg, rgba(139,92,246,.08), rgba(17,17,21,.72)); }
 .section-caption { color: #777781; font-size: 11px; }
 .categories-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
