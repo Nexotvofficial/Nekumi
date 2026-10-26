@@ -108,6 +108,7 @@ export default function Home({
   const [trending, setTrending] = useState<Manhwa[]>(initialTrending);
   const [recentReviews, setRecentReviews] = useState<any[]>(initialReviews);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [activeCategory, setActiveCategory] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "top" | "az" | "completed" | "ongoing">("recent");
   const [visibleCount, setVisibleCount] = useState<number>(36);
@@ -562,7 +563,7 @@ export default function Home({
             </nav>
 
             <div className="header-actions">
-              <div className="search-wrap desktop-search">
+              <div className="search-wrap desktop-search relative">
                 <Search />
                 <label className="sr-only" htmlFor="desktopSearch">
                   Buscar
@@ -572,10 +573,73 @@ export default function Home({
                   className="search-input"
                   type="search"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setSearchFocused(false), 180)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchFocused(true);
+                  }}
                   placeholder="Buscar manhwas, géneros..."
                   autoComplete="off"
                 />
+                {searchFocused && searchQuery.trim().length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-2 w-80 sm:w-96 bg-[#101015]/95 backdrop-blur-2xl border border-[#a855f7]/35 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-[90]">
+                    <div className="px-3.5 py-2 border-b border-white/5 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#c084fc]">
+                      <span>Resultados en vivo ({filteredManhwas.length})</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchFocused(false);
+                          document.getElementById("recomendados")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="text-white/60 hover:text-white"
+                      >
+                        Ver todos →
+                      </button>
+                    </div>
+                    {filteredManhwas.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-white/50">
+                        No se encontraron manhwas con &ldquo;{searchQuery}&rdquo;
+                      </div>
+                    ) : (
+                      <div className="max-h-80 overflow-y-auto divide-y divide-white/5">
+                        {filteredManhwas.slice(0, 6).map((item) => (
+                          <Link
+                            key={`live-${item.id}`}
+                            href={`/manga/${item.id}`}
+                            onClick={() => {
+                              setSearchFocused(false);
+                              try {
+                                sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                              } catch {}
+                            }}
+                            className="flex items-center gap-3 p-2.5 hover:bg-[#a855f7]/15 transition-colors"
+                          >
+                            <img
+                              referrerPolicy="no-referrer"
+                              src={item.cover_url}
+                              alt={item.title}
+                              className="w-10 h-14 object-cover rounded-lg border border-white/10 flex-shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-white truncate">{item.title}</p>
+                              <p className="text-[11px] text-white/50 truncate mt-0.5">{item.genre}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#fbbf24]">
+                                  <Star className="w-2.5 h-2.5 fill-current" />
+                                  {Number(item.score) > 0 ? item.score : "Sin votos"}
+                                </span>
+                                <span className="text-[10px] text-[#c084fc] font-semibold">
+                                  {item.status || "En emisión"}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 className="icon-btn menu-btn"
@@ -717,7 +781,7 @@ export default function Home({
           </div>
 
           {mobileSearchVisible && (
-            <div className="mobile-search visible">
+            <div className="mobile-search visible relative">
               <div className="search-wrap">
                 <Search />
                 <label className="sr-only" htmlFor="mobileSearchInput">
@@ -728,10 +792,48 @@ export default function Home({
                   className="search-input"
                   type="search"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchFocused(true);
+                  }}
                   placeholder="Buscar manhwas, géneros..."
                 />
               </div>
+              {searchQuery.trim().length > 0 && (
+                <div className="mt-2 bg-[#101015]/95 backdrop-blur-2xl border border-[#a855f7]/35 rounded-2xl shadow-2xl overflow-hidden z-[90]">
+                  <div className="max-h-72 overflow-y-auto divide-y divide-white/5">
+                    {filteredManhwas.slice(0, 5).map((item) => (
+                      <Link
+                        key={`mlive-${item.id}`}
+                        href={`/manga/${item.id}`}
+                        onClick={() => {
+                          setMobileSearchVisible(false);
+                          try {
+                            sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                          } catch {}
+                        }}
+                        className="flex items-center gap-3 p-2.5 hover:bg-[#a855f7]/15 transition-colors"
+                      >
+                        <img
+                          referrerPolicy="no-referrer"
+                          src={item.cover_url}
+                          alt={item.title}
+                          className="w-10 h-14 object-cover rounded-lg border border-white/10 flex-shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate">{item.title}</p>
+                          <p className="text-[11px] text-white/50 truncate">{item.genre}</p>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#fbbf24]">
+                            <Star className="w-2.5 h-2.5 fill-current" />
+                            {Number(item.score) > 0 ? item.score : "Sin votos"}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1152,7 +1254,7 @@ export default function Home({
                           />
                           <span className="card-badge score pointer-events-none z-[3]">
                             <Star />
-                            {item.score}
+                            {Number(item.score) > 0 ? item.score : "★"}
                           </span>
 
                           <span

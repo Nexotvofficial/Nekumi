@@ -84,6 +84,10 @@ export default function ClientPage({
   const [reviewLoading, setReviewLoading] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState("hunter");
+  const [userStarVote, setUserStarVote] = useState<number>(0);
+  const [hoverStar, setHoverStar] = useState<number>(0);
+  const [totalVotesCount, setTotalVotesCount] = useState<number>(initialReviews.length);
+  const [voterId, setVoterId] = useState<string>("");
 
   // Toast state
   const [toastMessage, setToastMessage] = useState("");
@@ -124,7 +128,17 @@ export default function ClientPage({
     if (!id) return;
 
     // Load local bookmark, favorite status, and cached manhwa/chapters immediately (0ms!)
+    let localVoterId = "";
     try {
+      localVoterId = localStorage.getItem("nekumi_voter_id") || "";
+      if (!localVoterId) {
+        localVoterId = `v_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        localStorage.setItem("nekumi_voter_id", localVoterId);
+      }
+      setVoterId(localVoterId);
+      const savedVote = Number(localStorage.getItem(`nekumi_vote_${id}`) || "0");
+      if (savedVote >= 1 && savedVote <= 5) setUserStarVote(savedVote);
+
       const lastId = localStorage.getItem(`nekumi_last_read_${id}`);
       const lastNum = localStorage.getItem(`nekumi_last_read_num_${id}`);
       if (lastId && lastNum) {
@@ -211,6 +225,18 @@ export default function ClientPage({
         if (sortedAsc[0]) handlePrefetch(sortedAsc[0]);
       }
       if (reviewsRes.data) setReviews(reviewsRes.data);
+
+      // Fetch real aggregated rating and voter status
+      fetch(`/api/community?type=manhwa_rating&manhwaId=${encodeURIComponent(id)}&voterId=${encodeURIComponent(sessionUser?.id || localVoterId)}`)
+        .then((r) => r.json())
+        .then((rData) => {
+          if (rData && typeof rData.score === "number") {
+            setManhwa((prev) => (prev ? { ...prev, score: rData.score } : prev));
+            setTotalVotesCount(rData.totalVotes || 0);
+            if (rData.userRating) setUserStarVote(rData.userRating);
+          }
+        })
+        .catch(() => {});
 
       setLoading(false);
       setChaptersLoading(false);
@@ -304,11 +330,59 @@ export default function ClientPage({
 
         const sum = updatedReviews.reduce((acc, r) => acc + r.rating, 0);
         const avg = parseFloat((sum / updatedReviews.length).toFixed(1));
-        supabase.from("manhwas").update({ score: avg }).eq("id", id).then();
-        if (manhwa) setManhwa({ ...manhwa, score: avg });
+        fetch("/api/community", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "rate_manhwa",
+            manhwaId: id,
+            rating: newRating,
+            voterId: user.id || voterId,
+          }),
+        })
+          .then((r) => r.json())
+          .then((rData) => {
+            if (rData && typeof rData.score === "number") {
+              setManhwa((prev) => (prev ? { ...prev, score: rData.score } : prev));
+              setTotalVotesCount(rData.totalVotes || updatedReviews.length);
+              setUserStarVote(newRating);
+            }
+          })
+          .catch(() => {
+            if (manhwa) setManhwa({ ...manhwa, score: avg });
+          });
       }
       triggerToast("¡Reseña publicada con éxito!");
       setReviewLoading(false);
+    }
+  };
+
+  const handleQuickStarRate = async (stars: number) => {
+    const activeVoter = user?.id || voterId || `anon_${Date.now()}`;
+    setUserStarVote(stars);
+    try {
+      localStorage.setItem(`nekumi_vote_${id}`, String(stars));
+    } catch {}
+
+    try {
+      const res = await fetch("/api/community", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "rate_manhwa",
+          manhwaId: id,
+          rating: stars,
+          voterId: activeVoter,
+        }),
+      });
+      const data = await res.json();
+      if (data && typeof data.score === "number") {
+        setManhwa((prev) => (prev ? { ...prev, score: data.score } : prev));
+        setTotalVotesCount(data.totalVotes || 1);
+        triggerToast(`¡Calificaste con ${stars} ★! Promedio actual: ${data.score} ⭐`);
+      }
+    } catch {
+      triggerToast("Error al guardar calificación");
     }
   };
 
@@ -473,16 +547,41 @@ export default function ClientPage({
             </h1>
 
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-[#a7a7b1] mb-8 font-medium">
-              <button
-                type="button"
-                onClick={() => document.getElementById("reseñas-section")?.scrollIntoView({ behavior: "smooth" })}
-                className="flex items-center gap-1.5 text-white hover:text-[#fbbf24] transition-colors cursor-pointer"
-                title="Calificar este manhwa"
-              >
-                <Star className="w-4 h-4 text-[#fbbf24] fill-[#fbbf24]" />
-                <span className="font-bold text-[15px]">{manhwa.score}</span>
-                <span className="text-xs text-white/50">({reviews.length} reseñas)</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5 bg-white/5 border border-white/10 rounded-2xl px-4 py-2">
+                <div className="flex items-center gap-1" onMouseLeave={() => setHoverStar(0)}>
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const active = (hoverStar || userStarVote || Math.round(Number(manhwa.score) || 0)) >= star;
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onMouseEnter={() => setHoverStar(star)}
+                        onClick={() => handleQuickStarRate(star)}
+                        aria-label={`Calificar con ${star} estrellas`}
+                        title={`Calificar con ${star} estrellas`}
+                        className="p-0.5 transition-transform hover:scale-125 cursor-pointer"
+                      >
+                        <Star
+                          className={`w-4 h-4 transition-colors ${
+                            active ? "text-[#fbbf24] fill-[#fbbf24]" : "text-white/25"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                <span className="font-bold text-[15px] text-white">
+                  {Number(manhwa.score) > 0 ? manhwa.score : "Sin votos"}
+                </span>
+                <span className="text-xs text-white/50">
+                  ({totalVotesCount} {totalVotesCount === 1 ? "voto" : "votos"})
+                </span>
+                {userStarVote > 0 && (
+                  <span className="text-[11px] bg-[#fbbf24]/20 text-[#fbbf24] px-2 py-0.5 rounded-full font-bold">
+                    Tu voto: {userStarVote}★
+                  </span>
+                )}
+              </div>
               <div className="w-1 h-1 rounded-full bg-white/20" />
               <div className="flex items-center gap-1.5">
                 <List className="w-4 h-4 text-[#c084fc]" />

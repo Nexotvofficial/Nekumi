@@ -13,8 +13,12 @@ import {
   Play,
   Pause,
   FastForward,
+  MessageCircle,
+  Send,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { getAvatarSvg } from "@/lib/avatars";
 
 interface Chapter {
   id: string;
@@ -58,18 +62,132 @@ export default function ChapterReader() {
   const [showSettings, setShowSettings] = useState(false);
   const [showReaderHeader, setShowReaderHeader] = useState(true);
 
+  // Chapter Reactions & In-Chapter Comments
+  const [voterId, setVoterId] = useState("");
+  const [userName, setUserName] = useState("");
+  const [userAvatar, setUserAvatar] = useState("hunter");
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
+  const [userReactions, setUserReactions] = useState<string[]>([]);
+  const [chapterComments, setChapterComments] = useState<any[]>([]);
+  const [commentInput, setCommentInput] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+
   const touchStartX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load saved readMode once
+  // Load saved readMode & voter identity once
   useEffect(() => {
+    let vid = "";
     try {
       const savedMode = localStorage.getItem("nekutoon:readMode");
       if (savedMode === "paged" || savedMode === "cascade") {
         setReadMode(savedMode);
       }
+      vid = localStorage.getItem("nekumi_voter_id") || "";
+      if (!vid) {
+        vid = `v_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        localStorage.setItem("nekumi_voter_id", vid);
+      }
+      setVoterId(vid);
+      const savedNick = localStorage.getItem("nekumi_reader_nick") || "";
+      if (savedNick) setUserName(savedNick);
     } catch {}
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setVoterId(session.user.id);
+        setUserName(session.user.email?.split("@")[0] || "Lector");
+        supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.username) setUserName(data.username);
+            if (data?.avatar_url) setUserAvatar(data.avatar_url);
+          });
+      }
+    });
   }, []);
+
+  // Load chapter reactions & comments
+  useEffect(() => {
+    if (!chapterId) return;
+    const activeVoter = voterId || (typeof window !== "undefined" ? localStorage.getItem("nekumi_voter_id") || "" : "");
+    fetch(
+      `/api/community?type=chapter_social&chapterId=${encodeURIComponent(chapterId)}&voterId=${encodeURIComponent(activeVoter)}`
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        if (data) {
+          setReactionCounts(data.counts || {});
+          setUserReactions(Array.isArray(data.userReactions) ? data.userReactions : []);
+          setChapterComments(Array.isArray(data.comments) ? data.comments : []);
+        }
+      })
+      .catch(() => {});
+  }, [chapterId, voterId]);
+
+  const handleToggleReaction = async (key: string) => {
+    const activeVoter = voterId || `anon_${Date.now()}`;
+    const alreadyActive = userReactions.includes(key);
+    const nextUserReactions = alreadyActive
+      ? userReactions.filter((r) => r !== key)
+      : [...userReactions, key];
+    setUserReactions(nextUserReactions);
+    setReactionCounts((prev) => ({
+      ...prev,
+      [key]: Math.max(0, (prev[key] || 0) + (alreadyActive ? -1 : 1)),
+    }));
+
+    try {
+      const res = await fetch("/api/community", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "react_chapter",
+          chapterId,
+          reactionKey: key,
+          voterId: activeVoter,
+        }),
+      });
+      const data = await res.json();
+      if (data?.counts) {
+        setReactionCounts(data.counts);
+        setUserReactions(data.userReactions || []);
+      }
+    } catch {}
+  };
+
+  const handlePostChapterComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentInput.trim()) return;
+    setCommentSubmitting(true);
+    const finalName = userName.trim() || "Cazador";
+    try {
+      localStorage.setItem("nekumi_reader_nick", finalName);
+    } catch {}
+
+    try {
+      const res = await fetch("/api/community", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "comment_chapter",
+          chapterId,
+          authorName: finalName,
+          avatarKey: userAvatar,
+          content: commentInput.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (Array.isArray(data?.comments)) {
+        setChapterComments(data.comments);
+        setCommentInput("");
+      }
+    } catch {}
+    setCommentSubmitting(false);
+  };
 
   // Fetch chapter, pages, neighbors, and record reading history
   useEffect(() => {
@@ -671,59 +789,171 @@ export default function ChapterReader() {
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="bg-[#0a0a0c] border-t border-white/5 py-8 px-4 mt-8">
-        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex gap-2.5 w-full sm:w-auto justify-between">
-            <Link
-              href={`/manga/${manhwaId}`}
-              className="btn glass border border-white/10 hover:bg-white/5 flex-1 sm:flex-none"
-            >
-              Lista de Capítulos
-            </Link>
-
-            {prevChapter ? (
-              <button
-                type="button"
-                onClick={() => router.push(`/manga/${manhwaId}/chapter/${prevChapter.id}`)}
-                className="btn glass border border-white/10 hover:bg-white/5 flex-1 sm:flex-none"
-              >
-                <ArrowLeft className="w-4 h-4" /> Cap. {prevChapter.chapter_number}
-              </button>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="btn glass border border-white/10 opacity-40 cursor-not-allowed flex-1 sm:flex-none"
-              >
-                Primer Cap.
-              </button>
-            )}
-          </div>
-
-          <div className="text-center hidden sm:block">
-            <p className="text-sm font-semibold text-white">Fin del Capítulo {chapter.chapter_number}</p>
-            <Link href={`/manga/${manhwaId}#reseñas-section`} className="text-xs text-[#c084fc] hover:underline">
-              Dejar un comentario →
-            </Link>
-          </div>
-
-          <div className="w-full sm:w-auto">
-            {nextChapter ? (
-              <button
-                type="button"
-                onClick={() => router.push(`/manga/${manhwaId}/chapter/${nextChapter.id}`)}
-                className="btn btn-primary w-full sm:w-auto"
-              >
-                Siguiente: Cap. {nextChapter.chapter_number} <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : (
+      {/* Bottom Navigation + Reactions + Chapter Comments */}
+      <div className="bg-[#0a0a0c] border-t border-white/5 py-10 px-4 mt-8">
+        <div className="max-w-3xl mx-auto space-y-10">
+          {/* Navigation Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 border-b border-white/5">
+            <div className="flex gap-2.5 w-full sm:w-auto justify-between">
               <Link
                 href={`/manga/${manhwaId}`}
-                className="btn btn-secondary w-full sm:w-auto text-center"
+                className="btn glass border border-white/10 hover:bg-white/5 flex-1 sm:flex-none"
               >
-                Al día — Volver a la Obra
+                Lista de Capítulos
               </Link>
+
+              {prevChapter ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/manga/${manhwaId}/chapter/${prevChapter.id}`)}
+                  className="btn glass border border-white/10 hover:bg-white/5 flex-1 sm:flex-none"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Cap. {prevChapter.chapter_number}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="btn glass border border-white/10 opacity-40 cursor-not-allowed flex-1 sm:flex-none"
+                >
+                  Primer Cap.
+                </button>
+              )}
+            </div>
+
+            <div className="text-center hidden sm:block">
+              <p className="text-sm font-semibold text-white">Fin del Capítulo {chapter.chapter_number}</p>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              {nextChapter ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/manga/${manhwaId}/chapter/${nextChapter.id}`)}
+                  className="btn btn-primary w-full sm:w-auto"
+                >
+                  Siguiente: Cap. {nextChapter.chapter_number} <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <Link
+                  href={`/manga/${manhwaId}`}
+                  className="btn btn-secondary w-full sm:w-auto text-center"
+                >
+                  Al día — Volver a la Obra
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Reacciones Rápidas Animadas */}
+          <div className="glass rounded-3xl p-6 text-center border border-white/10">
+            <h3 className="text-base sm:text-lg font-extrabold text-white mb-1">
+              ¿Qué te pareció el Capítulo {chapter.chapter_number}?
+            </h3>
+            <p className="text-xs text-white/50 mb-5">Deja tu reacción rápida para la comunidad</p>
+            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5">
+              {[
+                { key: "epic", emoji: "🔥", label: "Épico" },
+                { key: "shock", emoji: "😱", label: "Qué tensión" },
+                { key: "love", emoji: "❤️", label: "Me encantó" },
+                { key: "sad", emoji: "😭", label: "Triste" },
+                { key: "rage", emoji: "🤬", label: "Cliffhanger" },
+              ].map((r) => {
+                const isSelected = userReactions.includes(r.key);
+                const count = reactionCounts[r.key] || 0;
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => handleToggleReaction(r.key)}
+                    className={`group flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      isSelected
+                        ? "bg-gradient-to-r from-[#a855f7]/30 to-[#ec4899]/30 border-[#a855f7] text-white scale-105 shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+                        : "bg-white/5 border-white/10 text-white/80 hover:border-[#a855f7]/50 hover:bg-white/10 hover:scale-105"
+                    }`}
+                  >
+                    <span className="text-lg group-hover:scale-125 transition-transform inline-block">{r.emoji}</span>
+                    <span>{r.label}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                        isSelected ? "bg-[#a855f7] text-white" : "bg-black/40 text-white/60"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sección de Comentarios del Capítulo */}
+          <div className="glass rounded-3xl p-6 border border-white/10">
+            <div className="flex items-center gap-2.5 mb-5">
+              <MessageCircle className="w-5 h-5 text-[#a855f7]" />
+              <h3 className="text-lg font-extrabold text-white">
+                Comentarios del Capítulo {chapter.chapter_number} ({chapterComments.length})
+              </h3>
+            </div>
+
+            <form onSubmit={handlePostChapterComment} className="space-y-3 mb-6">
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <input
+                  type="text"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Tu apodo (ej. SungJinWoo)"
+                  maxLength={30}
+                  className="sm:w-52 h-10 rounded-xl bg-black/40 border border-white/10 px-3.5 text-xs sm:text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#a855f7]"
+                />
+                <div className="flex-1 flex gap-2">
+                  <input
+                    type="text"
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="Escribe tu opinión sobre este capítulo..."
+                    maxLength={500}
+                    className="flex-1 h-10 rounded-xl bg-black/40 border border-white/10 px-3.5 text-xs sm:text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#a855f7]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={commentSubmitting || !commentInput.trim()}
+                    className="btn btn-primary px-4 h-10 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 disabled:opacity-40"
+                  >
+                    {commentSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Enviar
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {chapterComments.length === 0 ? (
+              <p className="text-center text-xs sm:text-sm text-white/45 py-6">
+                Sé el primero en comentar este capítulo.
+              </p>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {chapterComments.map((c: any) => (
+                  <div
+                    key={c.id}
+                    className="flex items-start gap-3 p-3.5 rounded-2xl bg-black/30 border border-white/5"
+                  >
+                    <div
+                      className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 bg-black/50"
+                      dangerouslySetInnerHTML={{ __html: getAvatarSvg(c.avatarKey || "hunter") }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-xs font-bold text-[#c084fc] truncate">{c.authorName || "Lector"}</span>
+                        <span className="text-[11px] text-white/35">
+                          {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "Hoy"}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-white/85 leading-relaxed break-words">{c.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
