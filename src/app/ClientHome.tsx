@@ -33,6 +33,8 @@ import {
   Crown,
   Library,
   Trophy,
+  Coins,
+  ShoppingBag,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,8 +43,10 @@ import { LegalModal } from "@/components/LegalModal";
 import { AdsterraNative, AdsterraBanner300 } from "@/components/Adsterra";
 import { getAvatarSvg } from "@/lib/avatars";
 import { createClient } from "@/lib/supabase";
-import { ReaderRankBadge, getLocalReaderStats, ReaderStats } from "@/lib/readerRank";
+import { ReaderRankBadge, getLocalReaderStats, ReaderStats, getShopItemById } from "@/lib/readerRank";
 import PublicListsSection from "@/components/PublicListsSection";
+import GuildShopModal from "@/components/GuildShopModal";
+import CommunityWallSection from "@/components/CommunityWallSection";
 
 interface Manhwa {
   id: string;
@@ -124,6 +128,7 @@ export default function Home({
   const [recentChaptersRaw, setRecentChaptersRaw] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState<number>(36);
   const [readerStats, setReaderStats] = useState<ReaderStats | null>(null);
+  const [showGuildShop, setShowGuildShop] = useState<boolean>(false);
 
   const router = useRouter();
   const supabase = createClient();
@@ -639,6 +644,17 @@ export default function Home({
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               </a>
               <a
+                className="nav-link"
+                href="#muro-comunidad"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("muro-comunidad")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <MessagesSquare className="w-3.5 h-3.5 text-amber-400" />
+                <span>Comunidad</span>
+              </a>
+              <a
                 className={`nav-link ${activeCategory === "Acción" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "Acción")}
@@ -880,17 +896,44 @@ export default function Home({
               )}
 
               {readerStats && (
-                <Link
-                  href="/profile"
-                  className="hidden md:inline-flex items-center hover:scale-105 transition-transform"
-                  title="Ver tu Tarjeta de Rango y Progreso XP"
-                >
-                  <ReaderRankBadge xp={readerStats.xp} size="xs" />
-                </Link>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowGuildShop(true)}
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-black transition-all cursor-pointer shadow-[0_0_14px_rgba(251,191,36,0.2)]"
+                    title="Abrir Tienda del Gremio (Marcos Neón y Colores gratis por leer)"
+                  >
+                    <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{readerStats.coins}</span>
+                    <ShoppingBag className="w-3.5 h-3.5 text-amber-200 ml-0.5" />
+                  </button>
+
+                  <Link
+                    href="/profile"
+                    className="hidden xl:inline-flex items-center hover:scale-105 transition-transform"
+                    title="Ver tu Tarjeta de Rango y Progreso XP"
+                  >
+                    <ReaderRankBadge
+                      xp={readerStats.xp}
+                      customTitleId={readerStats.equipped?.customTitleId}
+                      size="xs"
+                    />
+                  </Link>
+                </>
               )}
 
               <div className="relative">
-                <button className="avatar-button" type="button" aria-label="Abrir perfil" onClick={handleAvatarClick}>
+                <button
+                  className="avatar-button"
+                  type="button"
+                  aria-label="Abrir perfil"
+                  onClick={handleAvatarClick}
+                  style={
+                    getShopItemById(readerStats?.equipped?.frameId)?.glowCss
+                      ? { boxShadow: getShopItemById(readerStats?.equipped?.frameId)?.glowCss }
+                      : undefined
+                  }
+                >
                   <div
                     className="rounded-full overflow-hidden bg-black/40 [&>svg]:w-full [&>svg]:h-full [&>svg]:scale-110"
                     dangerouslySetInnerHTML={{ __html: getAvatarSvg(userProfile?.avatar_url || "hunter") }}
@@ -1827,7 +1870,29 @@ export default function Home({
               </>
             )}
           </section>
+
+          {!activeCategory && !searchQuery && (
+            <CommunityWallSection
+              manhwas={manhwas}
+              stats={readerStats}
+              onStatsChange={(next) => setReaderStats(next)}
+              onOpenShop={() => setShowGuildShop(true)}
+              userName={userProfile?.username || user?.email?.split("@")[0] || "Cazador"}
+              userAvatar={userProfile?.avatar_url || "hunter"}
+            />
+          )}
         </div>
+
+        {readerStats && (
+          <GuildShopModal
+            isOpen={showGuildShop}
+            onClose={() => setShowGuildShop(false)}
+            stats={readerStats}
+            onStatsChange={(next) => setReaderStats(next)}
+            userName={userProfile?.username || user?.email?.split("@")[0] || "Cazador"}
+            userAvatar={userProfile?.avatar_url || "hunter"}
+          />
+        )}
 
         <div className="shell lower-grid">
           <div className="lower-content">

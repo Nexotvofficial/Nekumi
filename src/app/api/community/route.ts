@@ -93,6 +93,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ lists });
   }
 
+  if (type === "global_wall") {
+    const { data: row } = await supabase
+      .from("site_config")
+      .select("category_images")
+      .eq("id", 260)
+      .maybeSingle();
+
+    const posts = Array.isArray((row?.category_images as any)?.posts)
+      ? (row?.category_images as any).posts
+      : [];
+    return NextResponse.json({ posts });
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -190,7 +203,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "comment_chapter") {
-      const { chapterId, authorName, avatarKey, content, readerXp, chaptersRead } = body;
+      const {
+        chapterId,
+        authorName,
+        avatarKey,
+        content,
+        readerXp,
+        chaptersRead,
+        frameId,
+        nameColorId,
+        customTitleId,
+        isSpoiler,
+      } = body;
       if (!chapterId || !content?.trim()) {
         return NextResponse.json({ error: "Comentario vacío" }, { status: 400 });
       }
@@ -216,6 +240,10 @@ export async function POST(req: NextRequest) {
         avatarKey: avatarKey || "hunter",
         readerXp: typeof readerXp === "number" ? Math.max(0, Math.floor(readerXp)) : 30,
         chaptersRead: typeof chaptersRead === "number" ? Math.max(1, Math.floor(chaptersRead)) : 3,
+        frameId: frameId || undefined,
+        nameColorId: nameColorId || undefined,
+        customTitleId: customTitleId || undefined,
+        isSpoiler: Boolean(isSpoiler),
         content: content.trim().slice(0, 600),
         createdAt: new Date().toISOString(),
       };
@@ -295,6 +323,87 @@ export async function POST(req: NextRequest) {
         });
       }
       return NextResponse.json({ lists: currentLists });
+    }
+
+    if (action === "post_global_wall") {
+      const {
+        authorName,
+        avatarKey,
+        readerXp,
+        frameId,
+        nameColorId,
+        customTitleId,
+        channel,
+        isSpoiler,
+        attachedManhwaId,
+        attachedManhwaTitle,
+        attachedManhwaCover,
+        content,
+      } = body;
+      if (!content?.trim()) {
+        return NextResponse.json({ error: "Escribe un mensaje" }, { status: 400 });
+      }
+
+      const { data: existing } = await supabase
+        .from("site_config")
+        .select("category_images")
+        .eq("id", 260)
+        .maybeSingle();
+
+      const currentPosts: any[] = Array.isArray((existing?.category_images as any)?.posts)
+        ? [...(existing?.category_images as any).posts]
+        : [];
+
+      const newPost = {
+        id: `wall_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        authorName: (authorName || "Cazador").trim().slice(0, 28),
+        avatarKey: avatarKey || "hunter",
+        readerXp: typeof readerXp === "number" ? Math.max(10, readerXp) : 120,
+        frameId: frameId || undefined,
+        nameColorId: nameColorId || undefined,
+        customTitleId: customTitleId || undefined,
+        channel: channel || "general",
+        isSpoiler: Boolean(isSpoiler),
+        attachedManhwaId: attachedManhwaId || undefined,
+        attachedManhwaTitle: attachedManhwaTitle || undefined,
+        attachedManhwaCover: attachedManhwaCover || undefined,
+        content: content.trim().slice(0, 650),
+        likes: 1,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedPosts = [newPost, ...currentPosts].slice(0, 60);
+      await supabase.from("site_config").upsert({
+        id: 260,
+        category_images: { posts: updatedPosts },
+      });
+
+      return NextResponse.json({ posts: updatedPosts, created: newPost });
+    }
+
+    if (action === "like_global_wall") {
+      const { postId } = body;
+      if (!postId) return NextResponse.json({ ok: false });
+
+      const { data: existing } = await supabase
+        .from("site_config")
+        .select("category_images")
+        .eq("id", 260)
+        .maybeSingle();
+
+      const currentPosts: any[] = Array.isArray((existing?.category_images as any)?.posts)
+        ? [...(existing?.category_images as any).posts]
+        : [];
+
+      const idx = currentPosts.findIndex((p) => p.id === postId);
+      if (idx >= 0) {
+        currentPosts[idx].likes = (Number(currentPosts[idx].likes) || 0) + 1;
+        await supabase.from("site_config").upsert({
+          id: 260,
+          category_images: { posts: currentPosts },
+        });
+      }
+      return NextResponse.json({ posts: currentPosts });
     }
 
     return NextResponse.json({ error: "Acción no válida" }, { status: 400 });

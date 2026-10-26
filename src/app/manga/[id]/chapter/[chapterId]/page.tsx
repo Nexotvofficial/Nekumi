@@ -32,6 +32,7 @@ import {
   recordReactionForRank,
   ReaderRankBadge,
   ReaderStats,
+  getShopItemById,
 } from "@/lib/readerRank";
 
 interface Chapter {
@@ -204,6 +205,9 @@ export default function ChapterReader() {
           avatarKey: userAvatar,
           readerXp: updatedStats.xp,
           chaptersRead: updatedStats.chaptersRead,
+          frameId: updatedStats.equipped?.frameId,
+          nameColorId: updatedStats.equipped?.nameColorId,
+          customTitleId: updatedStats.equipped?.customTitleId,
           content: commentInput.trim(),
         }),
       });
@@ -1050,33 +1054,47 @@ export default function ChapterReader() {
               </p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                {chapterComments.map((c: any) => (
-                  <div
-                    key={c.id}
-                    className="flex items-start gap-3 p-3.5 rounded-2xl bg-black/30 border border-white/5"
-                  >
+                {chapterComments.map((c: any) => {
+                  const frameItem = getShopItemById(c.frameId);
+                  const colorItem = getShopItemById(c.nameColorId);
+                  return (
                     <div
-                      className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 bg-black/50"
-                      dangerouslySetInnerHTML={{ __html: getAvatarSvg(c.avatarKey || "hunter") }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-bold text-white truncate">{c.authorName || "Cazador"}</span>
-                          <ReaderRankBadge
-                            xp={typeof c.readerXp === "number" ? c.readerXp : undefined}
-                            chaptersRead={typeof c.chaptersRead === "number" ? c.chaptersRead : 3}
-                            size="xs"
-                          />
+                      key={c.id}
+                      className="flex items-start gap-3 p-3.5 rounded-2xl bg-black/30 border border-white/5"
+                    >
+                      <div
+                        className={`w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-black/50 ${
+                          frameItem ? frameItem.previewClass : "border border-white/10"
+                        }`}
+                        style={frameItem?.glowCss ? { boxShadow: frameItem.glowCss } : undefined}
+                        dangerouslySetInnerHTML={{ __html: getAvatarSvg(c.avatarKey || "hunter") }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`text-xs font-black truncate ${
+                                colorItem ? colorItem.previewClass : "text-white"
+                              }`}
+                            >
+                              {c.authorName || "Cazador"}
+                            </span>
+                            <ReaderRankBadge
+                              xp={typeof c.readerXp === "number" ? c.readerXp : undefined}
+                              chaptersRead={typeof c.chaptersRead === "number" ? c.chaptersRead : 3}
+                              customTitleId={c.customTitleId}
+                              size="xs"
+                            />
+                          </div>
+                          <span className="text-[11px] text-white/35">
+                            {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "Hoy"}
+                          </span>
                         </div>
-                        <span className="text-[11px] text-white/35">
-                          {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "Hoy"}
-                        </span>
+                        <p className="text-xs sm:text-sm text-white/85 leading-relaxed break-words">{c.content}</p>
                       </div>
-                      <p className="text-xs sm:text-sm text-white/85 leading-relaxed break-words">{c.content}</p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

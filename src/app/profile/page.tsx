@@ -13,6 +13,8 @@ import {
   Sparkles,
   Check,
   Lock,
+  Coins,
+  ShoppingBag,
 } from "lucide-react";
 import Link from "next/link";
 import AvatarPicker from "@/components/AvatarPicker";
@@ -23,7 +25,9 @@ import {
   RankIcon,
   getLocalReaderStats,
   ReaderStats,
+  getShopItemById,
 } from "@/lib/readerRank";
+import GuildShopModal from "@/components/GuildShopModal";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -34,6 +38,7 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<ReaderStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showGuildShop, setShowGuildShop] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const supabase = createClient();
@@ -115,11 +120,13 @@ export default function ProfilePage() {
     profile?.username || (user?.email ? user.email.split("@")[0] : guestNick);
   const activeAvatar = profile?.avatar_url || guestAvatar || "hunter";
   const { currentRank, nextRank, progressPercent, xpToNextRank } = stats;
+  const equippedFrame = getShopItemById(stats.equipped?.frameId);
+  const equippedNameColor = getShopItemById(stats.equipped?.nameColorId);
 
   return (
     <div className="min-h-screen py-14 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-colors text-xs font-bold"
@@ -127,11 +134,25 @@ export default function ProfilePage() {
           <ArrowLeft className="w-4 h-4 text-[#c084fc]" /> Volver al Catálogo
         </Link>
 
-        <Link href="/" className="brand" aria-label="Nekutoon Inicio">
-          <span className="brand-word">
-            Neku<span>toon</span>
-          </span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowGuildShop(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-black transition-all cursor-pointer"
+          >
+            <Coins className="w-4 h-4 text-amber-400" />
+            <span>{stats.coins} NekuCoins</span>
+            <span className="text-white/80 pl-1 border-l border-amber-400/30 flex items-center gap-1">
+              <ShoppingBag className="w-3.5 h-3.5" /> Tienda
+            </span>
+          </button>
+
+          <Link href="/" className="brand" aria-label="Nekutoon Inicio">
+            <span className="brand-word">
+              Neku<span>toon</span>
+            </span>
+          </Link>
+        </div>
       </div>
 
       {/* Hunter / Monarch Rank Card */}
@@ -145,8 +166,14 @@ export default function ProfilePage() {
           {/* Avatar */}
           <div className="relative group flex-shrink-0">
             <div
-              className="w-28 h-28 sm:w-32 sm:h-32 rounded-[26px] overflow-hidden border-2 bg-black/50 p-2 shadow-2xl"
-              style={{ borderColor: currentRank.color, boxShadow: currentRank.glowStyle }}
+              className={`w-28 h-28 sm:w-32 sm:h-32 rounded-[26px] overflow-hidden bg-black/50 p-2 shadow-2xl ${
+                equippedFrame ? equippedFrame.previewClass : "border-2"
+              }`}
+              style={
+                equippedFrame?.glowCss
+                  ? { boxShadow: equippedFrame.glowCss }
+                  : { borderColor: currentRank.color, boxShadow: currentRank.glowStyle }
+              }
               dangerouslySetInnerHTML={{ __html: getAvatarSvg(activeAvatar) }}
             />
             <button
@@ -162,8 +189,18 @@ export default function ProfilePage() {
           {/* Info & XP Progress */}
           <div className="flex-1 w-full text-center md:text-left">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-white">{displayName}</h1>
-              <ReaderRankBadge xp={stats.xp} size="md" />
+              <h1
+                className={`text-2xl sm:text-3xl font-black ${
+                  equippedNameColor ? equippedNameColor.previewClass : "text-white"
+                }`}
+              >
+                {displayName}
+              </h1>
+              <ReaderRankBadge
+                xp={stats.xp}
+                customTitleId={stats.equipped?.customTitleId}
+                size="md"
+              />
             </div>
 
             <p className="text-xs sm:text-sm text-white/55 mb-5">
@@ -364,6 +401,15 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      <GuildShopModal
+        isOpen={showGuildShop}
+        onClose={() => setShowGuildShop(false)}
+        stats={stats}
+        onStatsChange={(next) => setStats(next)}
+        userName={displayName}
+        userAvatar={activeAvatar}
+      />
     </div>
   );
 }

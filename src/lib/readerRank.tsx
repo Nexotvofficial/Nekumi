@@ -103,11 +103,158 @@ export const READER_RANKS: ReaderRankTier[] = [
   },
 ];
 
+export interface GuildShopItem {
+  id: string;
+  category: "frame" | "nameColor" | "customTitle";
+  name: string;
+  description: string;
+  price: number;
+  previewClass: string;
+  glowCss?: string;
+  badgeText?: string;
+}
+
+export const GUILD_SHOP_ITEMS: GuildShopItem[] = [
+  // Avatar Neon Frames
+  {
+    id: "frame_abyss",
+    category: "frame",
+    name: "Marco Monarca Abismal",
+    description: "Anillo de energía púrpura y magenta con aura abismal.",
+    price: 150,
+    previewClass: "border-2 border-fuchsia-400 ring-2 ring-purple-500/60",
+    glowCss: "0 0 18px rgba(232,121,249,0.75), inset 0 0 10px rgba(168,85,247,0.45)",
+  },
+  {
+    id: "frame_solar",
+    category: "frame",
+    name: "Marco Soberano Dorado",
+    description: "Forjado en oro imperial para los cazadores de élite.",
+    price: 200,
+    previewClass: "border-2 border-amber-300 ring-2 ring-amber-500/60",
+    glowCss: "0 0 18px rgba(251,191,36,0.8), inset 0 0 10px rgba(245,158,11,0.45)",
+  },
+  {
+    id: "frame_cyber",
+    category: "frame",
+    name: "Marco Relámpago Cian",
+    description: "Destello eléctrico azul del Sistema.",
+    price: 120,
+    previewClass: "border-2 border-cyan-300 ring-2 ring-sky-500/60",
+    glowCss: "0 0 16px rgba(56,189,248,0.8), inset 0 0 8px rgba(14,165,233,0.45)",
+  },
+  {
+    id: "frame_crimson",
+    category: "frame",
+    name: "Marco Llama Carmesí",
+    description: "Aura ardiente de comandante de incursión.",
+    price: 160,
+    previewClass: "border-2 border-rose-400 ring-2 ring-pink-600/60",
+    glowCss: "0 0 18px rgba(244,63,94,0.8), inset 0 0 10px rgba(236,72,153,0.45)",
+  },
+  {
+    id: "frame_emerald",
+    category: "frame",
+    name: "Marco Runa Esmeralda",
+    description: "Sello antiguo de vitalidad y precisión.",
+    price: 100,
+    previewClass: "border-2 border-emerald-300 ring-2 ring-emerald-500/55",
+    glowCss: "0 0 15px rgba(52,211,153,0.75)",
+  },
+
+  // Glowing Name Colors
+  {
+    id: "color_monarch",
+    category: "nameColor",
+    name: "Apodo Aura de Sombras",
+    description: "Degradado púrpura, fucsia y cristal en todos tus comentarios.",
+    price: 140,
+    previewClass:
+      "text-transparent bg-clip-text bg-gradient-to-r from-[#e879f9] via-[#c084fc] to-[#f472b6] drop-shadow-[0_0_10px_rgba(232,121,249,0.55)]",
+  },
+  {
+    id: "color_gold",
+    category: "nameColor",
+    name: "Apodo Oro Imperial",
+    description: "Brillo dorado real de Rango Nacional.",
+    price: 150,
+    previewClass:
+      "text-transparent bg-clip-text bg-gradient-to-r from-[#fde68a] via-[#fbbf24] to-[#f59e0b] drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]",
+  },
+  {
+    id: "color_crimson",
+    category: "nameColor",
+    name: "Apodo Carmesí Sangriento",
+    description: "Destello rojo-magenta de alta intensidad.",
+    price: 110,
+    previewClass:
+      "text-transparent bg-clip-text bg-gradient-to-r from-[#fda4af] via-[#f43f5e] to-[#ec4899] drop-shadow-[0_0_10px_rgba(244,63,94,0.55)]",
+  },
+  {
+    id: "color_cyan",
+    category: "nameColor",
+    name: "Apodo Jugador del Sistema",
+    description: "Color holográfico azul ventana de estado.",
+    price: 100,
+    previewClass:
+      "text-transparent bg-clip-text bg-gradient-to-r from-[#bae6fd] via-[#38bdf8] to-[#818cf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.55)]",
+  },
+
+  // Exclusive Titles
+  {
+    id: "title_shadow",
+    category: "customTitle",
+    name: "Título: «Rey de las Sombras»",
+    description: "Insignia especial junto a tu nombre en el Muro y Comentarios.",
+    price: 200,
+    previewClass: "text-fuchsia-300 border-fuchsia-400/50 bg-fuchsia-500/15",
+    badgeText: "«Rey de las Sombras»",
+  },
+  {
+    id: "title_system",
+    category: "customTitle",
+    name: "Título: «Jugador del Sistema»",
+    description: "Demuestra que fuiste elegido por el Arquitecto.",
+    price: 120,
+    previewClass: "text-sky-300 border-sky-400/50 bg-sky-500/15",
+    badgeText: "«Jugador del Sistema»",
+  },
+  {
+    id: "title_empress",
+    category: "customTitle",
+    name: "Título: «Emperatriz Carmesí»",
+    description: "Nobleza absoluta de las historias imperiales.",
+    price: 150,
+    previewClass: "text-pink-300 border-pink-400/50 bg-pink-500/15",
+    badgeText: "«Emperatriz Carmesí»",
+  },
+  {
+    id: "title_reaper",
+    category: "customTitle",
+    name: "Título: «Segador del Abismo»",
+    description: "Temido en todas las mazmorras de Rango S.",
+    price: 160,
+    previewClass: "text-amber-300 border-amber-400/50 bg-amber-500/15",
+    badgeText: "«Segador del Abismo»",
+  },
+];
+
+export interface EquippedCosmetics {
+  frameId?: string;
+  nameColorId?: string;
+  customTitleId?: string;
+}
+
 export interface ReaderStats {
   chaptersRead: number;
   commentsCount: number;
   reactionsCount: number;
   xp: number;
+  coins: number;
+  totalEarnedCoins: number;
+  spentCoins: number;
+  ownedItems: string[];
+  equipped: EquippedCosmetics;
   level: number;
   currentRank: ReaderRankTier;
   nextRank: ReaderRankTier | null;
@@ -118,15 +265,28 @@ export interface ReaderStats {
 const READ_CHAPTERS_KEY = "nekutoon_read_chapters_v1";
 const COMMENTS_COUNT_KEY = "nekutoon_comments_count_v1";
 const REACTIONS_COUNT_KEY = "nekutoon_reactions_count_v1";
+const SPENT_COINS_KEY = "nekutoon_spent_coins_v1";
+const OWNED_ITEMS_KEY = "nekutoon_owned_items_v1";
+const EQUIPPED_COSMETICS_KEY = "nekutoon_equipped_cosmetics_v1";
+
+const WELCOME_BONUS_COINS = 250;
+
+export function getShopItemById(id?: string): GuildShopItem | undefined {
+  if (!id) return undefined;
+  return GUILD_SHOP_ITEMS.find((item) => item.id === id);
+}
 
 /**
- * Computes reader rank, level, and progress from XP or raw counts.
+ * Computes reader rank, level, XP, and NekuCoins wallet.
  */
 export function computeReaderStats(
   chaptersRead: number,
   commentsCount = 0,
   reactionsCount = 0,
-  overrideXp?: number
+  overrideXp?: number,
+  spentCoins = 0,
+  ownedItems: string[] = [],
+  equipped: EquippedCosmetics = {}
 ): ReaderStats {
   const safeChapters = Math.max(0, Math.floor(chaptersRead || 0));
   const safeComments = Math.max(0, Math.floor(commentsCount || 0));
@@ -137,7 +297,11 @@ export function computeReaderStats(
       ? Math.floor(overrideXp)
       : safeChapters * 10 + safeComments * 25 + safeReactions * 5;
 
-  // Level scales smoothly: Level 1 at 0 XP, +1 level every 30 XP early on
+  // NekuCoins: 250 welcome bonus + 20 per chapter + 40 per comment/post + 10 per reaction
+  const totalEarnedCoins =
+    WELCOME_BONUS_COINS + safeChapters * 20 + safeComments * 40 + safeReactions * 10;
+  const coins = Math.max(0, totalEarnedCoins - Math.max(0, spentCoins));
+
   const level = Math.max(1, Math.floor(xp / 30) + 1);
 
   let currentIdx = 0;
@@ -164,6 +328,11 @@ export function computeReaderStats(
     commentsCount: safeComments,
     reactionsCount: safeReactions,
     xp,
+    coins,
+    totalEarnedCoins,
+    spentCoins,
+    ownedItems,
+    equipped,
     level,
     currentRank,
     nextRank,
@@ -172,10 +341,6 @@ export function computeReaderStats(
   };
 }
 
-/**
- * Reads local storage and reconciles any existing reading history so returning readers
- * immediately get credit for chapters they already read.
- */
 export function getLocalReaderStats(extraReviewsCount = 0): ReaderStats {
   if (typeof window === "undefined") {
     return computeReaderStats(0, extraReviewsCount, 0);
@@ -185,7 +350,6 @@ export function getLocalReaderStats(extraReviewsCount = 0): ReaderStats {
     const rawSet = localStorage.getItem(READ_CHAPTERS_KEY);
     const readIds = new Set<string>(rawSet ? JSON.parse(rawSet) : []);
 
-    // Also harvest existing nekumi_reading_history & nekumi_last_read_* keys
     const histRaw = localStorage.getItem("nekumi_reading_history");
     if (histRaw) {
       const hist = JSON.parse(histRaw);
@@ -212,20 +376,78 @@ export function getLocalReaderStats(extraReviewsCount = 0): ReaderStats {
 
     const savedComments = parseInt(localStorage.getItem(COMMENTS_COUNT_KEY) || "0", 10) || 0;
     const savedReactions = parseInt(localStorage.getItem(REACTIONS_COUNT_KEY) || "0", 10) || 0;
+    const spentCoins = parseInt(localStorage.getItem(SPENT_COINS_KEY) || "0", 10) || 0;
+    const ownedItems: string[] = JSON.parse(localStorage.getItem(OWNED_ITEMS_KEY) || "[]");
+    const equipped: EquippedCosmetics = JSON.parse(
+      localStorage.getItem(EQUIPPED_COSMETICS_KEY) || "{}"
+    );
 
     return computeReaderStats(
       inferredChapterCount,
       Math.max(savedComments, extraReviewsCount),
-      savedReactions
+      savedReactions,
+      undefined,
+      spentCoins,
+      Array.isArray(ownedItems) ? ownedItems : [],
+      equipped && typeof equipped === "object" ? equipped : {}
     );
   } catch {
     return computeReaderStats(0, extraReviewsCount, 0);
   }
 }
 
-/**
- * Records a chapter read and returns updated stats + whether the user ranked up.
- */
+export function buyOrEquipGuildItem(itemId: string): {
+  success: boolean;
+  message: string;
+  stats: ReaderStats;
+} {
+  const item = getShopItemById(itemId);
+  const current = getLocalReaderStats();
+  if (!item || typeof window === "undefined") {
+    return { success: false, message: "Artículo no encontrado", stats: current };
+  }
+
+  const owned = new Set<string>(current.ownedItems);
+  let spent = current.spentCoins;
+
+  if (!owned.has(item.id)) {
+    if (current.coins < item.price) {
+      return {
+        success: false,
+        message: `Te faltan ${item.price - current.coins} NekuCoins. ¡Lee capítulos (+20) o comenta (+40) para ganar más!`,
+        stats: current,
+      };
+    }
+    spent += item.price;
+    owned.add(item.id);
+    try {
+      localStorage.setItem(SPENT_COINS_KEY, String(spent));
+      localStorage.setItem(OWNED_ITEMS_KEY, JSON.stringify(Array.from(owned)));
+    } catch {}
+  }
+
+  // Toggle or equip in its slot
+  const nextEquipped: EquippedCosmetics = { ...current.equipped };
+  if (item.category === "frame") {
+    nextEquipped.frameId = nextEquipped.frameId === item.id ? undefined : item.id;
+  } else if (item.category === "nameColor") {
+    nextEquipped.nameColorId = nextEquipped.nameColorId === item.id ? undefined : item.id;
+  } else if (item.category === "customTitle") {
+    nextEquipped.customTitleId = nextEquipped.customTitleId === item.id ? undefined : item.id;
+  }
+
+  try {
+    localStorage.setItem(EQUIPPED_COSMETICS_KEY, JSON.stringify(nextEquipped));
+  } catch {}
+
+  const updated = getLocalReaderStats();
+  return {
+    success: true,
+    message: `¡${item.name} equipado en tu perfil y comentarios!`,
+    stats: updated,
+  };
+}
+
 export function recordChapterReadForRank(chapterId: string): {
   stats: ReaderStats;
   leveledUp: boolean;
@@ -295,11 +517,13 @@ export function RankIcon({
 export function ReaderRankBadge({
   xp,
   chaptersRead,
+  customTitleId,
   size = "sm",
   showLevel = true,
 }: {
   xp?: number;
   chaptersRead?: number;
+  customTitleId?: string;
   size?: "xs" | "sm" | "md";
   showLevel?: boolean;
 }) {
@@ -308,6 +532,7 @@ export function ReaderRankBadge({
       ? computeReaderStats(0, 0, 0, xp)
       : computeReaderStats(chaptersRead ?? 1, 0, 0);
   const { currentRank, level } = stats;
+  const customTitleItem = getShopItemById(customTitleId);
 
   const sizeClasses =
     size === "xs"
@@ -317,17 +542,26 @@ export function ReaderRankBadge({
       : "px-2.5 py-0.5 text-[11px] gap-1.5 rounded-lg";
 
   return (
-    <span
-      className={`inline-flex items-center font-extrabold tracking-wide border ${currentRank.bgClass} ${currentRank.borderClass} ${currentRank.textClass} ${sizeClasses} select-none`}
-      style={{ boxShadow: currentRank.glowStyle }}
-      title={`Rango ${currentRank.code} · ${currentRank.title} (${stats.xp} XP)`}
-    >
-      <RankIcon code={currentRank.code} className={size === "xs" ? "w-2.5 h-2.5" : "w-3.5 h-3.5"} />
-      <span>
-        Rango {currentRank.code} · {currentRank.title}
+    <span className="inline-flex flex-wrap items-center gap-1.5 select-none">
+      <span
+        className={`inline-flex items-center font-extrabold tracking-wide border ${currentRank.bgClass} ${currentRank.borderClass} ${currentRank.textClass} ${sizeClasses}`}
+        style={{ boxShadow: currentRank.glowStyle }}
+        title={`Rango ${currentRank.code} · ${currentRank.title} (${stats.xp} XP)`}
+      >
+        <RankIcon code={currentRank.code} className={size === "xs" ? "w-2.5 h-2.5" : "w-3.5 h-3.5"} />
+        <span>
+          Rango {currentRank.code} · {currentRank.title}
+        </span>
+        {showLevel && (
+          <span className="opacity-80 font-black pl-1 border-l border-current/25">Nv.{level}</span>
+        )}
       </span>
-      {showLevel && (
-        <span className="opacity-80 font-black pl-1 border-l border-current/25">Nv.{level}</span>
+      {customTitleItem?.badgeText && (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[10px] font-black tracking-wide ${customTitleItem.previewClass}`}
+        >
+          {customTitleItem.badgeText}
+        </span>
       )}
     </span>
   );
