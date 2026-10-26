@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { getAvatarSvg } from "@/lib/avatars";
 import AvatarPicker from "@/components/AvatarPicker";
+import { ReaderRankBadge, getLocalReaderStats, recordCommentForRank } from "@/lib/readerRank";
 
 interface Manhwa {
   id: string;
@@ -355,7 +356,8 @@ export default function ClientPage({
             if (manhwa) setManhwa({ ...manhwa, score: avg });
           });
       }
-      triggerToast("¡Reseña publicada con éxito!");
+      recordCommentForRank();
+      triggerToast("¡Reseña publicada con éxito! (+25 XP de Cazador)");
       setReviewLoading(false);
     }
   };
@@ -938,7 +940,17 @@ export default function ClientPage({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <div>
-                          <p className="font-bold text-white text-sm">{review.user_email?.split("@")[0] || "Lector"}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-bold text-white text-sm">{review.user_email?.split("@")[0] || "Cazador"}</p>
+                            <ReaderRankBadge
+                              xp={
+                                review.user_id && user?.id === review.user_id
+                                  ? getLocalReaderStats(reviews.filter((r) => r.user_id === user.id).length).xp
+                                  : Math.max(50, reviews.filter((r) => r.user_id === review.user_id).length * 45)
+                              }
+                              size="xs"
+                            />
+                          </div>
                           <p className="text-xs text-white/45">{new Date(review.created_at).toLocaleDateString()}</p>
                         </div>
                         <div className="flex gap-0.5 text-[#fbbf24]">

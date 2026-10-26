@@ -25,6 +25,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getAvatarSvg } from "@/lib/avatars";
+import {
+  getLocalReaderStats,
+  recordChapterReadForRank,
+  recordCommentForRank,
+  recordReactionForRank,
+  ReaderRankBadge,
+  ReaderStats,
+} from "@/lib/readerRank";
 
 interface Chapter {
   id: string;
@@ -77,6 +85,8 @@ export default function ChapterReader() {
   const [chapterComments, setChapterComments] = useState<any[]>([]);
   const [commentInput, setCommentInput] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [readerStats, setReaderStats] = useState<ReaderStats | null>(null);
+  const [rankUpBanner, setRankUpBanner] = useState<string | null>(null);
 
   const touchStartX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -97,6 +107,7 @@ export default function ChapterReader() {
       setVoterId(vid);
       const savedNick = localStorage.getItem("nekumi_reader_nick") || "";
       if (savedNick) setUserName(savedNick);
+      setReaderStats(getLocalReaderStats());
     } catch {}
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -146,6 +157,11 @@ export default function ChapterReader() {
       [key]: Math.max(0, (prev[key] || 0) + (alreadyActive ? -1 : 1)),
     }));
 
+    if (!alreadyActive) {
+      const nextStats = recordReactionForRank();
+      setReaderStats(nextStats);
+    }
+
     try {
       const res = await fetch("/api/community", {
         method: "POST",
@@ -174,6 +190,9 @@ export default function ChapterReader() {
       localStorage.setItem("nekumi_reader_nick", finalName);
     } catch {}
 
+    const updatedStats = recordCommentForRank();
+    setReaderStats(updatedStats);
+
     try {
       const res = await fetch("/api/community", {
         method: "POST",
@@ -183,6 +202,8 @@ export default function ChapterReader() {
           chapterId,
           authorName: finalName,
           avatarKey: userAvatar,
+          readerXp: updatedStats.xp,
+          chaptersRead: updatedStats.chaptersRead,
           content: commentInput.trim(),
         }),
       });
@@ -250,10 +271,23 @@ export default function ChapterReader() {
       if (cData) {
         setChapter(cData);
 
-        // Save bookmark & reading history
+        // Save bookmark & reading history + XP for Reader Rank System
         try {
           localStorage.setItem(`nekumi_last_read_${manhwaId}`, chapterId);
           localStorage.setItem(`nekumi_last_read_num_${manhwaId}`, String(cData.chapter_number));
+          const rankResult = recordChapterReadForRank(chapterId);
+          setReaderStats(rankResult.stats);
+          if (rankResult.rankedUp) {
+            setRankUpBanner(
+              `¡Ascenso de Rango! Ahora eres Rango ${rankResult.stats.currentRank.code} · ${rankResult.stats.currentRank.title}`
+            );
+            setTimeout(() => setRankUpBanner(null), 5000);
+          } else if (rankResult.leveledUp) {
+            setRankUpBanner(
+              `¡Subiste a Nivel ${rankResult.stats.level}! (${rankResult.stats.xp} XP)`
+            );
+            setTimeout(() => setRankUpBanner(null), 4000);
+          }
         } catch {}
 
         // Resolve prev & next chapters immediately from cached list if available
@@ -958,11 +992,25 @@ export default function ChapterReader() {
 
           {/* Sección de Comentarios del Capítulo */}
           <div className="glass rounded-3xl p-6 border border-white/10">
-            <div className="flex items-center gap-2.5 mb-5">
-              <MessageCircle className="w-5 h-5 text-[#a855f7]" />
-              <h3 className="text-lg font-extrabold text-white">
-                Comentarios del Capítulo {chapter.chapter_number} ({chapterComments.length})
-              </h3>
+            {rankUpBanner && (
+              <div className="mb-4 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#a855f7]/25 to-[#ec4899]/25 border border-[#a855f7]/50 text-xs sm:text-sm font-extrabold text-white flex items-center justify-between">
+                <span>{rankUpBanner}</span>
+                {readerStats && <ReaderRankBadge xp={readerStats.xp} size="xs" />}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2.5 mb-5">
+              <div className="flex items-center gap-2.5">
+                <MessageCircle className="w-5 h-5 text-[#a855f7]" />
+                <h3 className="text-lg font-extrabold text-white">
+                  Comentarios del Capítulo {chapter.chapter_number} ({chapterComments.length})
+                </h3>
+              </div>
+              {readerStats && (
+                <Link href="/profile" className="hover:opacity-90 transition-opacity" title="Ver tu Rango de Cazador">
+                  <ReaderRankBadge xp={readerStats.xp} size="sm" />
+                </Link>
+              )}
             </div>
 
             <form onSubmit={handlePostChapterComment} className="space-y-3 mb-6">
@@ -980,7 +1028,7 @@ export default function ChapterReader() {
                     type="text"
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
-                    placeholder="Escribe tu opinión sobre este capítulo..."
+                    placeholder="Escribe tu opinión sobre este capítulo (+25 XP)..."
                     maxLength={500}
                     className="flex-1 h-10 rounded-xl bg-black/40 border border-white/10 px-3.5 text-xs sm:text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#a855f7]"
                   />
@@ -998,7 +1046,7 @@ export default function ChapterReader() {
 
             {chapterComments.length === 0 ? (
               <p className="text-center text-xs sm:text-sm text-white/45 py-6">
-                Sé el primero en comentar este capítulo.
+                Sé el primero en comentar este capítulo y gana +25 XP de Cazador.
               </p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
@@ -1012,8 +1060,15 @@ export default function ChapterReader() {
                       dangerouslySetInnerHTML={{ __html: getAvatarSvg(c.avatarKey || "hunter") }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-xs font-bold text-[#c084fc] truncate">{c.authorName || "Lector"}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold text-white truncate">{c.authorName || "Cazador"}</span>
+                          <ReaderRankBadge
+                            xp={typeof c.readerXp === "number" ? c.readerXp : undefined}
+                            chaptersRead={typeof c.chaptersRead === "number" ? c.chaptersRead : 3}
+                            size="xs"
+                          />
+                        </div>
                         <span className="text-[11px] text-white/35">
                           {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "Hoy"}
                         </span>

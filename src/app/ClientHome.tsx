@@ -35,6 +35,7 @@ import { LegalModal } from "@/components/LegalModal";
 import { AdsterraNative, AdsterraBanner300 } from "@/components/Adsterra";
 import { getAvatarSvg } from "@/lib/avatars";
 import { createClient } from "@/lib/supabase";
+import { ReaderRankBadge, getLocalReaderStats, ReaderStats } from "@/lib/readerRank";
 
 interface Manhwa {
   id: string;
@@ -115,6 +116,7 @@ export default function Home({
   const [activityTab, setActivityTab] = useState<"updates" | "history">("updates");
   const [recentChaptersRaw, setRecentChaptersRaw] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState<number>(36);
+  const [readerStats, setReaderStats] = useState<ReaderStats | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
@@ -148,6 +150,7 @@ export default function Home({
       if (Array.isArray(savedHistory)) {
         setReadingHistory(savedHistory.slice(0, 6));
       }
+      setReaderStats(getLocalReaderStats());
     } catch {}
 
     try {
@@ -842,6 +845,16 @@ export default function Home({
                   className="btn bg-[#a855f7]/20 text-[#c084fc] border border-[#a855f7]/30 hover:bg-[#a855f7]/30 font-bold px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2"
                 >
                   <Shield className="w-4 h-4" /> Admin
+                </Link>
+              )}
+
+              {readerStats && (
+                <Link
+                  href="/profile"
+                  className="hidden md:inline-flex items-center hover:scale-105 transition-transform"
+                  title="Ver tu Tarjeta de Rango y Progreso XP"
+                >
+                  <ReaderRankBadge xp={readerStats.xp} size="xs" />
                 </Link>
               )}
 
@@ -1702,10 +1715,13 @@ export default function Home({
                       dangerouslySetInnerHTML={{ __html: getAvatarSvg(item.avatar_key || "hunter") }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-bold text-xs text-white truncate pr-2">
-                          {item.user_email?.split("@")[0] || "Lector"}
-                        </span>
+                      <div className="flex justify-between items-center mb-1 gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-bold text-xs text-white truncate">
+                            {item.user_email?.split("@")[0] || "Cazador"}
+                          </span>
+                          <ReaderRankBadge xp={60} size="xs" showLevel={false} />
+                        </div>
                         <span className="flex text-[#fbbf24] flex-shrink-0 gap-0.5">
                           {[...Array(5)].map((_, i) => (
                             <Star key={i} className={`w-3 h-3 ${i < item.rating ? "fill-current" : "opacity-20"}`} />

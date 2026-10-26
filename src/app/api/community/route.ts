@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "comment_chapter") {
-      const { chapterId, authorName, avatarKey, content } = body;
+      const { chapterId, authorName, avatarKey, content, readerXp, chaptersRead } = body;
       if (!chapterId || !content?.trim()) {
         return NextResponse.json({ error: "Comentario vacío" }, { status: 400 });
       }
@@ -199,8 +199,10 @@ export async function POST(req: NextRequest) {
 
       const newComment = {
         id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        authorName: (authorName || "Lector").slice(0, 32),
+        authorName: (authorName || "Cazador").slice(0, 32),
         avatarKey: avatarKey || "hunter",
+        readerXp: typeof readerXp === "number" ? Math.max(0, Math.floor(readerXp)) : 30,
+        chaptersRead: typeof chaptersRead === "number" ? Math.max(1, Math.floor(chaptersRead)) : 3,
         content: content.trim().slice(0, 600),
         createdAt: new Date().toISOString(),
       };
