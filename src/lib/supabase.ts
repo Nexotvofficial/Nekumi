@@ -2,7 +2,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const SUPABASE_URL_DEFAULT = 'https://nfuvrtlhkvprjpzeepim.supabase.co'
-export const SUPABASE_ANON_KEY_DEFAULT = 'sb_publishable_D9l3Eiua6vsGynEcFvH4_A_yahuuJNR'
+export const SUPABASE_ANON_KEY_DEFAULT = 'sb_publishable_beZGsE6z0k_E-9SRi2jDmw_gExM4Oh_'
 
 let browserClient: SupabaseClient | undefined
 
