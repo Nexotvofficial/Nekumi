@@ -16,6 +16,12 @@ import {
   MessageCircle,
   Send,
   Loader2,
+  Flame,
+  Zap,
+  Heart,
+  CloudRain,
+  Swords,
+  List,
 } from "lucide-react";
 import Link from "next/link";
 import { getAvatarSvg } from "@/lib/avatars";
@@ -725,6 +731,64 @@ export default function ChapterReader() {
         </button>
       )}
 
+      {/* Olympus-style Floating Bottom Quick Dock */}
+      <div
+        className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ${
+          showReaderHeader && scrollProgress < 92
+            ? "translate-y-0 opacity-100"
+            : "translate-y-16 opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#0a0a0c]/90 backdrop-blur-2xl border border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.8)]">
+          <button
+            type="button"
+            disabled={!prevChapter}
+            onClick={() => prevChapter && router.push(`/manga/${manhwaId}/chapter/${prevChapter.id}`)}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+            title="Capítulo anterior"
+            aria-label="Capítulo anterior"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+
+          <Link
+            href={`/manga/${manhwaId}`}
+            className="px-3 h-9 rounded-xl flex items-center gap-1.5 text-xs font-bold text-white/85 hover:text-white hover:bg-white/10 transition-colors"
+            title="Lista de capítulos"
+          >
+            <List className="w-3.5 h-3.5 text-[#c084fc]" />
+            <span>Cap. {chapter.chapter_number}</span>
+          </Link>
+
+          {readMode === "cascade" && (
+            <button
+              type="button"
+              onClick={() => setAutoScroll(!autoScroll)}
+              className={`px-3 h-9 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-colors ${
+                autoScroll
+                  ? "bg-[#a855f7] text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              }`}
+              title="Auto-Scroll"
+            >
+              {autoScroll ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+              <span className="hidden sm:inline">{autoScroll ? "Pausar" : "Auto"}</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            disabled={!nextChapter}
+            onClick={() => nextChapter && router.push(`/manga/${manhwaId}/chapter/${nextChapter.id}`)}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+            title="Siguiente capítulo"
+            aria-label="Siguiente capítulo"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
       {/* Reader Container */}
       <div
         ref={containerRef}
@@ -845,7 +909,7 @@ export default function ChapterReader() {
             </div>
           </div>
 
-          {/* Reacciones Rápidas Animadas */}
+          {/* Reacciones Rápidas con Iconografía Vectorial (Cero Emojis) */}
           <div className="glass rounded-3xl p-6 text-center border border-white/10">
             <h3 className="text-base sm:text-lg font-extrabold text-white mb-1">
               ¿Qué te pareció el Capítulo {chapter.chapter_number}?
@@ -853,14 +917,15 @@ export default function ChapterReader() {
             <p className="text-xs text-white/50 mb-5">Deja tu reacción rápida para la comunidad</p>
             <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5">
               {[
-                { key: "epic", emoji: "🔥", label: "Épico" },
-                { key: "shock", emoji: "😱", label: "Qué tensión" },
-                { key: "love", emoji: "❤️", label: "Me encantó" },
-                { key: "sad", emoji: "😭", label: "Triste" },
-                { key: "rage", emoji: "🤬", label: "Cliffhanger" },
+                { key: "epic", Icon: Flame, color: "text-orange-400", label: "Épico" },
+                { key: "shock", Icon: Zap, color: "text-amber-400", label: "Qué tensión" },
+                { key: "love", Icon: Heart, color: "text-pink-400", label: "Me encantó" },
+                { key: "sad", Icon: CloudRain, color: "text-sky-400", label: "Emotivo" },
+                { key: "rage", Icon: Swords, color: "text-purple-400", label: "Cliffhanger" },
               ].map((r) => {
                 const isSelected = userReactions.includes(r.key);
                 const count = reactionCounts[r.key] || 0;
+                const IconComp = r.Icon;
                 return (
                   <button
                     key={r.key}
@@ -872,7 +937,11 @@ export default function ChapterReader() {
                         : "bg-white/5 border-white/10 text-white/80 hover:border-[#a855f7]/50 hover:bg-white/10 hover:scale-105"
                     }`}
                   >
-                    <span className="text-lg group-hover:scale-125 transition-transform inline-block">{r.emoji}</span>
+                    <IconComp
+                      className={`w-4 h-4 ${r.color} ${
+                        isSelected ? "fill-current" : ""
+                      } group-hover:scale-125 transition-transform`}
+                    />
                     <span>{r.label}</span>
                     <span
                       className={`px-2 py-0.5 rounded-full text-[11px] font-black ${

@@ -19,6 +19,9 @@ import {
   Play,
   Search,
   Share2,
+  ArrowUpDown,
+  Check,
+  Sparkles,
 } from "lucide-react";
 import { getAvatarSvg } from "@/lib/avatars";
 import AvatarPicker from "@/components/AvatarPicker";
@@ -379,7 +382,7 @@ export default function ClientPage({
       if (data && typeof data.score === "number") {
         setManhwa((prev) => (prev ? { ...prev, score: data.score } : prev));
         setTotalVotesCount(data.totalVotes || 1);
-        triggerToast(`¡Calificaste con ${stars} ★! Promedio actual: ${data.score} ⭐`);
+        triggerToast(`Calificación guardada (${stars}/5) · Promedio actual: ${data.score}`);
       }
     } catch {
       triggerToast("Error al guardar calificación");
@@ -421,9 +424,10 @@ export default function ClientPage({
     }
   };
 
-  const firstChapter = useMemo(() => {
-    if (chapters.length === 0) return null;
-    return [...chapters].sort((a, b) => a.chapter_number - b.chapter_number)[0];
+  const { firstChapter, latestChapter } = useMemo(() => {
+    if (chapters.length === 0) return { firstChapter: null, latestChapter: null };
+    const asc = [...chapters].sort((a, b) => a.chapter_number - b.chapter_number);
+    return { firstChapter: asc[0], latestChapter: asc[asc.length - 1] };
   }, [chapters]);
 
   if (loading) return <NekuLoading fullScreen={true} />;
@@ -477,10 +481,10 @@ export default function ClientPage({
             />
 
             <div className="mt-5 flex flex-col gap-2.5">
-              <div className="flex gap-2.5">
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  className="btn btn-primary flex-1 py-3 text-sm flex justify-center items-center gap-2"
+                  className="btn btn-primary flex-1 py-3 text-xs sm:text-sm flex justify-center items-center gap-1.5"
                   onClick={() => {
                     if (firstChapter) {
                       router.push(`/manga/${id}/chapter/${firstChapter.id}`);
@@ -490,20 +494,46 @@ export default function ClientPage({
                   }}
                 >
                   <BookOpen className="w-4 h-4" />
-                  {firstChapter ? `Leer Cap. ${firstChapter.chapter_number}` : "Próximamente"}
+                  {firstChapter ? `Cap. ${firstChapter.chapter_number}` : "Próximamente"}
                 </button>
+
+                {latestChapter && latestChapter.id !== firstChapter?.id && (
+                  <button
+                    type="button"
+                    className="btn glass border border-[#a855f7]/35 hover:bg-[#a855f7]/20 text-white flex-1 py-3 text-xs sm:text-sm flex justify-center items-center gap-1.5"
+                    onClick={() => router.push(`/manga/${id}/chapter/${latestChapter.id}`)}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#c084fc]" />
+                    Cap. {latestChapter.chapter_number}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                {lastReadChapter ? (
+                  <Link
+                    href={`/manga/${id}/chapter/${lastReadChapter.id}`}
+                    className="btn btn-secondary flex-1 py-2.5 text-xs sm:text-sm flex justify-center items-center gap-2 border-[#a855f7]/40 text-[#d8b4fe] hover:bg-[#a855f7]/15"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Continuar Cap. {lastReadChapter.num}
+                  </Link>
+                ) : null}
 
                 <button
                   type="button"
                   onClick={toggleFavorite}
                   aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
-                  className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all flex-shrink-0 ${
+                  className={`flex items-center justify-center h-11 rounded-2xl transition-all ${
+                    lastReadChapter ? "w-11 flex-shrink-0" : "flex-1 gap-2 text-xs font-bold"
+                  } ${
                     isFavorite
                       ? "bg-[#ec4899]/20 text-[#ec4899] border border-[#ec4899]/50 shadow-[0_0_20px_rgba(236,72,153,0.25)]"
                       : "glass text-white/70 hover:text-white"
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
+                  <Heart className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`} />
+                  {!lastReadChapter && (isFavorite ? "En Favoritos" : "Favorito")}
                 </button>
 
                 <button
@@ -511,32 +541,36 @@ export default function ClientPage({
                   onClick={handleShare}
                   aria-label="Compartir manhwa"
                   title="Compartir enlace"
-                  className="flex items-center justify-center w-12 h-12 rounded-2xl glass text-white/70 hover:text-[#c084fc] transition-all flex-shrink-0"
+                  className="flex items-center justify-center w-11 h-11 rounded-2xl glass text-white/70 hover:text-[#c084fc] transition-all flex-shrink-0"
                 >
-                  <Share2 className="w-5 h-5" />
+                  <Share2 className="w-4 h-4" />
                 </button>
               </div>
-
-              {lastReadChapter && (
-                <Link
-                  href={`/manga/${id}/chapter/${lastReadChapter.id}`}
-                  className="btn btn-secondary w-full py-3 text-sm flex justify-center items-center gap-2 border-[#a855f7]/40 text-[#d8b4fe] hover:bg-[#a855f7]/15"
-                >
-                  <Play className="w-4 h-4 fill-current" />
-                  Continuar Cap. {lastReadChapter.num}
-                </Link>
-              )}
             </div>
           </div>
 
           {/* Manhwa Info */}
           <div className="flex-1 pt-2 md:pt-14 text-center md:text-left">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-4">
-              <span className="inline-block px-3.5 py-1 rounded-full border border-[#a855f7]/30 bg-[#a855f7]/15 text-[#c084fc] text-xs font-bold tracking-wide uppercase">
-                {manhwa.genre}
-              </span>
+              {(manhwa.genre || "Acción")
+                .split(",")
+                .map((g) => g.trim())
+                .filter(Boolean)
+                .map((g) => (
+                  <span
+                    key={g}
+                    className="inline-block px-3.5 py-1 rounded-full border border-[#a855f7]/30 bg-[#a855f7]/15 text-[#c084fc] text-xs font-bold tracking-wide uppercase"
+                  >
+                    {g}
+                  </span>
+                ))}
               {manhwa.status && (
-                <span className="inline-block px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/80 text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/80 text-xs font-semibold">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      manhwa.status === "Finalizado" ? "bg-[#10b981]" : "bg-[#a855f7] animate-pulse"
+                    }`}
+                  />
                   {manhwa.status}
                 </span>
               )}
@@ -571,14 +605,14 @@ export default function ClientPage({
                   })}
                 </div>
                 <span className="font-bold text-[15px] text-white">
-                  {Number(manhwa.score) > 0 ? manhwa.score : "Sin votos"}
+                  {Number(manhwa.score) > 0 ? Number(manhwa.score).toFixed(1) : "Sin votos"}
                 </span>
                 <span className="text-xs text-white/50">
                   ({totalVotesCount} {totalVotesCount === 1 ? "voto" : "votos"})
                 </span>
                 {userStarVote > 0 && (
-                  <span className="text-[11px] bg-[#fbbf24]/20 text-[#fbbf24] px-2 py-0.5 rounded-full font-bold">
-                    Tu voto: {userStarVote}★
+                  <span className="inline-flex items-center gap-1 text-[11px] bg-[#fbbf24]/20 text-[#fbbf24] px-2 py-0.5 rounded-full font-bold">
+                    <Star className="w-2.5 h-2.5 fill-current" /> {userStarVote}/5
                   </span>
                 )}
               </div>
@@ -627,9 +661,10 @@ export default function ClientPage({
                   setSortDesc(!sortDesc);
                   setChapterPage(1);
                 }}
-                className="btn glass border border-white/10 hover:bg-white/5 text-xs sm:text-sm h-10 px-4"
+                className="btn glass border border-white/10 hover:bg-white/5 text-xs sm:text-sm h-10 px-4 inline-flex items-center gap-1.5"
               >
-                {sortDesc ? "↓ Recientes" : "↑ Desde Cap. 1"}
+                <ArrowUpDown className="w-3.5 h-3.5 text-[#c084fc]" />
+                {sortDesc ? "Más recientes" : "Desde Cap. 1"}
               </button>
             </div>
           </div>
@@ -645,9 +680,9 @@ export default function ClientPage({
               </div>
               <Link
                 href={`/manga/${id}/chapter/${lastReadChapter.id}`}
-                className="text-xs font-bold text-[#c084fc] hover:text-white transition-colors"
+                className="text-xs font-bold text-[#c084fc] hover:text-white transition-colors inline-flex items-center gap-1"
               >
-                Reanudar lectura →
+                Reanudar lectura <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           )}
@@ -659,7 +694,7 @@ export default function ClientPage({
               </div>
             ) : (
               <div className="flex flex-col">
-                <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {sortedChapters
                     .slice((chapterPage - 1) * chaptersPerPage, chapterPage * chaptersPerPage)
                     .map((chapter) => {
@@ -669,36 +704,61 @@ export default function ClientPage({
                         lastReadChapter &&
                         !Number.isNaN(Number(lastReadChapter.num)) &&
                         chapter.chapter_number <= Number(lastReadChapter.num);
+                      const isLatest = latestChapter && chapter.chapter_number === latestChapter.chapter_number;
                       return (
                         <Link
                           key={chapter.id}
                           onMouseEnter={() => handlePrefetch(chapter)}
                           onTouchStart={() => handlePrefetch(chapter)}
                           href={`/manga/${id}/chapter/${chapter.id}`}
-                          className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all group ${
+                          className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all group ${
                             isLastRead
                               ? "bg-[#a855f7]/20 border-[#a855f7] shadow-[0_0_15px_rgba(168,85,247,0.2)]"
                               : isReadBefore
                               ? "bg-white/[0.02] border-white/5 opacity-65 hover:opacity-100 hover:border-[#a855f7]/40"
-                              : "bg-white/5 border-white/10 hover:border-[#a855f7]/50 hover:bg-[#a855f7]/10"
+                              : "bg-white/[0.04] border-white/10 hover:border-[#a855f7]/50 hover:bg-[#a855f7]/10"
                           }`}
                         >
-                          <span className="font-bold text-sm text-white group-hover:text-[#d8b4fe] transition-colors flex items-center gap-1.5">
-                            Cap. {chapter.chapter_number}
+                          <div className="min-w-0 flex items-center gap-2.5">
+                            <span
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border ${
+                                isLastRead
+                                  ? "bg-[#a855f7] border-[#a855f7] text-white"
+                                  : isReadBefore
+                                  ? "bg-white/5 border-white/5 text-white/40"
+                                  : "bg-[#a855f7]/10 border-[#a855f7]/25 text-[#c084fc] group-hover:bg-[#a855f7]/25"
+                              }`}
+                            >
+                              {isReadBefore ? <Check className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+                            </span>
+                            <div className="min-w-0">
+                              <span className="font-bold text-sm text-white group-hover:text-[#d8b4fe] transition-colors flex items-center gap-1.5">
+                                Cap. {chapter.chapter_number}
+                                {isLatest && !isReadBefore && (
+                                  <span className="text-[9px] uppercase tracking-wider bg-gradient-to-r from-[#a855f7] to-[#ec4899] text-white px-1.5 py-0.5 rounded font-black">
+                                    Nuevo
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[11px] text-white/40 block">
+                                {new Date(chapter.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             {isLastRead && (
-                              <span className="text-[10px] bg-[#a855f7] text-white px-1.5 py-0.5 rounded-full font-extrabold">
+                              <span className="text-[10px] bg-[#a855f7] text-white px-2 py-0.5 rounded-full font-extrabold">
                                 Actual
                               </span>
                             )}
                             {isReadBefore && (
-                              <span className="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded-full font-semibold">
+                              <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full font-semibold">
                                 Visto
                               </span>
                             )}
-                          </span>
-                          <span className="text-[11px] text-white/45 mt-1">
-                            {new Date(chapter.created_at).toLocaleDateString()}
-                          </span>
+                            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-[#c084fc] transition-colors" />
+                          </div>
                         </Link>
                       );
                     })}
@@ -757,9 +817,10 @@ export default function ClientPage({
                   <button
                     type="button"
                     onClick={() => setShowAvatarPicker(!showAvatarPicker)}
-                    className="text-xs text-[#c084fc] hover:text-white transition-colors"
+                    className="text-xs text-[#c084fc] hover:text-white transition-colors inline-flex items-center gap-0.5"
                   >
-                    {showAvatarPicker ? "Cerrar selector" : "Cambiar avatar →"}
+                    {showAvatarPicker ? "Cerrar selector" : "Cambiar avatar"}
+                    {!showAvatarPicker && <ChevronRight className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
