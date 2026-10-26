@@ -47,6 +47,7 @@ interface Chapter {
 
 interface Review {
   id: string;
+  user_id?: string;
   user_email?: string;
   avatar_key?: string;
   rating: number;
