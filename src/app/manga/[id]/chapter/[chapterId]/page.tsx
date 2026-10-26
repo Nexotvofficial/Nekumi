@@ -34,6 +34,7 @@ import {
   ReaderStats,
   getShopItemById,
 } from "@/lib/readerRank";
+import { syncReaderProgress } from "@/lib/readerSync";
 
 interface Chapter {
   id: string;
@@ -111,8 +112,18 @@ export default function ChapterReader() {
       setReaderStats(getLocalReaderStats());
     } catch {}
 
+    let syncUserId: string | null = null;
+    const onHide = () => {
+      if (document.visibilityState === "hidden" && syncUserId) syncReaderProgress(supabase, syncUserId);
+    };
+    document.addEventListener("visibilitychange", onHide);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        syncUserId = session.user.id;
+        syncReaderProgress(supabase, session.user.id).then((ok) => {
+          if (ok) setReaderStats(getLocalReaderStats());
+        });
         setVoterId(session.user.id);
         setUserName(session.user.email?.split("@")[0] || "Lector");
         supabase
@@ -126,6 +137,11 @@ export default function ChapterReader() {
           });
       }
     });
+
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      if (syncUserId) syncReaderProgress(supabase, syncUserId);
+    };
   }, []);
 
   // Load chapter reactions & comments

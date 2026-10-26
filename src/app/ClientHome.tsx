@@ -44,6 +44,7 @@ import { AdsterraNative, AdsterraBanner300 } from "@/components/Adsterra";
 import { getAvatarSvg } from "@/lib/avatars";
 import { createClient } from "@/lib/supabase";
 import { ReaderRankBadge, getLocalReaderStats, ReaderStats, getShopItemById } from "@/lib/readerRank";
+import { syncReaderProgress } from "@/lib/readerSync";
 import PublicListsSection from "@/components/PublicListsSection";
 import GuildShopModal from "@/components/GuildShopModal";
 import CommunityWallSection from "@/components/CommunityWallSection";
@@ -252,6 +253,9 @@ export default function Home({
           supabase.from("favorites").select("manhwa_id").eq("user_id", sessionUser.id),
         ]);
         if (profRes.data) setUserProfile(profRes.data);
+        syncReaderProgress(supabase, sessionUser.id).then((ok) => {
+          if (ok) setReaderStats(getLocalReaderStats());
+        });
         if (favRes.data) {
           const dbFavIds = favRes.data.map((r: any) => String(r.manhwa_id));
           setFavorites((prev) => {
