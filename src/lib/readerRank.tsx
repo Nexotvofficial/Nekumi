@@ -23,11 +23,11 @@ export const READER_RANKS: ReaderRankTier[] = [
     subtitle: "Despertado Reciente",
     minXp: 0,
     minChaptersHint: 0,
-    color: "#94a3b8",
-    borderClass: "border-slate-400/35",
-    bgClass: "bg-slate-500/15",
-    textClass: "text-slate-300",
-    glowStyle: "0 0 12px rgba(148,163,184,0.18)",
+    color: "#a1a1aa",
+    borderClass: "border-white/10",
+    bgClass: "bg-white/[0.04]",
+    textClass: "text-zinc-400",
+    glowStyle: "none",
   },
   {
     code: "D",
@@ -35,11 +35,11 @@ export const READER_RANKS: ReaderRankTier[] = [
     subtitle: "Rastreador de Mazmorras",
     minXp: 50,
     minChaptersHint: 5,
-    color: "#34d399",
-    borderClass: "border-emerald-400/40",
-    bgClass: "bg-emerald-500/15",
-    textClass: "text-emerald-300",
-    glowStyle: "0 0 14px rgba(52,211,153,0.25)",
+    color: "#d4d4d8",
+    borderClass: "border-white/12",
+    bgClass: "bg-white/[0.05]",
+    textClass: "text-zinc-300",
+    glowStyle: "none",
   },
   {
     code: "C",
@@ -47,11 +47,11 @@ export const READER_RANKS: ReaderRankTier[] = [
     subtitle: "Vanguardia del Gremio",
     minXp: 150,
     minChaptersHint: 15,
-    color: "#38bdf8",
-    borderClass: "border-sky-400/45",
-    bgClass: "bg-sky-500/15",
-    textClass: "text-sky-300",
-    glowStyle: "0 0 16px rgba(56,189,248,0.28)",
+    color: "#c4b5fd",
+    borderClass: "border-violet-400/25",
+    bgClass: "bg-violet-500/10",
+    textClass: "text-violet-200",
+    glowStyle: "none",
   },
   {
     code: "B",
@@ -59,11 +59,11 @@ export const READER_RANKS: ReaderRankTier[] = [
     subtitle: "Capitán de Incursión",
     minXp: 350,
     minChaptersHint: 35,
-    color: "#a855f7",
-    borderClass: "border-purple-400/50",
-    bgClass: "bg-purple-500/20",
-    textClass: "text-purple-300",
-    glowStyle: "0 0 18px rgba(168,85,247,0.35)",
+    color: "#c084fc",
+    borderClass: "border-purple-400/30",
+    bgClass: "bg-purple-500/12",
+    textClass: "text-purple-200",
+    glowStyle: "none",
   },
   {
     code: "A",
@@ -71,11 +71,11 @@ export const READER_RANKS: ReaderRankTier[] = [
     subtitle: "Comandante de Orden",
     minXp: 700,
     minChaptersHint: 70,
-    color: "#ec4899",
-    borderClass: "border-pink-400/55",
-    bgClass: "bg-pink-500/20",
-    textClass: "text-pink-300",
-    glowStyle: "0 0 20px rgba(236,72,153,0.38)",
+    color: "#e879f9",
+    borderClass: "border-fuchsia-400/35",
+    bgClass: "bg-fuchsia-500/12",
+    textClass: "text-fuchsia-200",
+    glowStyle: "none",
   },
   {
     code: "S",
@@ -83,11 +83,11 @@ export const READER_RANKS: ReaderRankTier[] = [
     subtitle: "Autoridad Nacional",
     minXp: 1300,
     minChaptersHint: 130,
-    color: "#fbbf24",
-    borderClass: "border-amber-400/60",
-    bgClass: "bg-amber-500/20",
-    textClass: "text-amber-300",
-    glowStyle: "0 0 22px rgba(251,191,36,0.42)",
+    color: "#f5d0fe",
+    borderClass: "border-purple-300/45",
+    bgClass: "bg-purple-500/15",
+    textClass: "text-purple-100",
+    glowStyle: "0 0 14px rgba(168,85,247,0.2)",
   },
   {
     code: "SS",
@@ -96,10 +96,10 @@ export const READER_RANKS: ReaderRankTier[] = [
     minXp: 2500,
     minChaptersHint: 250,
     color: "#e879f9",
-    borderClass: "border-fuchsia-400/75",
-    bgClass: "bg-gradient-to-r from-purple-600/30 via-fuchsia-500/25 to-amber-500/25",
-    textClass: "text-fuchsia-200",
-    glowStyle: "0 0 26px rgba(232,121,249,0.55)",
+    borderClass: "border-[#c084fc]/55",
+    bgClass: "bg-gradient-to-r from-[#a855f7]/20 to-[#ec4899]/15",
+    textClass: "text-white",
+    glowStyle: "0 0 18px rgba(168,85,247,0.28)",
   },
 ];
 
@@ -520,12 +520,14 @@ export function ReaderRankBadge({
   customTitleId,
   size = "sm",
   showLevel = true,
+  compact = false,
 }: {
   xp?: number;
   chaptersRead?: number;
   customTitleId?: string;
   size?: "xs" | "sm" | "md";
   showLevel?: boolean;
+  compact?: boolean;
 }) {
   const stats =
     typeof xp === "number"
@@ -544,22 +546,19 @@ export function ReaderRankBadge({
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 select-none">
       <span
-        className={`inline-flex items-center font-extrabold tracking-wide border ${currentRank.bgClass} ${currentRank.borderClass} ${currentRank.textClass} ${sizeClasses}`}
-        style={{ boxShadow: currentRank.glowStyle }}
+        className={`inline-flex items-center font-bold tracking-wide border ${currentRank.bgClass} ${currentRank.borderClass} ${currentRank.textClass} ${sizeClasses}`}
         title={`Rango ${currentRank.code} · ${currentRank.title} (${stats.xp} XP)`}
       >
-        <RankIcon code={currentRank.code} className={size === "xs" ? "w-2.5 h-2.5" : "w-3.5 h-3.5"} />
+        <RankIcon code={currentRank.code} className={size === "xs" ? "w-2.5 h-2.5 opacity-80" : "w-3.5 h-3.5 opacity-80"} />
         <span>
-          Rango {currentRank.code} · {currentRank.title}
+          {compact ? `Rango ${currentRank.code}` : `Rango ${currentRank.code} · ${currentRank.title}`}
         </span>
-        {showLevel && (
-          <span className="opacity-80 font-black pl-1 border-l border-current/25">Nv.{level}</span>
+        {showLevel && !compact && (
+          <span className="opacity-70 font-semibold pl-1 border-l border-current/20">Nv.{level}</span>
         )}
       </span>
-      {customTitleItem?.badgeText && (
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[10px] font-black tracking-wide ${customTitleItem.previewClass}`}
-        >
+      {customTitleItem?.badgeText && !compact && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.04] text-zinc-300 text-[10px] font-semibold tracking-wide">
           {customTitleItem.badgeText}
         </span>
       )}

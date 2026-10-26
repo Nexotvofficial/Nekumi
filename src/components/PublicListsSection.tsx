@@ -306,35 +306,31 @@ export default function PublicListsSection({
   };
 
   return (
-    <section id="listas-publicas" className="section mt-8 mb-10" aria-labelledby="publicListsTitle">
+    <section id="listas-publicas" className="section" aria-labelledby="publicListsTitle">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[11px] font-extrabold uppercase tracking-wider mb-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Colecciones de la Comunidad
-          </div>
-          <h2 id="publicListsTitle" className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5">
-            <Library className="w-7 h-7 text-[#c084fc]" />
-            Listas Públicas
+          <h2 id="publicListsTitle" className="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2.5 tracking-tight">
+            <Library className="w-5 h-5 text-[#c084fc]" />
+            Listas Públicas de la Comunidad
           </h2>
-          <p className="text-xs sm:text-sm text-white/55 mt-1">
-            Explora selecciones creadas por lectores de Nekutoon o publica tu propia lista (+25 XP)
+          <p className="text-xs sm:text-sm text-white/50 mt-1">
+            Explora colecciones seleccionadas por lectores de Nekutoon o crea la tuya propia
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => setShowCreateModal(true)}
-          className="btn btn-primary rounded-2xl px-5 py-3 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+          className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-[#a855f7]/25 border border-white/12 hover:border-[#a855f7]/50 text-white text-xs font-bold inline-flex items-center gap-2 self-start sm:self-auto transition-all cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-[#c084fc]" />
           Crear Lista Pública
         </button>
       </div>
 
       {/* Grid of Public Lists (LectorXD 3-column style) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {allLists.map((list) => {
           const resolvedManhwas = list.manhwaIds
             .map((id) => manhwaMap.get(String(id)))
@@ -348,14 +344,14 @@ export default function PublicListsSection({
             <article
               key={list.id}
               onClick={() => handleOpenList(list)}
-              className="group rounded-[22px] bg-[#131722]/90 hover:bg-[#171c29] border border-white/[0.08] hover:border-[#a855f7]/50 overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between shadow-[0_14px_35px_rgba(0,0,0,0.35)] hover:-translate-y-1"
+              className="group rounded-2xl bg-[#111116] hover:bg-[#15151c] border border-white/[0.07] hover:border-white/15 overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between shadow-[0_12px_30px_rgba(0,0,0,0.3)] hover:-translate-y-0.5"
             >
               <div>
                 {/* Top 4-Slice Cover Collage or +18 Adult Shield Tiles */}
-                <div className="relative h-44 sm:h-48 w-full grid grid-cols-4 overflow-hidden bg-[#0b0e14] border-b border-white/[0.06]">
+                <div className="relative h-44 w-full grid grid-cols-4 overflow-hidden bg-[#0a0a0e] border-b border-white/[0.06]">
                   {/* Floating • PÚBLICA Badge */}
-                  <div className="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-emerald-500/35 text-[10px] font-black uppercase tracking-wider text-emerald-400 shadow-lg">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <div className="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-[10px] font-bold uppercase tracking-wider text-white/90 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#c084fc]" />
                     PÚBLICA
                   </div>
 
@@ -363,12 +359,12 @@ export default function PublicListsSection({
                     ? [0, 1, 2, 3].map((slot) => (
                         <div
                           key={slot}
-                          className="h-full flex flex-col items-center justify-center border-r last:border-r-0 border-white/[0.05] bg-gradient-to-b from-[#1e2430] via-[#151a24] to-[#0e121a] px-2 text-center select-none group-hover:from-[#252c3b] transition-colors"
+                          className="h-full flex flex-col items-center justify-center border-r last:border-r-0 border-white/[0.05] bg-gradient-to-b from-[#181820] via-[#121218] to-[#0c0c10] px-2 text-center select-none group-hover:from-[#1f1f29] transition-colors"
                         >
-                          <span className="text-xl sm:text-2xl font-black text-[#f59e0b] tracking-tight drop-shadow-[0_2px_10px_rgba(245,158,11,0.35)]">
+                          <span className="text-xl font-black text-[#e879f9] tracking-tight">
                             +18
                           </span>
-                          <span className="text-[10px] text-white/55 font-medium mt-1 leading-tight">
+                          <span className="text-[10px] text-white/45 font-medium mt-1 leading-tight">
                             Contenido adulto
                           </span>
                         </div>
@@ -391,7 +387,7 @@ export default function PublicListsSection({
                             ) : (
                               <div className="w-full h-full bg-white/5" />
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#131722] via-transparent to-transparent opacity-45" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#111116] via-transparent to-transparent opacity-40" />
                           </div>
                         );
                       })}
@@ -400,17 +396,17 @@ export default function PublicListsSection({
                 {/* Card Body */}
                 <div className="p-5">
                   {/* Author Row */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
                       <div
-                        className="w-8 h-8 rounded-full overflow-hidden border border-[#a855f7]/50 bg-black/50 flex-shrink-0"
+                        className="w-7 h-7 rounded-full overflow-hidden border border-white/15 bg-black/50 flex-shrink-0"
                         dangerouslySetInnerHTML={{ __html: getAvatarSvg(list.avatarKey || "hunter") }}
                       />
-                      <span className="text-xs font-extrabold text-[#fb923c] truncate">
+                      <span className="text-xs font-bold text-white/85 truncate">
                         {list.authorName}
                       </span>
                     </div>
-                    <ReaderRankBadge xp={list.readerXp || 200} size="xs" showLevel={false} />
+                    <ReaderRankBadge xp={list.readerXp || 200} size="xs" compact={true} />
                   </div>
 
                   {/* List Title */}

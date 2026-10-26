@@ -491,7 +491,7 @@ export default function Home({
         .slice(0, 2),
     }));
 
-    const maxEven = list.length >= 6 ? 6 : list.length >= 4 ? 4 : list.length;
+    const maxEven = list.length >= 8 ? 8 : list.length >= 6 ? 6 : list.length >= 4 ? 4 : list.length;
 
     return {
       recentUpdatedManhwas: list.slice(0, maxEven),
@@ -502,14 +502,14 @@ export default function Home({
   const sidebarRanked = useMemo(() => {
     const base = manhwas.length > 0 ? manhwas : trending;
     if (rankTab === "ongoing") {
-      return base.filter((m) => m.status !== "Finalizado").slice(0, 6);
+      return base.filter((m) => m.status !== "Finalizado").slice(0, 5);
     }
     if (rankTab === "completed") {
-      return base.filter((m) => m.status === "Finalizado").slice(0, 6);
+      return base.filter((m) => m.status === "Finalizado").slice(0, 5);
     }
     return [...base]
       .sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))
-      .slice(0, 6);
+      .slice(0, 5);
   }, [manhwas, trending, rankTab]);
 
   useEffect(() => {
@@ -624,7 +624,6 @@ export default function Home({
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "")}
               >
-                <Compass className="w-4 h-4 text-[#c084fc]" />
                 <span>Catálogo</span>
               </a>
               <a
@@ -635,9 +634,7 @@ export default function Home({
                   document.getElementById("listas-publicas")?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                <Library className="w-4 h-4 text-emerald-400" />
                 <span>Listas Públicas</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               </a>
               <a
                 className="nav-link"
@@ -647,7 +644,6 @@ export default function Home({
                   document.getElementById("muro-comunidad")?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                <MessagesSquare className="w-4 h-4 text-amber-400" />
                 <span>Comunidad</span>
               </a>
               <button
@@ -655,9 +651,15 @@ export default function Home({
                 onClick={() => setShowGuildShop(true)}
                 className="nav-link cursor-pointer"
               >
-                <ShoppingBag className="w-4 h-4 text-pink-400" />
                 <span>Tienda</span>
               </button>
+              <a
+                className={`nav-link ${activeCategory === "+18" ? "active" : ""}`}
+                href="#recomendados"
+                onClick={(e) => handleCategoryClick(e, "+18")}
+              >
+                <span>+18</span>
+              </a>
             </nav>
 
             <div className="header-actions">
@@ -836,10 +838,10 @@ export default function Home({
                 <button
                   type="button"
                   onClick={() => setShowGuildShop(true)}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-black transition-all cursor-pointer shadow-[0_0_14px_rgba(251,191,36,0.2)]"
-                  title="Abrir Tienda del Gremio (Marcos Neón y Colores gratis por leer)"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-[#a855f7]/15 border border-white/10 hover:border-[#a855f7]/45 text-zinc-200 text-xs font-extrabold transition-all cursor-pointer"
+                  title="Abrir Tienda del Gremio (Marcos y Títulos por leer)"
                 >
-                  <Coins className="w-3.5 h-3.5 text-amber-400" />
+                  <Coins className="w-3.5 h-3.5 text-[#c084fc]" />
                   <span>{readerStats.coins}</span>
                 </button>
               )}
@@ -933,86 +935,6 @@ export default function Home({
               >
                 {mobileNavOpen ? <XIcon /> : <Menu />}
               </button>
-            </div>
-          </div>
-
-          {/* Segunda Fila Armónica: Cinta de Categorías / Géneros */}
-          <div className="genre-ribbon hidden md:block">
-            <div className="genre-ribbon-inner">
-              <a
-                className={`genre-pill ${!activeCategory ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "")}
-              >
-                <Compass className="w-3.5 h-3.5 text-[#c084fc]" />
-                <span>Todos los Géneros</span>
-              </a>
-              <a
-                className={`genre-pill ${activeCategory === "Acción" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Acción")}
-              >
-                <Swords className="w-3.5 h-3.5 text-sky-400" />
-                <span>Acción</span>
-              </a>
-              <a
-                className={`genre-pill ${activeCategory === "Fantasía" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Fantasía")}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                <span>Fantasía</span>
-              </a>
-              <a
-                className={`genre-pill ${activeCategory === "Romance" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Romance")}
-              >
-                <Heart className="w-3.5 h-3.5 text-pink-400" />
-                <span>Romance</span>
-              </a>
-              <a
-                className={`genre-pill ${activeCategory === "Isekai" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Isekai")}
-              >
-                <Flame className="w-3.5 h-3.5 text-amber-400" />
-                <span>Isekai</span>
-              </a>
-              <a
-                className={`genre-pill ${activeCategory === "Drama" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Drama")}
-              >
-                <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Drama</span>
-              </a>
-              <a
-                className={`genre-pill ${activeCategory === "Comedia" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "Comedia")}
-              >
-                <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                <span>Comedia</span>
-              </a>
-              <a
-                className={`genre-pill ${activeCategory === "BL" || activeCategory === "Boys Love" ? "active" : ""}`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "BL")}
-              >
-                <Crown className="w-3.5 h-3.5 text-fuchsia-400" />
-                <span>BL</span>
-              </a>
-              <a
-                className={`genre-pill ${
-                  activeCategory === "+18" ? "active" : ""
-                } !text-pink-300 !border-pink-500/30 hover:!bg-pink-500/15`}
-                href="#recomendados"
-                onClick={(e) => handleCategoryClick(e, "+18")}
-              >
-                <Shield className="w-3.5 h-3.5 text-pink-400" />
-                <span>+18 Adulto</span>
-              </a>
             </div>
           </div>
 
@@ -1467,7 +1389,7 @@ export default function Home({
                               loading="lazy"
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
-                            <span className="absolute top-2 left-2 w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
+                            <span className="absolute top-2 left-2 w-2 h-2 rounded-full bg-[#c084fc] shadow-[0_0_8px_#a855f7]" />
                           </Link>
                           <div className="flex-1 min-w-0 flex flex-col justify-between">
                             <div>
@@ -1554,11 +1476,11 @@ export default function Home({
                 {sidebarRanked.map((item, i) => {
                   const medalClass =
                     i === 0
-                      ? "bg-gradient-to-br from-[#fbbf24] to-[#d97706] text-black shadow-[0_0_12px_rgba(251,191,36,0.45)]"
+                      ? "bg-[#a855f7] text-white shadow-[0_0_12px_rgba(168,85,247,0.45)]"
                       : i === 1
-                      ? "bg-gradient-to-br from-[#e2e8f0] to-[#94a3b8] text-black shadow-[0_0_10px_rgba(226,232,240,0.3)]"
+                      ? "bg-white/15 text-white border border-white/20"
                       : i === 2
-                      ? "bg-gradient-to-br from-[#f59e0b] to-[#92400e] text-white shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                      ? "bg-[#a855f7]/20 text-[#d8b4fe] border border-[#a855f7]/35"
                       : "bg-white/5 text-white/60 border border-white/10";
                   return (
                     <li key={item.id} className="rank-item group">
@@ -1601,8 +1523,8 @@ export default function Home({
                         <p className="rank-genre flex items-center gap-1.5">
                           <span className="truncate">{item.genre}</span>
                           {Number(item.score) > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-[#fbbf24] font-bold flex-shrink-0">
-                              <Star className="w-3 h-3 fill-[#fbbf24]" /> {Number(item.score).toFixed(1)}
+                            <span className="inline-flex items-center gap-0.5 text-[#d8b4fe] font-bold flex-shrink-0">
+                              <Star className="w-3 h-3 fill-[#c084fc] text-[#c084fc]" /> {Number(item.score).toFixed(1)}
                             </span>
                           )}
                         </p>
@@ -1613,29 +1535,25 @@ export default function Home({
               </ol>
             </section>
 
-            {/* Tarjeta Destacada: Cazador de la Semana (Estilo LectorXD) */}
-            <section className="side-panel glass relative overflow-hidden border border-[#a855f7]/35">
+            {/* Tarjeta Destacada: Cazador de la Semana */}
+            <section className="side-panel glass relative overflow-hidden border border-white/10">
               <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#a855f7] to-[#ec4899] flex items-center justify-center text-white font-black text-base shadow-[0_0_18px_rgba(168,85,247,0.45)] flex-shrink-0">
-                  <Trophy className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-[#a855f7]/20 border border-[#a855f7]/35 flex items-center justify-center text-[#d8b4fe] font-black text-base flex-shrink-0">
+                  <Trophy className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black text-white truncate">
                       {recentReviews[0]?.user_email?.split("@")[0] || "SungJinWoo"}
                     </span>
-                    <span className="text-[10px] font-extrabold text-[#fbbf24]">· Lector de la semana</span>
+                    <span className="text-[10px] font-bold text-[#c084fc]">· Lector destacado</span>
                   </div>
-                  <p className="text-[11px] text-white/60 mt-0.5">
-                    La comunidad de Nekutoon celebra a sus cazadores más activos.
+                  <p className="text-[11px] text-white/55 mt-0.5 truncate">
+                    Cazador más activo de la semana en Nekutoon.
                   </p>
                 </div>
               </div>
             </section>
-
-            <div className="w-full flex justify-center mb-2">
-              <AdsterraBanner300 />
-            </div>
 
             <section id="comunidad" className="side-panel glass">
               <div className="side-header">
@@ -1644,39 +1562,39 @@ export default function Home({
                   <MessagesSquare />
                 </span>
               </div>
-              <div className="review-list space-y-3.5">
+              <div className="review-list space-y-2.5">
                 {recentReviews.length === 0 && (
                   <p className="text-sm text-center py-4 text-white/50">Aún no hay reseñas en la plataforma.</p>
                 )}
-                {recentReviews.map((item) => (
+                {recentReviews.slice(0, 3).map((item) => (
                   <article
                     key={item.id}
-                    className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-black/25 hover:bg-white/[0.04] transition-colors border border-white/[0.07]"
+                    className="flex items-start gap-3 p-3 rounded-xl bg-black/25 hover:bg-white/[0.04] transition-colors border border-white/[0.07]"
                   >
                     <div
-                      className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 bg-black/40"
+                      className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-black/40"
                       dangerouslySetInnerHTML={{ __html: getAvatarSvg(item.avatar_key || "hunter") }}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center gap-2 mb-1">
-                        <span className="font-extrabold text-xs text-white truncate">
-                          {item.user_email?.split("@")[0] || "Cazador"}
-                        </span>
-                        <span className="flex text-[#fbbf24] flex-shrink-0 gap-0.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-extrabold text-xs text-white truncate">
+                            {item.user_email?.split("@")[0] || "Cazador"}
+                          </span>
+                          <ReaderRankBadge xp={60} size="xs" compact={true} />
+                        </div>
+                        <span className="flex text-[#c084fc] flex-shrink-0 gap-0.5">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`w-3 h-3 ${i < item.rating ? "fill-current" : "opacity-20"}`} />
+                            <Star key={i} className={`w-2.5 h-2.5 ${i < item.rating ? "fill-current" : "opacity-20"}`} />
                           ))}
                         </span>
                       </div>
-                      <div className="mb-1.5">
-                        <ReaderRankBadge xp={60} size="xs" showLevel={false} />
-                      </div>
-                      <p className="text-white/80 text-xs line-clamp-2 mb-2 leading-relaxed">"{item.content}"</p>
+                      <p className="text-white/75 text-xs line-clamp-2 mb-1.5 leading-snug">"{item.content}"</p>
                       <Link
                         href={`/manga/${item.manhwa_id}`}
-                        className="text-[#c084fc] hover:text-white text-[11px] font-bold uppercase tracking-wider inline-flex items-center gap-1 truncate transition-colors"
+                        className="text-zinc-400 hover:text-[#c084fc] text-[11px] font-semibold inline-flex items-center gap-1 truncate transition-colors"
                       >
-                        <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                        <ChevronRight className="w-3 h-3 flex-shrink-0 text-[#c084fc]" />
                         <span className="truncate">{item.manhwas?.title || "Ver obra"}</span>
                       </Link>
                     </div>
@@ -1688,7 +1606,7 @@ export default function Home({
         </div>
 
         {/* Full-Width Section: Listas Públicas + Catálogo Oficial + Muro Global (Espaciado Armónico) */}
-        <div className="shell pb-16 space-y-16 mt-6">
+        <div className="shell pb-16 space-y-14 mt-2">
           {!activeCategory && !searchQuery && (
             <PublicListsSection
               manhwas={manhwas}
@@ -1703,7 +1621,7 @@ export default function Home({
           )}
 
           <section id="recomendados" className="section pt-2" aria-labelledby="recommendedTitle">
-            <div className="section-heading flex-wrap gap-3 mb-5">
+            <div className="section-heading flex-wrap gap-3 mb-4">
               <h2 id="recommendedTitle" className="section-title">
                 {searchQuery
                   ? `Resultados para "${searchQuery}" (${filteredManhwas.length})`
@@ -1746,6 +1664,47 @@ export default function Home({
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Barra de Géneros Limpia y Minimalista integrada al Catálogo */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-6 scrollbar-none border-b border-white/[0.07]">
+              {[
+                { label: "Todos", value: "" },
+                { label: "Acción", value: "Acción" },
+                { label: "Fantasía", value: "Fantasía" },
+                { label: "Romance", value: "Romance" },
+                { label: "Isekai", value: "Isekai" },
+                { label: "Drama", value: "Drama" },
+                { label: "Comedia", value: "Comedia" },
+                { label: "BL", value: "BL" },
+                { label: "+18", value: "+18" },
+                { label: `Favoritos (${favorites.size})`, value: "Favoritos" },
+              ].map((cat) => {
+                const isActive =
+                  cat.value === ""
+                    ? !activeCategory
+                    : cat.value === "BL"
+                    ? activeCategory === "BL" || activeCategory === "Boys Love"
+                    : activeCategory === cat.value;
+                return (
+                  <button
+                    key={cat.label}
+                    type="button"
+                    onClick={(e) =>
+                      cat.value === "Favoritos"
+                        ? handleFavoritesFilterClick()
+                        : handleCategoryClick(e as any, cat.value)
+                    }
+                    className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-[#a855f7]/20 text-white border border-[#a855f7]/45 shadow-[0_0_14px_rgba(168,85,247,0.2)]"
+                        : "text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
             </div>
 
             {isLoading ? (

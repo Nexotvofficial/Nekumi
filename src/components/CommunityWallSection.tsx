@@ -123,9 +123,6 @@ export default function CommunityWallSection({
         authorName: "AriaRoscent",
         avatarKey: "empress",
         readerXp: 1520,
-        frameId: "frame_solar",
-        nameColorId: "color_gold",
-        customTitleId: "title_empress",
         channel: "spoilers",
         isSpoiler: true,
         attachedManhwaId: sample2?.id,
@@ -141,13 +138,10 @@ export default function CommunityWallSection({
         authorName: "KaelenV",
         avatarKey: "knight",
         readerXp: 640,
-        frameId: "frame_cyber",
-        nameColorId: "color_cyan",
-        customTitleId: "title_system",
         channel: "teorias",
         isSpoiler: false,
         content:
-          "Acabo de canjear el Marco Relámpago Cian en la Tienda del Gremio solo leyendo capítulos esta semana. [spoiler]Mi teoría es que el jefe oculto del piso 100 es el antiguo Monarca[/spoiler] ¿ustedes qué opinan?",
+          "Acabo de subir a Rango B leyendo capítulos esta semana. [spoiler]Mi teoría es que el jefe oculto del piso 100 es el antiguo Monarca[/spoiler] ¿ustedes qué opinan?",
         likes: 21,
         createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
       },
@@ -247,15 +241,15 @@ export default function CommunityWallSection({
       return (
         <div
           onClick={() => toggleReveal(post.id)}
-          className="relative rounded-2xl p-4 bg-black/50 border border-pink-500/35 cursor-pointer group overflow-hidden select-none"
+          className="relative rounded-xl p-4 bg-black/45 border border-white/10 cursor-pointer group overflow-hidden select-none"
         >
-          <p className="text-xs sm:text-sm text-white/75 blur-md pointer-events-none">
+          <p className="text-xs sm:text-sm text-white/60 blur-md pointer-events-none">
             {post.content}
           </p>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/45 backdrop-blur-[3px] group-hover:bg-black/30 transition-colors">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/25 border border-pink-400/50 text-pink-200 text-xs font-black tracking-wide shadow-lg">
-              <EyeOff className="w-3.5 h-3.5 text-pink-400" />
-              ALERTA DE SPOILER · Clic para descubrir
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[3px] group-hover:bg-black/25 transition-colors">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.08] border border-white/15 text-white/90 text-xs font-bold tracking-wide">
+              <EyeOff className="w-3.5 h-3.5 text-[#c084fc]" />
+              Spoiler oculto · Clic para mostrar
             </span>
           </div>
         </div>
@@ -276,23 +270,19 @@ export default function CommunityWallSection({
               key={idx}
               onClick={() => toggleReveal(inlineKey)}
               title={isInlineRevealed ? "Clic para ocultar spoiler" : "Clic para revelar spoiler"}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 mx-1 rounded-lg border cursor-pointer transition-all ${
-                isInlineRevealed
-                  ? "bg-purple-500/20 border-purple-400/40 text-purple-200"
-                  : "bg-pink-500/20 border-pink-400/45 text-pink-200"
-              }`}
+              className="inline-flex items-center gap-1 px-2 py-0.5 mx-1 rounded-md border border-white/15 bg-white/[0.06] text-white/90 cursor-pointer transition-all"
             >
               {!isInlineRevealed ? (
                 <>
-                  <EyeOff className="w-3 h-3 text-pink-400 flex-shrink-0" />
+                  <EyeOff className="w-3 h-3 text-[#c084fc] flex-shrink-0" />
                   <span className="blur-[5px] select-none">{match[1]}</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-pink-300 ml-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#c084fc] ml-1">
                     Spoiler
                   </span>
                 </>
               ) : (
                 <>
-                  <Eye className="w-3 h-3 text-purple-300 flex-shrink-0" />
+                  <Eye className="w-3 h-3 text-[#c084fc] flex-shrink-0" />
                   <span>{match[1]}</span>
                 </>
               )}
@@ -319,33 +309,29 @@ export default function CommunityWallSection({
         {/* Header Row */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#a855f7]/15 border border-[#a855f7]/35 text-[#d8b4fe] text-[11px] font-extrabold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              Gremio en Vivo · Filtro Anti-Spoiler Activo
-            </div>
-            <h2 id="wallHeading" className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5">
-              <MessagesSquare className="w-7 h-7 text-[#c084fc]" />
-              Muro y Chat Global de Cazadores
+            <h2 id="wallHeading" className="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2.5 tracking-tight">
+              <MessagesSquare className="w-5 h-5 text-[#c084fc]" />
+              Comunidad de Nekutoon
             </h2>
-            <p className="text-xs sm:text-sm text-white/55 mt-1">
-              Comparte teorías, recomienda manhwas con protección anti-spoiler y presume tus marcos neón del Gremio
+            <p className="text-xs sm:text-sm text-white/50 mt-1">
+              Comparte teorías, recomienda manhwas con filtro anti-spoiler y participa con otros lectores
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             {stats && (
-              <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-500/15 border border-amber-400/35 text-amber-300 text-xs font-black">
-                <Coins className="w-4 h-4 text-amber-400" />
-                <span>{stats.coins} NekuCoins</span>
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-zinc-200 text-xs font-bold">
+                <Coins className="w-3.5 h-3.5 text-[#c084fc]" />
+                <span>{stats.coins} Coins</span>
               </div>
             )}
             <button
               type="button"
               onClick={onOpenShop}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/25 via-[#a855f7]/25 to-pink-500/25 hover:from-amber-500/35 hover:to-pink-500/35 border border-amber-400/45 text-white text-xs font-extrabold inline-flex items-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-[#a855f7]/20 border border-white/12 hover:border-[#a855f7]/45 text-white text-xs font-bold inline-flex items-center gap-2 transition-all cursor-pointer"
             >
-              <ShoppingBag className="w-4 h-4 text-amber-300" />
-              <span>Tienda del Gremio (Marcos y Colores)</span>
+              <ShoppingBag className="w-3.5 h-3.5 text-[#c084fc]" />
+              <span>Personalizar Perfil</span>
             </button>
           </div>
         </div>
@@ -404,19 +390,19 @@ export default function CommunityWallSection({
               <button
                 type="button"
                 onClick={handleInsertSpoilerTag}
-                className="px-3 h-10 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/35 text-pink-300 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-3 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                 title="Insertar texto oculto anti-spoiler"
               >
-                <EyeOff className="w-3.5 h-3.5" />
+                <EyeOff className="w-3.5 h-3.5 text-[#c084fc]" />
                 <span>+ Etiqueta [Spoiler]</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowManhwaPicker(!showManhwaPicker)}
-                className="px-3 h-10 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/35 text-purple-200 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-3 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
               >
-                <BookOpen className="w-3.5 h-3.5" />
+                <BookOpen className="w-3.5 h-3.5 text-[#c084fc]" />
                 <span>{attachedManhwa ? "Cambiar Obra" : "+ Adjuntar Manhwa"}</span>
               </button>
             </div>
@@ -491,14 +477,14 @@ export default function CommunityWallSection({
               className="flex-1 h-11 rounded-xl bg-black/50 border border-white/10 px-4 text-xs sm:text-sm text-white focus:outline-none focus:border-[#a855f7]"
             />
 
-            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-xs font-bold text-pink-300 cursor-pointer select-none">
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-xs font-semibold text-zinc-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={isSpoiler}
                 onChange={(e) => setIsSpoiler(e.target.checked)}
-                className="accent-pink-500 w-3.5 h-3.5"
+                className="accent-[#a855f7] w-3.5 h-3.5"
               />
-              <span>Difuminar todo como Spoiler</span>
+              <span>Marcar como Spoiler</span>
             </label>
 
             <button
