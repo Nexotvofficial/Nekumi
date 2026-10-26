@@ -25,8 +25,11 @@ import {
   X as XIcon,
   Shield,
   Clock,
+  Shuffle,
+  SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AuthModal from "@/components/AuthModal";
 import { LegalModal } from "@/components/LegalModal";
 import { AdsterraNative, AdsterraBanner300 } from "@/components/Adsterra";
@@ -106,9 +109,21 @@ export default function Home({
   const [recentReviews, setRecentReviews] = useState<any[]>(initialReviews);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "top" | "az" | "completed" | "ongoing">("recent");
   const [visibleCount, setVisibleCount] = useState<number>(36);
 
+  const router = useRouter();
   const supabase = createClient();
+
+  const handleSurpriseMe = () => {
+    const pool = filteredManhwas.length > 0 ? filteredManhwas : manhwas;
+    if (pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    try {
+      sessionStorage.setItem(`nekumi_manhwa_full_${pick.id}`, JSON.stringify(pick));
+    } catch {}
+    router.push(`/manga/${pick.id}`);
+  };
 
   const showToastMessage = (msg: string) => {
     setToastMessage(msg);
@@ -327,7 +342,7 @@ export default function Home({
     const q = norm(searchQuery);
     const cat = norm(activeCategory);
 
-    return manhwas.filter((m) => {
+    const list = manhwas.filter((m) => {
       const titleNorm = norm(m.title);
       const genreNorm = norm(m.genre);
       const matchesSearch = !q || titleNorm.includes(q) || genreNorm.includes(q);
@@ -389,7 +404,21 @@ export default function Home({
 
       return matchesSearch && genreNorm.includes(cat);
     });
-  }, [manhwas, searchQuery, activeCategory, favorites]);
+
+    if (sortBy === "completed") {
+      return list.filter((m) => m.status === "Finalizado");
+    }
+    if (sortBy === "ongoing") {
+      return list.filter((m) => m.status !== "Finalizado");
+    }
+    if (sortBy === "top") {
+      return [...list].sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
+    }
+    if (sortBy === "az") {
+      return [...list].sort((a, b) => (a.title || "").localeCompare(b.title || "", "es"));
+    }
+    return list;
+  }, [manhwas, searchQuery, activeCategory, favorites, sortBy]);
 
   const handleAvatarClick = () => {
     if (user) {
@@ -611,6 +640,16 @@ export default function Home({
                   )}
                 </div>
               </div>
+
+              <button
+                className="icon-btn"
+                type="button"
+                aria-label="Manhwa aleatorio (Sorpréndeme)"
+                title="¡Sorpréndeme con un manhwa al azar!"
+                onClick={handleSurpriseMe}
+              >
+                <Shuffle className="text-[#c084fc]" />
+              </button>
 
               <button
                 className={`icon-btn favorite-toggle ${activeCategory === "Favoritos" || favorites.size > 0 ? "active" : ""}`}
@@ -878,7 +917,15 @@ export default function Home({
                       </div>
                       <p className="hero-copy line-clamp-3">{hero.description}</p>
                       <div className="hero-actions">
-                        <Link href={`/manga/${hero.id}`} className="btn btn-primary">
+                        <Link
+                          href={`/manga/${hero.id}`}
+                          className="btn btn-primary"
+                          onClick={() => {
+                            try {
+                              sessionStorage.setItem(`nekumi_manhwa_full_${hero.id}`, JSON.stringify(hero));
+                            } catch {}
+                          }}
+                        >
                           <BookOpen /> Leer Ahora
                         </Link>
                         <button
@@ -888,6 +935,14 @@ export default function Home({
                         >
                           <Heart className={favorites.has(hero.id) ? "fill-current text-pink-500" : ""} />
                           {favorites.has(hero.id) ? "En Favoritos" : "Guardar"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSurpriseMe}
+                          className="btn btn-secondary border-[#a855f7]/40 text-[#d8b4fe] hover:bg-[#a855f7]/20"
+                          title="Abrir un manhwa recomendado al azar"
+                        >
+                          <Shuffle className="w-4 h-4" /> Sorpréndeme
                         </button>
                       </div>
                     </div>
@@ -960,7 +1015,7 @@ export default function Home({
             )}
 
             <section id="recomendados" className="section" aria-labelledby="recommendedTitle">
-              <div className="section-heading">
+              <div className="section-heading flex-wrap gap-3">
                 <h2 id="recommendedTitle" className="section-title">
                   {searchQuery
                     ? `Resultados para "${searchQuery}" (${filteredManhwas.length})`
@@ -970,18 +1025,73 @@ export default function Home({
                     ? `Categoría: ${activeCategory} (${filteredManhwas.length})`
                     : `Explorar Catálogo (${filteredManhwas.length})`}
                 </h2>
-                {(activeCategory || searchQuery) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveCategory("");
-                      setSearchQuery("");
-                    }}
-                    className="mini-button"
-                  >
-                    Ver todo el catálogo
-                  </button>
-                )}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="flex items-center gap-2 bg-[#121216] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white/80">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#c084fc]" />
+                    <label htmlFor="catalogSort" className="sr-only">
+                      Ordenar catálogo
+                    </label>
+                    <select
+                      id="catalogSort"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      className="bg-transparent text-white font-semibold outline-none cursor-pointer"
+                    >
+                      <option value="recent" className="bg-[#121216]">Más recientes</option>
+                      <option value="top" className="bg-[#121216]">Mejor valorados ⭐</option>
+                      <option value="az" className="bg-[#121216]">Orden A - Z</option>
+                      <option value="ongoing" className="bg-[#121216]">En emisión</option>
+                      <option value="completed" className="bg-[#121216]">Finalizados</option>
+                    </select>
+                  </div>
+                  {(activeCategory || searchQuery || sortBy !== "recent") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory("");
+                        setSearchQuery("");
+                        setSortBy("recent");
+                      }}
+                      className="mini-button"
+                    >
+                      Limpiar filtros
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Barra interactiva de píldoras de género */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
+                {[
+                  { id: "", label: "🔥 Todos" },
+                  { id: "Acción", label: "⚔️ Acción" },
+                  { id: "Fantasía", label: "✨ Fantasía" },
+                  { id: "Romance", label: "💖 Romance" },
+                  { id: "Isekai", label: "🌀 Isekai" },
+                  { id: "Drama", label: "🎭 Drama" },
+                  { id: "Comedia", label: "😂 Comedia" },
+                  { id: "BL", label: "💜 BL" },
+                  { id: "+18", label: "🔞 +18" },
+                  { id: "Favoritos", label: `❤️ Favoritos (${favorites.size})` },
+                ].map((pill) => {
+                  const isActive = activeCategory === pill.id;
+                  return (
+                    <button
+                      key={pill.id || "all"}
+                      type="button"
+                      onClick={(e) =>
+                        pill.id === "Favoritos" ? handleFavoritesFilterClick(e) : handleCategoryClick(e, pill.id)
+                      }
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-gradient-to-r from-[#a855f7] to-[#ec4899] text-white border-transparent shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                          : "bg-[#121216] text-[#a7a7b1] border-white/10 hover:border-[#a855f7]/50 hover:text-white"
+                      }`}
+                    >
+                      {pill.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {isLoading ? (
@@ -1121,30 +1231,62 @@ export default function Home({
               </div>
               <ol className="rank-list">
                 {trending.length === 0 && <p className="text-sm text-center py-4 text-white/50">Cargando...</p>}
-                {trending.map((item, i) => (
-                  <li key={item.id} className="rank-item">
-                    <span className="rank-number">{i + 1}</span>
-                    <Link href={`/manga/${item.id}`} className="block">
-                      <img
-                        referrerPolicy="no-referrer"
-                        className="rank-thumb"
-                        src={item.cover_url}
-                        alt={`Portada de ${item.title}`}
-                        loading="lazy"
-                      />
-                    </Link>
-                    <div className="rank-copy">
-                      <h3 className="rank-name line-clamp-1">
-                        <Link href={`/manga/${item.id}`} className="hover:text-[#c084fc] transition-colors">
-                          {item.title}
-                        </Link>
-                      </h3>
-                      <p className="rank-genre">
-                        {item.genre} • <Star className="w-3 h-3 inline text-[#fbbf24] fill-[#fbbf24]" /> {item.score}
-                      </p>
-                    </div>
-                  </li>
-                ))}
+                {trending.map((item, i) => {
+                  const medalClass =
+                    i === 0
+                      ? "bg-gradient-to-br from-[#fbbf24] to-[#d97706] text-black shadow-[0_0_12px_rgba(251,191,36,0.45)]"
+                      : i === 1
+                      ? "bg-gradient-to-br from-[#e2e8f0] to-[#94a3b8] text-black shadow-[0_0_10px_rgba(226,232,240,0.3)]"
+                      : i === 2
+                      ? "bg-gradient-to-br from-[#f59e0b] to-[#92400e] text-white shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                      : "";
+                  return (
+                    <li key={item.id} className="rank-item group">
+                      <span
+                        className={`rank-number ${
+                          i < 3 ? `w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${medalClass}` : ""
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <Link
+                        href={`/manga/${item.id}`}
+                        className="block"
+                        onClick={() => {
+                          try {
+                            sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                          } catch {}
+                        }}
+                      >
+                        <img
+                          referrerPolicy="no-referrer"
+                          className="rank-thumb group-hover:scale-105 transition-transform"
+                          src={item.cover_url}
+                          alt={`Portada de ${item.title}`}
+                          loading="lazy"
+                        />
+                      </Link>
+                      <div className="rank-copy">
+                        <h3 className="rank-name line-clamp-1">
+                          <Link
+                            href={`/manga/${item.id}`}
+                            className="hover:text-[#c084fc] transition-colors"
+                            onClick={() => {
+                              try {
+                                sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                              } catch {}
+                            }}
+                          >
+                            {item.title}
+                          </Link>
+                        </h3>
+                        <p className="rank-genre">
+                          {item.genre} • <Star className="w-3 h-3 inline text-[#fbbf24] fill-[#fbbf24]" /> {item.score}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
             </section>
 

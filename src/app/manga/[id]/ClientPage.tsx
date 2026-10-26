@@ -17,6 +17,8 @@ import {
   MessageCircle,
   Send,
   Play,
+  Search,
+  Share2,
 } from "lucide-react";
 import { getAvatarSvg } from "@/lib/avatars";
 import AvatarPicker from "@/components/AvatarPicker";
@@ -73,6 +75,7 @@ export default function ClientPage({
   const [user, setUser] = useState<any>(null);
   const [sortDesc, setSortDesc] = useState(true);
   const [chapterPage, setChapterPage] = useState(1);
+  const [chapterSearch, setChapterSearch] = useState("");
   const chaptersPerPage = 100;
 
   // Review form state
@@ -310,10 +313,39 @@ export default function ClientPage({
   };
 
   const sortedChapters = useMemo(() => {
-    return [...chapters].sort((a, b) =>
+    const q = chapterSearch.trim().toLowerCase();
+    const filtered = q
+      ? chapters.filter(
+          (c) =>
+            String(c.chapter_number).includes(q) ||
+            (c.title || "").toLowerCase().includes(q)
+        )
+      : chapters;
+    return [...filtered].sort((a, b) =>
       sortDesc ? b.chapter_number - a.chapter_number : a.chapter_number - b.chapter_number
     );
-  }, [chapters, sortDesc]);
+  }, [chapters, sortDesc, chapterSearch]);
+
+  const handleShare = async () => {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    if (!shareUrl) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${manhwa?.title || "Manhwa"} — Nekumi`,
+          text: `Lee ${manhwa?.title || "este manhwa"} en español en Nekumi`,
+          url: shareUrl,
+        });
+        return;
+      } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      triggerToast("¡Enlace copiado al portapapeles!");
+    } catch {
+      triggerToast("No se pudo copiar el enlace");
+    }
+  };
 
   const firstChapter = useMemo(() => {
     if (chapters.length === 0) return null;
@@ -399,6 +431,16 @@ export default function ClientPage({
                 >
                   <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
                 </button>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Compartir manhwa"
+                  title="Compartir enlace"
+                  className="flex items-center justify-center w-12 h-12 rounded-2xl glass text-white/70 hover:text-[#c084fc] transition-all flex-shrink-0"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
               </div>
 
               {lastReadChapter && (
@@ -464,19 +506,52 @@ export default function ClientPage({
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
               <List className="w-6 h-6 text-[#a855f7]" />
-              <h2 className="text-2xl font-bold">Capítulos ({chapters.length})</h2>
+              <h2 className="text-2xl font-bold">Capítulos ({sortedChapters.length})</h2>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setSortDesc(!sortDesc);
-                setChapterPage(1);
-              }}
-              className="btn glass border border-white/10 hover:bg-white/5 text-xs sm:text-sm"
-            >
-              Ordenar: {sortDesc ? "Más recientes primero" : "Desde el Cap. 1"}
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-56">
+                <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="search"
+                  value={chapterSearch}
+                  onChange={(e) => {
+                    setChapterSearch(e.target.value);
+                    setChapterPage(1);
+                  }}
+                  placeholder="Ir al capítulo... (ej. 25)"
+                  className="w-full h-10 rounded-xl bg-white/5 border border-white/10 pl-9 pr-3 text-xs sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#a855f7]"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSortDesc(!sortDesc);
+                  setChapterPage(1);
+                }}
+                className="btn glass border border-white/10 hover:bg-white/5 text-xs sm:text-sm h-10 px-4"
+              >
+                {sortDesc ? "↓ Recientes" : "↑ Desde Cap. 1"}
+              </button>
+            </div>
           </div>
+
+          {lastReadChapter && chapters.length > 0 && (
+            <div className="mb-4 px-4 py-3 rounded-2xl bg-[#a855f7]/10 border border-[#a855f7]/25 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-xs sm:text-sm text-white/90">
+                <span className="w-2 h-2 rounded-full bg-[#a855f7] animate-pulse" />
+                <span>
+                  Tu progreso: <strong className="text-[#d8b4fe]">Capítulo {lastReadChapter.num}</strong> de{" "}
+                  {chapters.length}
+                </span>
+              </div>
+              <Link
+                href={`/manga/${id}/chapter/${lastReadChapter.id}`}
+                className="text-xs font-bold text-[#c084fc] hover:text-white transition-colors"
+              >
+                Reanudar lectura →
+              </Link>
+            </div>
+          )}
 
           <div className="glass rounded-[22px] overflow-hidden">
             {chapters.length === 0 ? (
@@ -490,6 +565,11 @@ export default function ClientPage({
                     .slice((chapterPage - 1) * chaptersPerPage, chapterPage * chaptersPerPage)
                     .map((chapter) => {
                       const isLastRead = lastReadChapter?.id === chapter.id;
+                      const isReadBefore =
+                        !isLastRead &&
+                        lastReadChapter &&
+                        !Number.isNaN(Number(lastReadChapter.num)) &&
+                        chapter.chapter_number <= Number(lastReadChapter.num);
                       return (
                         <Link
                           key={chapter.id}
@@ -499,6 +579,8 @@ export default function ClientPage({
                           className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all group ${
                             isLastRead
                               ? "bg-[#a855f7]/20 border-[#a855f7] shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                              : isReadBefore
+                              ? "bg-white/[0.02] border-white/5 opacity-65 hover:opacity-100 hover:border-[#a855f7]/40"
                               : "bg-white/5 border-white/10 hover:border-[#a855f7]/50 hover:bg-[#a855f7]/10"
                           }`}
                         >
@@ -506,7 +588,12 @@ export default function ClientPage({
                             Cap. {chapter.chapter_number}
                             {isLastRead && (
                               <span className="text-[10px] bg-[#a855f7] text-white px-1.5 py-0.5 rounded-full font-extrabold">
-                                Leído
+                                Actual
+                              </span>
+                            )}
+                            {isReadBefore && (
+                              <span className="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded-full font-semibold">
+                                Visto
                               </span>
                             )}
                           </span>

@@ -44,9 +44,12 @@ export default function ChapterReader() {
   // Navigation
   const [nextChapter, setNextChapter] = useState<Chapter | null>(null);
   const [prevChapter, setPrevChapter] = useState<Chapter | null>(null);
+  const [allChapters, setAllChapters] = useState<Chapter[]>([]);
 
   // Reader Settings
   const [readMode, setReadMode] = useState<"cascade" | "paged">("cascade");
+  const [readerWidth, setReaderWidth] = useState<"compact" | "normal" | "wide">("normal");
+  const [brightness, setBrightness] = useState<number>(100);
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -132,6 +135,7 @@ export default function ChapterReader() {
         // Resolve prev & next chapters immediately from cached list if available
         if (cachedChapsList && cachedChapsList.length > 0) {
           const sortedAsc = [...cachedChapsList].sort((a, b) => a.chapter_number - b.chapter_number);
+          setAllChapters(sortedAsc);
           const idx = sortedAsc.findIndex((c) => c.id === chapterId || c.chapter_number === cData.chapter_number);
           const prevC = idx > 0 ? sortedAsc[idx - 1] : null;
           const nextC = idx >= 0 && idx < sortedAsc.length - 1 ? sortedAsc[idx + 1] : null;
@@ -418,15 +422,32 @@ export default function ChapterReader() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="min-w-0">
-            <h1 className="font-bold text-white leading-tight truncate text-sm sm:text-base">
-              Capítulo {chapter.chapter_number}
-            </h1>
-            {chapter.title &&
-              chapter.title.replace(/[íìîï]/gi, "i").trim().toLowerCase() !==
-                `capitulo ${chapter.chapter_number}` && (
-                <p className="text-xs text-[#a7a7b1] truncate">{chapter.title}</p>
-              )}
+          <div className="min-w-0 flex items-center gap-2.5">
+            {allChapters.length > 1 ? (
+              <select
+                aria-label="Cambiar de capítulo"
+                value={chapter.id}
+                onChange={(e) => router.push(`/manga/${manhwaId}/chapter/${e.target.value}`)}
+                className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-3 py-1.5 font-bold text-white text-xs sm:text-sm outline-none focus:border-[#a855f7] cursor-pointer"
+              >
+                {allChapters.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-[#0a0a0c] text-white">
+                    Capítulo {c.chapter_number}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div>
+                <h1 className="font-bold text-white leading-tight truncate text-sm sm:text-base">
+                  Capítulo {chapter.chapter_number}
+                </h1>
+                {chapter.title &&
+                  chapter.title.replace(/[íìîï]/gi, "i").trim().toLowerCase() !==
+                    `capitulo ${chapter.chapter_number}` && (
+                    <p className="text-xs text-[#a7a7b1] truncate">{chapter.title}</p>
+                  )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -528,6 +549,48 @@ export default function ChapterReader() {
                   </div>
                 )}
               </div>
+
+              <div className="px-5 py-4 border-t border-white/5 bg-gradient-to-r from-transparent to-[#a855f7]/5">
+                <p className="text-[11px] font-black text-[#a855f7] uppercase tracking-widest mb-2.5">
+                  Ancho de Página
+                </p>
+                <div className="grid grid-cols-3 gap-1.5 mb-4">
+                  {[
+                    { id: "compact", label: "Compacto" },
+                    { id: "normal", label: "Normal" },
+                    { id: "wide", label: "Amplio" },
+                  ].map((w) => (
+                    <button
+                      key={w.id}
+                      type="button"
+                      onClick={() => setReaderWidth(w.id as any)}
+                      className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        readerWidth === w.id
+                          ? "bg-[#a855f7]/25 border-[#a855f7] text-white"
+                          : "bg-white/5 border-white/10 text-white/60 hover:text-white"
+                      }`}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-black text-[#a855f7] uppercase tracking-widest">
+                    Brillo Nocturno
+                  </span>
+                  <span className="text-xs font-bold text-white/80">{brightness}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={45}
+                  max={100}
+                  value={brightness}
+                  onChange={(e) => setBrightness(Number(e.target.value))}
+                  aria-label="Brillo de lectura"
+                  className="w-full accent-[#a855f7] cursor-pointer"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -547,7 +610,10 @@ export default function ChapterReader() {
       {/* Reader Container */}
       <div
         ref={containerRef}
-        className={`max-w-3xl mx-auto flex flex-col items-center ${
+        style={{ filter: brightness < 100 ? `brightness(${brightness}%)` : undefined }}
+        className={`${
+          readerWidth === "compact" ? "max-w-xl" : readerWidth === "wide" ? "max-w-5xl" : "max-w-3xl"
+        } mx-auto flex flex-col items-center transition-all duration-200 ${
           readMode === "paged" ? "cursor-pointer relative min-h-[75vh] select-none" : "cursor-pointer"
         }`}
         onClick={handleReaderClick}
