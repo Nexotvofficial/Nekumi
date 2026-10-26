@@ -1162,40 +1162,6 @@ export default function Home({
                 </div>
               </div>
 
-              {/* Barra interactiva de píldoras de género */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
-                {[
-                  { id: "", label: "🔥 Todos" },
-                  { id: "Acción", label: "⚔️ Acción" },
-                  { id: "Fantasía", label: "✨ Fantasía" },
-                  { id: "Romance", label: "💖 Romance" },
-                  { id: "Isekai", label: "🌀 Isekai" },
-                  { id: "Drama", label: "🎭 Drama" },
-                  { id: "Comedia", label: "😂 Comedia" },
-                  { id: "BL", label: "💜 BL" },
-                  { id: "+18", label: "🔞 +18" },
-                  { id: "Favoritos", label: `❤️ Favoritos (${favorites.size})` },
-                ].map((pill) => {
-                  const isActive = activeCategory === pill.id;
-                  return (
-                    <button
-                      key={pill.id || "all"}
-                      type="button"
-                      onClick={(e) =>
-                        pill.id === "Favoritos" ? handleFavoritesFilterClick(e) : handleCategoryClick(e, pill.id)
-                      }
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${
-                        isActive
-                          ? "bg-gradient-to-r from-[#a855f7] to-[#ec4899] text-white border-transparent shadow-[0_0_15px_rgba(168,85,247,0.4)]"
-                          : "bg-[#121216] text-[#a7a7b1] border-white/10 hover:border-[#a855f7]/50 hover:text-white"
-                      }`}
-                    >
-                      {pill.label}
-                    </button>
-                  );
-                })}
-              </div>
-
               {isLoading ? (
                 <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 mt-4">
                   {Array.from({ length: 12 }).map((_, i) => (
