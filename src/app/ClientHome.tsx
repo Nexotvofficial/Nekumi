@@ -112,6 +112,7 @@ export default function Home({
   const [activeCategory, setActiveCategory] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "top" | "az" | "completed" | "ongoing">("recent");
   const [rankTab, setRankTab] = useState<"top" | "ongoing" | "completed">("top");
+  const [activityTab, setActivityTab] = useState<"updates" | "history">("updates");
   const [recentChaptersRaw, setRecentChaptersRaw] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState<number>(36);
 
@@ -191,7 +192,7 @@ export default function Home({
         .select("id, manhwa_id, chapter_number, created_at, manhwa:manhwas(id, title)")
         .not("manhwa_id", "is", null)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500);
 
       if (data && data.length > 0) {
         setRecentChaptersRaw(data);
@@ -463,7 +464,7 @@ export default function Home({
         grouped.set(mid, { manhwa: mObj, chapters: [] });
       }
       const entry = grouped.get(mid)!;
-      if (entry.chapters.length < 2 && !entry.chapters.some((c) => c.chapter_number === ch.chapter_number)) {
+      if (!entry.chapters.some((c) => c.chapter_number === ch.chapter_number)) {
         entry.chapters.push({
           id: ch.id,
           chapter_number: ch.chapter_number,
@@ -472,8 +473,17 @@ export default function Home({
       }
     }
 
+    const list = Array.from(grouped.values()).map((entry) => ({
+      manhwa: entry.manhwa,
+      chapters: entry.chapters
+        .sort((a, b) => Number(b.chapter_number) - Number(a.chapter_number))
+        .slice(0, 2),
+    }));
+
+    const maxEven = list.length >= 6 ? 6 : list.length >= 4 ? 4 : list.length;
+
     return {
-      recentUpdatedManhwas: Array.from(grouped.values()).slice(0, 6),
+      recentUpdatedManhwas: list.slice(0, maxEven),
       latestChapByManhwa: latestSingle,
     };
   }, [manhwas, recentChaptersRaw]);
@@ -1124,134 +1134,167 @@ export default function Home({
               </section>
             )}
 
-            {/* Continuar Leyendo (Si el usuario tiene historial local) */}
-            {readingHistory.length > 0 && !searchQuery && !activeCategory && (
-              <section className="section" aria-label="Continuar leyendo">
-                <div className="section-heading">
-                  <h2 className="section-title flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-[#c084fc]" /> Continuar Leyendo
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {readingHistory.slice(0, 3).map((item) => (
-                    <Link
-                      key={`hist-${item.manhwaId}`}
-                      href={`/manga/${item.manhwaId}/chapter/${item.chapterId}`}
-                      className="glass rounded-2xl p-3 flex items-center gap-3.5 hover:border-[#a855f7]/50 transition-all group relative"
+            {/* Hub Unificado: Últimas Actualizaciones + Continuar Leyendo (Diseño espacioso de 2 columnas, sin apiñamiento) */}
+            {(recentUpdatedManhwas.length > 0 || readingHistory.length > 0) && !searchQuery && !activeCategory && (
+              <section className="section mt-8 mb-10" aria-label="Actividad reciente y capítulos actualizados">
+                <div className="section-heading flex-wrap gap-3 mb-5">
+                  <div className="flex items-center gap-2 bg-[#121216] p-1 rounded-2xl border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setActivityTab("updates")}
+                      className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                        activityTab === "updates"
+                          ? "bg-gradient-to-r from-[#7c3aed] to-[#d946ef] text-white shadow-[0_4px_15px_rgba(139,92,246,0.35)]"
+                          : "text-white/60 hover:text-white"
+                      }`}
                     >
-                      <img
-                        referrerPolicy="no-referrer"
-                        src={item.coverUrl}
-                        alt={item.manhwaTitle}
-                        className="w-14 h-20 object-cover rounded-xl flex-shrink-0 border border-white/10"
-                        loading="lazy"
-                      />
-                      <div className="min-w-0 flex-1 pr-6">
-                        <h3 className="text-sm font-bold text-white truncate group-hover:text-[#c084fc] transition-colors">
-                          {item.manhwaTitle}
-                        </h3>
-                        <p className="text-xs text-[#a855f7] font-semibold mt-1">
-                          Capítulo {item.chapterNumber}
-                        </p>
-                        <span className="text-[11px] text-white/40 inline-flex items-center gap-1 mt-0.5">
-                          Continuar lectura <ChevronRight className="w-3 h-3" />
-                        </span>
-                      </div>
+                      <Sparkles className="w-4 h-4" />
+                      Últimas Actualizaciones
+                    </button>
+
+                    {readingHistory.length > 0 && (
                       <button
                         type="button"
-                        aria-label={`Quitar ${item.manhwaTitle} del historial`}
-                        onClick={(e) => removeHistoryItem(item.manhwaId, e)}
-                        className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-colors"
+                        onClick={() => setActivityTab("history")}
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                          activityTab === "history"
+                            ? "bg-gradient-to-r from-[#7c3aed] to-[#d946ef] text-white shadow-[0_4px_15px_rgba(139,92,246,0.35)]"
+                            : "text-white/60 hover:text-white"
+                        }`}
                       >
-                        <XIcon className="w-3.5 h-3.5" />
+                        <Clock className="w-4 h-4" />
+                        Continuar Leyendo ({readingHistory.length})
                       </button>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
+                    )}
+                  </div>
 
-            {/* Estilo Olympus Scanlation: Últimos Capítulos Publicados con acceso directo a capítulos */}
-            {recentUpdatedManhwas.length > 0 && !searchQuery && !activeCategory && (
-              <section className="section" aria-label="Últimos capítulos publicados">
-                <div className="section-heading">
-                  <h2 className="section-title flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[#c084fc]" /> Últimas Actualizaciones
-                  </h2>
-                  <span className="text-xs font-semibold text-white/45 hidden sm:inline">
-                    Acceso directo a los últimos episodios
+                  <span className="text-xs font-medium text-white/40 hidden md:inline">
+                    {activityTab === "updates"
+                      ? "Episodios recién publicados con acceso directo"
+                      : "Retoma tu lectura donde la dejaste"}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {recentUpdatedManhwas.map(({ manhwa: m, chapters: chList }) => (
-                    <article
-                      key={`upd-${m.id}`}
-                      className="glass rounded-2xl p-3 flex gap-3.5 border border-white/10 hover:border-[#a855f7]/45 transition-all group"
-                    >
+
+                {activityTab === "history" && readingHistory.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {readingHistory.slice(0, 4).map((item) => (
                       <Link
-                        href={`/manga/${m.id}`}
-                        className="relative w-20 h-28 flex-shrink-0 rounded-xl overflow-hidden border border-white/10"
-                        onClick={() => {
-                          try {
-                            sessionStorage.setItem(`nekumi_manhwa_full_${m.id}`, JSON.stringify(m));
-                          } catch {}
-                        }}
+                        key={`hist-${item.manhwaId}`}
+                        href={`/manga/${item.manhwaId}/chapter/${item.chapterId}`}
+                        className="glass rounded-2xl p-4 flex items-center gap-4 border border-white/10 hover:border-[#a855f7]/50 transition-all group relative"
                       >
                         <img
                           referrerPolicy="no-referrer"
-                          src={m.cover_url}
-                          alt={m.title}
+                          src={item.coverUrl}
+                          alt={item.manhwaTitle}
+                          className="w-20 h-28 object-cover rounded-xl flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform"
                           loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        <span className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
+                        <div className="min-w-0 flex-1 pr-6">
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#c084fc] bg-[#a855f7]/15 border border-[#a855f7]/25 px-2.5 py-0.5 rounded-md mb-1.5">
+                            En progreso
+                          </span>
+                          <h3 className="text-base font-bold text-white truncate group-hover:text-[#c084fc] transition-colors">
+                            {item.manhwaTitle}
+                          </h3>
+                          <p className="text-xs text-white/70 font-semibold mt-1">
+                            Último leído: <span className="text-[#d8b4fe]">Capítulo {item.chapterNumber}</span>
+                          </p>
+                          <span className="text-xs text-[#c084fc] font-bold inline-flex items-center gap-1 mt-2.5 group-hover:translate-x-0.5 transition-transform">
+                            Continuar lectura <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={`Quitar ${item.manhwaTitle} del historial`}
+                          onClick={(e) => removeHistoryItem(item.manhwaId, e)}
+                          className="absolute top-3.5 right-3.5 w-7 h-7 rounded-full bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-colors"
+                        >
+                          <XIcon className="w-3.5 h-3.5" />
+                        </button>
                       </Link>
-                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                        <div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {recentUpdatedManhwas.map(({ manhwa: m, chapters: chList }) => {
+                      const cleanGenres = (m.genre || "Acción")
+                        .split(",")
+                        .map((g) => g.trim())
+                        .filter((g) => g.length > 1)
+                        .slice(0, 3)
+                        .join(" · ");
+                      return (
+                        <article
+                          key={`upd-${m.id}`}
+                          className="glass rounded-2xl p-4 flex gap-4 border border-white/10 hover:border-[#a855f7]/45 transition-all group"
+                        >
                           <Link
                             href={`/manga/${m.id}`}
+                            className="relative w-[84px] h-[118px] flex-shrink-0 rounded-xl overflow-hidden border border-white/10"
                             onClick={() => {
                               try {
                                 sessionStorage.setItem(`nekumi_manhwa_full_${m.id}`, JSON.stringify(m));
                               } catch {}
                             }}
                           >
-                            <h3 className="text-sm font-bold text-white truncate group-hover:text-[#c084fc] transition-colors">
-                              {m.title}
-                            </h3>
+                            <img
+                              referrerPolicy="no-referrer"
+                              src={m.cover_url}
+                              alt={m.title}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <span className="absolute top-2 left-2 w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
                           </Link>
-                          <p className="text-[11px] text-white/45 truncate mt-0.5">{m.genre}</p>
-                        </div>
+                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
+                              <Link
+                                href={`/manga/${m.id}`}
+                                onClick={() => {
+                                  try {
+                                    sessionStorage.setItem(`nekumi_manhwa_full_${m.id}`, JSON.stringify(m));
+                                  } catch {}
+                                }}
+                              >
+                                <h3 className="text-[15px] font-bold text-white truncate group-hover:text-[#c084fc] transition-colors">
+                                  {m.title}
+                                </h3>
+                              </Link>
+                              <p className="text-xs text-white/45 truncate mt-0.5">{cleanGenres}</p>
+                            </div>
 
-                        <div className="space-y-1.5 mt-2">
-                          {chList.map((ch, cIdx) => (
-                            <Link
-                              key={ch.id}
-                              href={`/manga/${m.id}/chapter/${ch.id}`}
-                              className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-[#a855f7]/20 border border-white/5 hover:border-[#a855f7]/40 transition-colors text-xs"
-                            >
-                              <span className="font-bold text-white/90 flex items-center gap-1.5">
-                                <BookOpen className="w-3 h-3 text-[#c084fc]" />
-                                Cap. {ch.chapter_number}
-                                {cIdx === 0 && (
-                                  <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded bg-[#a855f7]/25 text-[#d8b4fe] font-extrabold">
-                                    Nuevo
+                            <div className="space-y-2 mt-2.5">
+                              {chList.map((ch, cIdx) => (
+                                <Link
+                                  key={ch.id}
+                                  href={`/manga/${m.id}/chapter/${ch.id}`}
+                                  className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-[#a855f7]/20 border border-white/5 hover:border-[#a855f7]/40 transition-colors text-xs"
+                                >
+                                  <span className="font-bold text-white/90 flex items-center gap-2">
+                                    <BookOpen className="w-3.5 h-3.5 text-[#c084fc]" />
+                                    <span>Cap. {ch.chapter_number}</span>
+                                    {cIdx === 0 && (
+                                      <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#a855f7]/25 text-[#d8b4fe] font-extrabold">
+                                        Nuevo
+                                      </span>
+                                    )}
                                   </span>
-                                )}
-                              </span>
-                              <span className="text-[10px] text-white/40">{formatRelativeDate(ch.created_at)}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                                  <span className="text-[11px] text-white/45">{formatRelativeDate(ch.created_at)}</span>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             )}
 
-            <section id="recomendados" className="section" aria-labelledby="recommendedTitle">
-              <div className="section-heading flex-wrap gap-3">
+            <section id="recomendados" className="section mt-10" aria-labelledby="recommendedTitle">
+              <div className="section-heading flex-wrap gap-3 mb-5">
                 <h2 id="recommendedTitle" className="section-title">
                   {searchQuery
                     ? `Resultados para "${searchQuery}" (${filteredManhwas.length})`
@@ -1262,7 +1305,7 @@ export default function Home({
                     : `Explorar Catálogo (${filteredManhwas.length})`}
                 </h2>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <div className="flex items-center gap-2 bg-[#121216] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white/80">
+                  <div className="flex items-center gap-2 bg-[#121216] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white/80">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-[#c084fc]" />
                     <label htmlFor="catalogSort" className="sr-only">
                       Ordenar catálogo
@@ -1297,8 +1340,8 @@ export default function Home({
               </div>
 
               {isLoading ? (
-                <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 mt-4">
-                  {Array.from({ length: 12 }).map((_, i) => (
+                <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 mt-5">
+                  {Array.from({ length: 10 }).map((_, i) => (
                     <div
                       key={`skel-card-${i}`}
                       className="animate-pulse bg-white/5 rounded-2xl aspect-[2/3] border border-white/5"
@@ -1330,11 +1373,17 @@ export default function Home({
                 </div>
               ) : (
                 <>
-                  <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 mt-4">
+                  <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 mt-5">
                     {filteredManhwas.slice(0, visibleCount).map((item, idx) => {
                       const latestChapNum = latestChapByManhwa.get(item.id);
                       const hasRating = Number(item.score) > 0;
                       const isFinished = item.status === "Finalizado";
+                      const cleanGenre = (item.genre || "Acción")
+                        .split(",")
+                        .map((g) => g.trim())
+                        .filter((g) => g.length > 1)
+                        .slice(0, 2)
+                        .join(" · ");
                       return (
                         <article key={item.id} className="media-card h-full relative group">
                           <div className="cover relative overflow-hidden">
@@ -1403,7 +1452,7 @@ export default function Home({
                           </div>
                           <Link
                             href={`/manga/${item.id}`}
-                            className="card-info p-2.5 block"
+                            className="card-info p-3 block"
                             onClick={() => {
                               try {
                                 sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
@@ -1413,8 +1462,8 @@ export default function Home({
                             <h3 className="card-title line-clamp-1 group-hover:text-[#c084fc] transition-colors">
                               {item.title}
                             </h3>
-                            <div className="flex items-center justify-between gap-2 mt-1">
-                              <p className="card-meta truncate">{item.genre}</p>
+                            <div className="flex items-center justify-between gap-2 mt-1.5">
+                              <p className="card-meta truncate">{cleanGenre}</p>
                               {latestChapNum !== undefined && (
                                 <span className="text-[10px] font-bold text-[#c084fc] bg-[#a855f7]/15 border border-[#a855f7]/25 px-1.5 py-0.5 rounded flex-shrink-0">
                                   Cap. {latestChapNum}

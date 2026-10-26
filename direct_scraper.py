@@ -154,7 +154,7 @@ def normalize_existing_genres(genre_str: str) -> list:
     result = []
     for raw in str(genre_str).split(","):
         g = raw.strip()
-        if not g:
+        if not g or len(g) < 2:
             continue
         low = normalize_title_key(g)
         clean = replacements.get(low, g.capitalize() if g.islower() else g)
