@@ -80,6 +80,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ counts, userReactions, comments });
   }
 
+  if (type === "public_lists") {
+    const { data: row } = await supabase
+      .from("site_config")
+      .select("category_images")
+      .eq("id", 250)
+      .maybeSingle();
+
+    const lists = Array.isArray((row?.category_images as any)?.lists)
+      ? (row?.category_images as any).lists
+      : [];
+    return NextResponse.json({ lists });
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -214,6 +227,74 @@ export async function POST(req: NextRequest) {
       await supabase.from("site_config").upsert({ id: shardId, category_images: shardData });
 
       return NextResponse.json({ comments: updatedComments });
+    }
+
+    if (action === "create_public_list") {
+      const { title, description, authorName, avatarKey, readerXp, isAdult, manhwaIds } = body;
+      if (!title?.trim() || !Array.isArray(manhwaIds) || manhwaIds.length === 0) {
+        return NextResponse.json({ error: "Selecciona al menos un manhwa y escribe un título" }, { status: 400 });
+      }
+
+      const { data: existing } = await supabase
+        .from("site_config")
+        .select("category_images")
+        .eq("id", 250)
+        .maybeSingle();
+
+      const currentLists: any[] = Array.isArray((existing?.category_images as any)?.lists)
+        ? [...(existing?.category_images as any).lists]
+        : [];
+
+      const newList = {
+        id: `list_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        title: title.trim().slice(0, 75),
+        description: (description || "Selección recomendada para la comunidad de Nekutoon.").trim().slice(0, 220),
+        authorName: (authorName || "Cazador").trim().slice(0, 28),
+        avatarKey: avatarKey || "hunter",
+        readerXp: typeof readerXp === "number" ? Math.max(50, readerXp) : 180,
+        isAdult: Boolean(isAdult),
+        manhwaIds: manhwaIds.slice(0, 100).map(String),
+        views: 1,
+        likes: 1,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedLists = [newList, ...currentLists].slice(0, 48);
+      await supabase.from("site_config").upsert({
+        id: 250,
+        category_images: { lists: updatedLists },
+      });
+
+      return NextResponse.json({ lists: updatedLists, created: newList });
+    }
+
+    if (action === "interact_public_list") {
+      const { listId, subAction } = body;
+      if (!listId) return NextResponse.json({ ok: false });
+
+      const { data: existing } = await supabase
+        .from("site_config")
+        .select("category_images")
+        .eq("id", 250)
+        .maybeSingle();
+
+      const currentLists: any[] = Array.isArray((existing?.category_images as any)?.lists)
+        ? [...(existing?.category_images as any).lists]
+        : [];
+
+      const idx = currentLists.findIndex((l) => l.id === listId);
+      if (idx >= 0) {
+        if (subAction === "like") {
+          currentLists[idx].likes = (Number(currentLists[idx].likes) || 0) + 1;
+        } else {
+          currentLists[idx].views = (Number(currentLists[idx].views) || 0) + 1;
+        }
+        await supabase.from("site_config").upsert({
+          id: 250,
+          category_images: { lists: currentLists },
+        });
+      }
+      return NextResponse.json({ lists: currentLists });
     }
 
     return NextResponse.json({ error: "Acción no válida" }, { status: 400 });

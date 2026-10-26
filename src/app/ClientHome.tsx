@@ -27,6 +27,12 @@ import {
   Clock,
   Shuffle,
   SlidersHorizontal,
+  Compass,
+  Swords,
+  Zap,
+  Crown,
+  Library,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,6 +42,7 @@ import { AdsterraNative, AdsterraBanner300 } from "@/components/Adsterra";
 import { getAvatarSvg } from "@/lib/avatars";
 import { createClient } from "@/lib/supabase";
 import { ReaderRankBadge, getLocalReaderStats, ReaderStats } from "@/lib/readerRank";
+import PublicListsSection from "@/components/PublicListsSection";
 
 interface Manhwa {
   id: string;
@@ -610,69 +617,93 @@ export default function Home({
               </span>
             </a>
 
-            <nav className="desktop-nav flex items-center gap-5" aria-label="Navegación principal">
+            <nav className="desktop-nav" aria-label="Navegación principal">
               <a
                 className={`nav-link ${!activeCategory ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "")}
               >
-                Explorar
+                <Compass className="w-3.5 h-3.5 text-[#c084fc]" />
+                <span>Explorar</span>
+              </a>
+              <a
+                className="nav-link"
+                href="#listas-publicas"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("listas-publicas")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <Library className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Listas Públicas</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               </a>
               <a
                 className={`nav-link ${activeCategory === "Acción" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "Acción")}
               >
-                Acción
+                <Swords className="w-3.5 h-3.5 text-sky-400" />
+                <span>Acción</span>
               </a>
               <a
                 className={`nav-link ${activeCategory === "Fantasía" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "Fantasía")}
               >
-                Fantasía
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>Fantasía</span>
               </a>
               <a
                 className={`nav-link ${activeCategory === "Romance" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "Romance")}
               >
-                Romance
+                <Heart className="w-3.5 h-3.5 text-pink-400" />
+                <span>Romance</span>
               </a>
               <a
                 className={`nav-link ${activeCategory === "Isekai" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "Isekai")}
               >
-                Isekai
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <span>Isekai</span>
               </a>
               <a
                 className={`nav-link ${activeCategory === "Drama" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "Drama")}
               >
-                Drama
+                <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Drama</span>
               </a>
               <a
                 className={`nav-link ${activeCategory === "Comedia" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "Comedia")}
               >
-                Comedia
+                <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                <span>Comedia</span>
               </a>
               <a
                 className={`nav-link ${activeCategory === "BL" || activeCategory === "Boys Love" ? "active" : ""}`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "BL")}
               >
-                BL
+                <Crown className="w-3.5 h-3.5 text-fuchsia-400" />
+                <span>BL</span>
               </a>
               <a
-                className={`nav-link ${activeCategory === "+18" ? "active" : ""} text-pink-500`}
+                className={`nav-link ${
+                  activeCategory === "+18" ? "active" : ""
+                } !text-pink-400 hover:!bg-pink-500/15 hover:!border-pink-500/35`}
                 href="#recomendados"
                 onClick={(e) => handleCategoryClick(e, "+18")}
               >
-                +18
+                <span className="px-1.5 py-0.5 rounded bg-pink-500/20 border border-pink-500/40 text-[10px] font-black text-pink-300">
+                  +18
+                </span>
               </a>
             </nav>
 
@@ -971,6 +1002,24 @@ export default function Home({
             >
               Explorar
             </a>
+            <a
+              href="#listas-publicas"
+              onClick={(e) => {
+                e.preventDefault();
+                setMobileNavOpen(false);
+                document.getElementById("listas-publicas")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="text-emerald-400 font-bold"
+            >
+              Listas Públicas
+            </a>
+            <Link
+              href="/profile"
+              onClick={() => setMobileNavOpen(false)}
+              className="text-[#c084fc] font-bold"
+            >
+              Mi Rango de Cazador / Perfil
+            </Link>
             <a
               href="#recomendados"
               onClick={(e) => {
@@ -1384,213 +1433,6 @@ export default function Home({
                 )}
               </section>
             )}
-
-            <section id="recomendados" className="section mt-10" aria-labelledby="recommendedTitle">
-              <div className="section-heading flex-wrap gap-3 mb-5">
-                <h2 id="recommendedTitle" className="section-title">
-                  {searchQuery
-                    ? `Resultados para "${searchQuery}" (${filteredManhwas.length})`
-                    : activeCategory === "Favoritos"
-                    ? `Mis Favoritos (${filteredManhwas.length})`
-                    : activeCategory
-                    ? `Categoría: ${activeCategory} (${filteredManhwas.length})`
-                    : `Explorar Catálogo (${filteredManhwas.length})`}
-                </h2>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <div className="flex items-center gap-2 bg-[#121216] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white/80">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#c084fc]" />
-                    <label htmlFor="catalogSort" className="sr-only">
-                      Ordenar catálogo
-                    </label>
-                    <select
-                      id="catalogSort"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
-                      className="bg-transparent text-white font-semibold outline-none cursor-pointer"
-                    >
-                      <option value="recent" className="bg-[#121216]">Más recientes</option>
-                      <option value="top" className="bg-[#121216]">Mejor valorados</option>
-                      <option value="az" className="bg-[#121216]">Orden A - Z</option>
-                      <option value="ongoing" className="bg-[#121216]">En emisión</option>
-                      <option value="completed" className="bg-[#121216]">Finalizados</option>
-                    </select>
-                  </div>
-                  {(activeCategory || searchQuery || sortBy !== "recent") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveCategory("");
-                        setSearchQuery("");
-                        setSortBy("recent");
-                      }}
-                      className="mini-button"
-                    >
-                      Limpiar filtros
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {isLoading ? (
-                <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 mt-5">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <div
-                      key={`skel-card-${i}`}
-                      className="animate-pulse bg-white/5 rounded-2xl aspect-[2/3] border border-white/5"
-                    />
-                  ))}
-                </div>
-              ) : filteredManhwas.length === 0 ? (
-                <div className="py-14 px-6 text-center text-[#9b9ba6] glass rounded-2xl">
-                  <p className="text-base font-semibold text-white mb-2">
-                    {activeCategory === "Favoritos"
-                      ? "Aún no tienes manhwas guardados en tus favoritos"
-                      : "No se encontraron resultados para esta búsqueda"}
-                  </p>
-                  <p className="text-sm mb-5">
-                    {activeCategory === "Favoritos"
-                      ? "Toca el ícono del corazón en cualquier manhwa para guardarlo en tu colección personal."
-                      : "Prueba con otro término o explora todas las categorías disponibles."}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveCategory("");
-                      setSearchQuery("");
-                    }}
-                    className="btn btn-primary"
-                  >
-                    Ver Catálogo Completo
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 mt-5">
-                    {filteredManhwas.slice(0, visibleCount).map((item, idx) => {
-                      const latestChapNum = latestChapByManhwa.get(item.id);
-                      const hasRating = Number(item.score) > 0;
-                      const isFinished = item.status === "Finalizado";
-                      const cleanGenre = (item.genre || "Acción")
-                        .split(",")
-                        .map((g) => g.trim())
-                        .filter((g) => g.length > 1)
-                        .slice(0, 2)
-                        .join(" · ");
-                      return (
-                        <article key={item.id} className="media-card h-full relative group">
-                          <div className="cover relative overflow-hidden">
-                            <img
-                              referrerPolicy="no-referrer"
-                              src={item.cover_url}
-                              alt={`Portada de ${item.title}`}
-                              loading={idx < 6 ? "eager" : "lazy"}
-                              decoding="async"
-                              className="w-full h-full object-cover aspect-[2/3] group-hover:scale-105 transition-transform duration-500"
-                            />
-                            <Link
-                              href={`/manga/${item.id}`}
-                              className="absolute inset-0 z-[2]"
-                              aria-label={`Leer ${item.title}`}
-                              onClick={() => {
-                                try {
-                                  sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
-                                } catch {}
-                              }}
-                            />
-                            {hasRating && (
-                              <span className="card-badge score pointer-events-none z-[3]">
-                                <Star />
-                                {Number(item.score).toFixed(1)}
-                              </span>
-                            )}
-
-                            <span
-                              className={`pointer-events-none absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg z-[3] inline-flex items-center gap-1 ${
-                                isFinished
-                                  ? "bg-[#064e3b]/90 text-[#6ee7b7] border-[#10b981]/30"
-                                  : "bg-[#1e1b4b]/90 text-[#c4b5fd] border-[#8b5cf6]/35"
-                              }`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  isFinished ? "bg-[#10b981]" : "bg-[#a855f7] animate-pulse"
-                                }`}
-                              />
-                              {item.status || "En emisión"}
-                            </span>
-
-                            {/* Hover Synopsis & Quick Chapter Preview (Olympus / Asura style) */}
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pt-10 bg-gradient-to-t from-black/95 via-black/75 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[3] flex flex-col justify-end">
-                              <p className="text-[11px] text-white/85 line-clamp-3 leading-snug mb-2">
-                                {item.description || "Explora esta historia en español en Nekutoon."}
-                              </p>
-                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-[#c084fc]">
-                                <BookOpen className="w-3 h-3" /> Leer ahora <ChevronRight className="w-3 h-3" />
-                              </span>
-                            </div>
-
-                            <button
-                              className={`card-favorite favorite-toggle z-[4] ${favorites.has(item.id) ? "active" : ""}`}
-                              type="button"
-                              aria-label={
-                                favorites.has(item.id)
-                                  ? `Quitar ${item.title} de favoritos`
-                                  : `Añadir ${item.title} a favoritos`
-                              }
-                              onClick={(e) => toggleFavorite(item.id, e)}
-                            >
-                              <Heart />
-                            </button>
-                          </div>
-                          <Link
-                            href={`/manga/${item.id}`}
-                            className="card-info p-3 block"
-                            onClick={() => {
-                              try {
-                                sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
-                              } catch {}
-                            }}
-                          >
-                            <h3 className="card-title line-clamp-1 group-hover:text-[#c084fc] transition-colors">
-                              {item.title}
-                            </h3>
-                            <div className="flex items-center justify-between gap-2 mt-1.5">
-                              <p className="card-meta truncate">{cleanGenre}</p>
-                              {latestChapNum !== undefined && (
-                                <span className="text-[10px] font-bold text-[#c084fc] bg-[#a855f7]/15 border border-[#a855f7]/25 px-1.5 py-0.5 rounded flex-shrink-0">
-                                  Cap. {latestChapNum}
-                                </span>
-                              )}
-                            </div>
-                          </Link>
-                        </article>
-                      );
-                    })}
-                  </div>
-                  {visibleCount < filteredManhwas.length && (
-                    <div className="flex flex-wrap justify-center gap-3 mt-12 mb-4">
-                      <button
-                        type="button"
-                        onClick={() => setVisibleCount((v: number) => v + 36)}
-                        className="group relative px-8 py-3 rounded-full bg-[#121214] border border-white/10 hover:border-[#a855f7]/50 transition-all duration-300"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#a855f7]/10 to-[#ec4899]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
-                        <span className="relative text-xs uppercase tracking-wider font-bold text-[#dedee5] group-hover:text-white transition-colors flex items-center gap-2">
-                          Mostrar más ({filteredManhwas.length - visibleCount} restantes)
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setVisibleCount(filteredManhwas.length)}
-                        className="px-6 py-3 rounded-full bg-[#a855f7]/15 border border-[#a855f7]/40 hover:bg-[#a855f7]/25 text-xs uppercase tracking-wider font-bold text-[#c084fc] hover:text-white transition-all duration-300"
-                      >
-                        Ver todos ({filteredManhwas.length})
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
           </div>
 
           <aside className="sidebar">
@@ -1690,6 +1532,26 @@ export default function Home({
               </ol>
             </section>
 
+            {/* Tarjeta Destacada: Cazador de la Semana (Estilo LectorXD) */}
+            <section className="side-panel glass relative overflow-hidden border border-[#a855f7]/35">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#a855f7] to-[#ec4899] flex items-center justify-center text-white font-black text-base shadow-[0_0_18px_rgba(168,85,247,0.45)] flex-shrink-0">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-white truncate">
+                      {recentReviews[0]?.user_email?.split("@")[0] || "SungJinWoo"}
+                    </span>
+                    <span className="text-[10px] font-extrabold text-[#fbbf24]">· Lector de la semana</span>
+                  </div>
+                  <p className="text-[11px] text-white/60 mt-0.5">
+                    La comunidad de Nekutoon celebra a sus cazadores más activos.
+                  </p>
+                </div>
+              </div>
+            </section>
+
             <div className="w-full flex justify-center mb-2">
               <AdsterraBanner300 />
             </div>
@@ -1742,6 +1604,229 @@ export default function Home({
               </div>
             </section>
           </aside>
+        </div>
+
+        {/* Full-Width Section: Listas Públicas + Catálogo Oficial (Cero Huecos Laterales) */}
+        <div className="shell pb-10">
+          {!activeCategory && !searchQuery && (
+            <PublicListsSection
+              manhwas={manhwas}
+              isAdultConfirmed={isAdultConfirmed}
+              onRequireAdultConfirm={() => {
+                setPendingCategory("+18");
+                setShowAdultModal(true);
+              }}
+              userName={userProfile?.username || user?.email?.split("@")[0] || "Cazador"}
+              userAvatar={userProfile?.avatar_url || "hunter"}
+            />
+          )}
+
+          <section id="recomendados" className="section mt-6" aria-labelledby="recommendedTitle">
+            <div className="section-heading flex-wrap gap-3 mb-5">
+              <h2 id="recommendedTitle" className="section-title">
+                {searchQuery
+                  ? `Resultados para "${searchQuery}" (${filteredManhwas.length})`
+                  : activeCategory === "Favoritos"
+                  ? `Mis Favoritos (${filteredManhwas.length})`
+                  : activeCategory
+                  ? `Categoría: ${activeCategory} (${filteredManhwas.length})`
+                  : `Explorar Catálogo (${filteredManhwas.length})`}
+              </h2>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-2 bg-[#121216] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white/80">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#c084fc]" />
+                  <label htmlFor="catalogSort" className="sr-only">
+                    Ordenar catálogo
+                  </label>
+                  <select
+                    id="catalogSort"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="bg-transparent text-white font-semibold outline-none cursor-pointer"
+                  >
+                    <option value="recent" className="bg-[#121216]">Más recientes</option>
+                    <option value="top" className="bg-[#121216]">Mejor valorados</option>
+                    <option value="az" className="bg-[#121216]">Orden A - Z</option>
+                    <option value="ongoing" className="bg-[#121216]">En emisión</option>
+                    <option value="completed" className="bg-[#121216]">Finalizados</option>
+                  </select>
+                </div>
+                {(activeCategory || searchQuery || sortBy !== "recent") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory("");
+                      setSearchQuery("");
+                      setSortBy("recent");
+                    }}
+                    className="mini-button"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 mt-5">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div
+                    key={`skel-card-${i}`}
+                    className="animate-pulse bg-white/5 rounded-2xl aspect-[2/3] border border-white/5"
+                  />
+                ))}
+              </div>
+            ) : filteredManhwas.length === 0 ? (
+              <div className="py-14 px-6 text-center text-[#9b9ba6] glass rounded-2xl">
+                <p className="text-base font-semibold text-white mb-2">
+                  {activeCategory === "Favoritos"
+                    ? "Aún no tienes manhwas guardados en tus favoritos"
+                    : "No se encontraron resultados para esta búsqueda"}
+                </p>
+                <p className="text-sm mb-5">
+                  {activeCategory === "Favoritos"
+                    ? "Toca el ícono del corazón en cualquier manhwa para guardarlo en tu colección personal."
+                    : "Prueba con otro término o explora todas las categorías disponibles."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory("");
+                    setSearchQuery("");
+                  }}
+                  className="btn btn-primary"
+                >
+                  Ver Catálogo Completo
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 mt-5">
+                  {filteredManhwas.slice(0, visibleCount).map((item, idx) => {
+                    const latestChapNum = latestChapByManhwa.get(item.id);
+                    const hasRating = Number(item.score) > 0;
+                    const isFinished = item.status === "Finalizado";
+                    const cleanGenre = (item.genre || "Acción")
+                      .split(",")
+                      .map((g) => g.trim())
+                      .filter((g) => g.length > 1)
+                      .slice(0, 2)
+                      .join(" · ");
+                    return (
+                      <article key={item.id} className="media-card h-full relative group">
+                        <div className="cover relative overflow-hidden">
+                          <img
+                            referrerPolicy="no-referrer"
+                            src={item.cover_url}
+                            alt={`Portada de ${item.title}`}
+                            loading={idx < 6 ? "eager" : "lazy"}
+                            decoding="async"
+                            className="w-full h-full object-cover aspect-[2/3] group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <Link
+                            href={`/manga/${item.id}`}
+                            className="absolute inset-0 z-[2]"
+                            aria-label={`Leer ${item.title}`}
+                            onClick={() => {
+                              try {
+                                sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                              } catch {}
+                            }}
+                          />
+                          {hasRating && (
+                            <span className="card-badge score pointer-events-none z-[3]">
+                              <Star />
+                              {Number(item.score).toFixed(1)}
+                            </span>
+                          )}
+
+                          <span
+                            className={`pointer-events-none absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg z-[3] inline-flex items-center gap-1 ${
+                              isFinished
+                                ? "bg-[#064e3b]/90 text-[#6ee7b7] border-[#10b981]/30"
+                                : "bg-[#1e1b4b]/90 text-[#c4b5fd] border-[#8b5cf6]/35"
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isFinished ? "bg-[#10b981]" : "bg-[#a855f7] animate-pulse"
+                              }`}
+                            />
+                            {item.status || "En emisión"}
+                          </span>
+
+                          {/* Hover Synopsis & Quick Chapter Preview (Olympus / Asura style) */}
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pt-10 bg-gradient-to-t from-black/95 via-black/75 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[3] flex flex-col justify-end">
+                            <p className="text-[11px] text-white/85 line-clamp-3 leading-snug mb-2">
+                              {item.description || "Explora esta historia en español en Nekutoon."}
+                            </p>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-[#c084fc]">
+                              <BookOpen className="w-3 h-3" /> Leer ahora <ChevronRight className="w-3 h-3" />
+                            </span>
+                          </div>
+
+                          <button
+                            className={`card-favorite favorite-toggle z-[4] ${favorites.has(item.id) ? "active" : ""}`}
+                            type="button"
+                            aria-label={
+                              favorites.has(item.id)
+                                ? `Quitar ${item.title} de favoritos`
+                                : `Añadir ${item.title} a favoritos`
+                            }
+                            onClick={(e) => toggleFavorite(item.id, e)}
+                          >
+                            <Heart />
+                          </button>
+                        </div>
+                        <Link
+                          href={`/manga/${item.id}`}
+                          className="card-info p-3 block"
+                          onClick={() => {
+                            try {
+                              sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                            } catch {}
+                          }}
+                        >
+                          <h3 className="card-title line-clamp-1 group-hover:text-[#c084fc] transition-colors">
+                            {item.title}
+                          </h3>
+                          <div className="flex items-center justify-between gap-2 mt-1.5">
+                            <p className="card-meta truncate">{cleanGenre}</p>
+                            {latestChapNum !== undefined && (
+                              <span className="text-[10px] font-bold text-[#c084fc] bg-[#a855f7]/15 border border-[#a855f7]/25 px-1.5 py-0.5 rounded flex-shrink-0">
+                                Cap. {latestChapNum}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      </article>
+                    );
+                  })}
+                </div>
+                {visibleCount < filteredManhwas.length && (
+                  <div className="flex flex-wrap justify-center gap-3 mt-12 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleCount((v: number) => v + 36)}
+                      className="group relative px-8 py-3 rounded-full bg-[#121214] border border-white/10 hover:border-[#a855f7]/50 transition-all duration-300"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#a855f7]/10 to-[#ec4899]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+                      <span className="relative text-xs uppercase tracking-wider font-bold text-[#dedee5] group-hover:text-white transition-colors flex items-center gap-2">
+                        Mostrar más ({filteredManhwas.length - visibleCount} restantes)
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibleCount(filteredManhwas.length)}
+                      className="px-6 py-3 rounded-full bg-[#a855f7]/15 border border-[#a855f7]/40 hover:bg-[#a855f7]/25 text-xs uppercase tracking-wider font-bold text-[#c084fc] hover:text-white transition-all duration-300"
+                    >
+                      Ver todos ({filteredManhwas.length})
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
         </div>
 
         <div className="shell lower-grid">
