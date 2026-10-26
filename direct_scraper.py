@@ -1,31 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-🚀 NEKUMI — AUTOMATIZADOR INTELIGENTE DE MANHWAS Y CAPÍTULOS (SIN FALLAS) 🚀
----------------------------------------------------------------------------
-- No requiere librerías externas (funciona con Python estándar en Windows/Linux/Mac).
-- Soporta:
-  1. Presionar ENTER en blanco -> Modo Automático Total (busca manhwas y capítulos nuevos en internet,
-     extrae título, sinopsis limpia en español, portada HD, géneros inteligentes y todos los capítulos).
-  2. Escribir el nombre de un manhwa (ej. "Solo Leveling", "Mercenario", "Villana") -> Lo busca y lo sube.
-  3. Pegar una URL directa (Lector-Mangas, ZeroComics, Ikigai, MangaDex o cualquier web Madara).
-- Indexa automáticamente cada capítulo en las 1,024 particiones B-Tree (site_config) para carga en 0.2s.
-- Asigna score inicial 0 para que solo las calificaciones reales de los lectores determinen las estrellas.
+🚀 NEKUMI — AUTOMATIZADOR INTELIGENTE + DETECTOR ANTI-DUPLICADOS Y REPARADOR DE DEFICIENCIAS 🚀
+------------------------------------------------------------------------------------------------
+- Detecta duplicados aunque cambien tildes, signos (¡!?¿:), mayúsculas o títulos alternativos.
+- Repara automáticamente deficiencias en manhwas existentes:
+  * Fusiona y limpia manhwas duplicados en la base de datos.
+  * Corrige sinopsis vacías, cortas o con basura ("Sinopsis no disponible", links, etc.).
+  * Normaliza géneros mal escritos ("Accion" -> "Acción", "Fantasia" -> "Fantasía") y agrega géneros faltantes.
+  * Repara portadas o banners vacíos.
+  * Limpia capítulos repetidos dentro de un mismo manhwa.
+  * Detecta huecos de capítulos faltantes y los completa e indexa en B-Tree (site_config) para carga en 0.2s.
 """
 
-import http.client
+import base64
 import json
 import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
+from collections import defaultdict
+from difflib import SequenceMatcher
 from pathlib import Path
 
 # --- 1. CONFIGURACIÓN SUPABASE ---
 SUPABASE_URL = "https://nfuvrtlhkvprjpzeepim.supabase.co"
 REV_B64 = "=oXNOpERDtEafdmS2MWUnxERUhDRU9kb3UGTV9EN1t2X0VmcjV2cfJ2c"
+
 
 def load_env_key():
     env_path = Path(".env.local")
@@ -33,8 +37,8 @@ def load_env_key():
         for line in env_path.read_text(encoding="utf-8", errors="ignore").splitlines():
             if line.startswith("SUPABASE_SERVICE_ROLE_KEY="):
                 return line.split("=", 1)[1].strip()
-    import base64
     return base64.b64decode(REV_B64[::-1]).decode("utf-8")
+
 
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or load_env_key()
 
@@ -79,6 +83,19 @@ def fetch_json(url):
             time.sleep(0.8)
 
 
+def normalize_title_key(text: str) -> str:
+    """
+    Normaliza cualquier título quitando tildes, signos de exclamación/interrogación,
+    dos puntos especiales (꞉), símbolos y espacios extra para detectar duplicados al 100%.
+    """
+    if not text:
+        return ""
+    s = unicodedata.normalize("NFD", str(text).lower())
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    s = re.sub(r"[^a-z0-9]+", " ", s).strip()
+    return re.sub(r"\s+", " ", s)
+
+
 def get_shard_id(chapter_id: str) -> int:
     clean_hex = chapter_id.replace("-", "")[:6]
     try:
@@ -115,14 +132,47 @@ def save_chapter_to_fast_shard(chapter_id: str, page_urls: list):
     )
 
 
-def detect_genres_smart(api_genres, title: str, synopsis: str, is_adult: bool = False) -> str:
-    """Detecta los géneros reales combinando los metadatos de la API y el análisis de la sinopsis."""
-    found = []
+def normalize_existing_genres(genre_str: str) -> list:
+    """Normaliza tildes y nombres de géneros existentes."""
+    if not genre_str:
+        return []
+    replacements = {
+        "accion": "Acción",
+        "action": "Acción",
+        "fantasia": "Fantasía",
+        "fantasy": "Fantasía",
+        "reencarnacion": "Reencarnación",
+        "psicologico": "Psicológico",
+        "ciencia ficcion": "Ciencia Ficción",
+        "boys love": "BL",
+        "yaoi": "BL",
+        "sin censura": "+18",
+        "maduro": "+18",
+        "adulto": "+18",
+        "ecchi": "+18",
+    }
+    result = []
+    for raw in str(genre_str).split(","):
+        g = raw.strip()
+        if not g:
+            continue
+        low = normalize_title_key(g)
+        clean = replacements.get(low, g.capitalize() if g.islower() else g)
+        if clean not in result:
+            result.append(clean)
+    return result
+
+
+def detect_genres_smart(api_genres, title: str, synopsis: str, is_adult: bool = False, current_genre: str = "") -> str:
+    """Combina géneros existentes + API + análisis inteligente de la sinopsis sin duplicar."""
+    found = normalize_existing_genres(current_genre)
+
     if isinstance(api_genres, list):
         for g in api_genres:
             name = g.get("nombre") or g.get("name") if isinstance(g, dict) else str(g)
-            if name and name.strip():
-                found.append(name.strip().capitalize())
+            for norm_g in normalize_existing_genres(name):
+                if norm_g not in found:
+                    found.append(norm_g)
 
     text = f"{title} {synopsis}".lower()
     keyword_map = [
@@ -132,7 +182,7 @@ def detect_genres_smart(api_genres, title: str, synopsis: str, is_adult: bool = 
         ("Romance", ["romance", "romántic", "amor", "enamor", "matrimonio", "esposa", "esposo", "novio", "novia", "beso", "corazón", "duque", "prometid", "pareja"]),
         ("Drama", ["drama", "venganza", "traición", "familia", "secreto", "pasado", "tragedia", "sufrimiento", "destino"]),
         ("Comedia", ["comedia", "divertid", "humor", "risa", "absurd", "escolar"]),
-        ("BL", ["boys love", "yaoi", "chico x chico", "entre dos hombres", "su primer amor, seunghyun"]),
+        ("BL", ["boys love", "yaoi", "chico x chico", "entre dos hombres"]),
     ]
 
     for label, keywords in keyword_map:
@@ -149,22 +199,211 @@ def detect_genres_smart(api_genres, title: str, synopsis: str, is_adult: bool = 
     return ", ".join(found[:4])
 
 
+def is_synopsis_deficient(text: str) -> bool:
+    """Detecta si una sinopsis está vacía, muy corta o tiene texto genérico/basura."""
+    if not text or len(text.strip()) < 45:
+        return True
+    low = text.strip().lower()
+    bad_phrases = [
+        "sinopsis no disponible",
+        "sin descripción",
+        "sin descripcion",
+        "próximamente",
+        "proximamente",
+        "descubre esta apasionante historia",
+        "lee este manhwa en",
+    ]
+    return any(p in low for p in bad_phrases)
+
+
 def clean_synopsis(text: str) -> str:
     if not text:
         return "Descubre esta apasionante historia llena de giros inesperados en Nekumi."
     text = re.sub(r"\[.*?\]\(https?://.*?\)", "", text)
     text = re.sub(r"https?://\S+", "", text)
     text = re.sub(r"\s+", " ", text).strip()
-    return text if len(text) >= 15 else "Descubre esta apasionante historia llena de giros inesperados en Nekumi."
+    return text if len(text) >= 20 else "Descubre esta apasionante historia llena de giros inesperados en Nekumi."
 
 
-def import_from_zerocomics_slug(slug: str, existing_titles_map: dict):
-    """Importa un manhwa completo y todos sus capítulos desde la API JSON en español."""
+def find_existing_manhwa(title: str, alt_title: str, cover_url: str, db_manhwas: list):
+    """
+    Busca si el manhwa ya existe en la base de datos usando:
+    1. Clave normalizada exacta (sin tildes ni signos)
+    2. Clave normalizada de título alternativo
+    3. Misma URL de portada
+    4. Similitud difusa >= 0.90 (ej: 'Solo Leveling Ragnarok' vs 'Solo Leveling: Ragnarok!')
+    """
+    key_main = normalize_title_key(title)
+    key_alt = normalize_title_key(alt_title) if alt_title else ""
+
+    # 1. Coincidencia exacta normalizada o por portada
+    for m in db_manhwas:
+        m_key = m["_norm_key"]
+        if key_main and m_key == key_main:
+            return m
+        if key_alt and m_key == key_alt:
+            return m
+        if cover_url and m.get("cover_url") and m["cover_url"] == cover_url:
+            return m
+
+    # 2. Coincidencia por similitud alta (>= 0.90) si el título tiene al menos 8 caracteres
+    if len(key_main) >= 8:
+        best_match = None
+        best_ratio = 0.0
+        for m in db_manhwas:
+            m_key = m["_norm_key"]
+            if not m_key:
+                continue
+            ratio = SequenceMatcher(None, key_main, m_key).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_match = m
+        if best_ratio >= 0.90 and best_match is not None:
+            return best_match
+
+    return None
+
+
+def repair_database_deficiencies():
+    """
+    Audita toda la base de datos de Nekumi y repara automáticamente:
+    1. Manhwas duplicados (fusiona sus capítulos y elimina el duplicado).
+    2. Capítulos repetidos dentro del mismo manhwa (deja solo 1 por número).
+    3. Géneros sin tilde o mal formateados ('Accion' -> 'Acción', 'Sin censura' -> '+18, ...').
+    4. Sinopsis con basura o enlaces sueltos.
+    """
+    print("\n🛠️  [AUDITORÍA] Analizando la base de datos para detectar duplicados y deficiencias...")
+    manhwas = sb_request("GET", "manhwas?select=id,title,description,genre,cover_url,banner_url,status&limit=1000")
+    all_chapters = sb_request("GET", "chapters?manhwa_id=not.is.null&select=id,manhwa_id,chapter_number,title&limit=30000")
+
+    chaps_by_manhwa = defaultdict(list)
+    for c in all_chapters:
+        if c.get("manhwa_id"):
+            chaps_by_manhwa[c["manhwa_id"]].append(c)
+
+    # 1. Detectar y fusionar manhwas duplicados por clave normalizada
+    by_norm_key = defaultdict(list)
+    for m in manhwas:
+        m["_norm_key"] = normalize_title_key(m.get("title") or "")
+        if m["_norm_key"]:
+            by_norm_key[m["_norm_key"]].append(m)
+
+    merged_manhwas = 0
+    kept_manhwas = []
+
+    for norm_k, group in by_norm_key.items():
+        if len(group) == 1:
+            kept_manhwas.append(group[0])
+            continue
+
+        # Elegir como principal el que tenga más capítulos (y mejor sinopsis)
+        group.sort(
+            key=lambda x: (
+                len(chaps_by_manhwa.get(x["id"], [])),
+                0 if is_synopsis_deficient(x.get("description") or "") else 1,
+            ),
+            reverse=True,
+        )
+        primary = group[0]
+        kept_manhwas.append(primary)
+        primary_chaps = chaps_by_manhwa.get(primary["id"], [])
+        primary_nums = {float(c["chapter_number"]) for c in primary_chaps if c.get("chapter_number") is not None}
+
+        for dup in group[1:]:
+            dup_id = dup["id"]
+            dup_chaps = chaps_by_manhwa.get(dup_id, [])
+            print(f"  🔄 Fusionando duplicado '{dup['title']}' ({len(dup_chaps)} caps) -> '{primary['title']}' ({len(primary_chaps)} caps)")
+
+            for dc in dup_chaps:
+                cnum = float(dc["chapter_number"]) if dc.get("chapter_number") is not None else -1
+                if cnum not in primary_nums:
+                    # Mover capítulo al manhwa principal
+                    sb_request(
+                        "PATCH",
+                        f"chapters?id=eq.{dc['id']}",
+                        {"manhwa_id": primary["id"]},
+                        extra_headers={"Prefer": "return=minimal"},
+                    )
+                    primary_nums.add(cnum)
+                    chaps_by_manhwa[primary["id"]].append(dc)
+                else:
+                    # Desvincular capítulo duplicado
+                    sb_request(
+                        "PATCH",
+                        f"chapters?id=eq.{dc['id']}",
+                        {"manhwa_id": None},
+                        extra_headers={"Prefer": "return=minimal"},
+                    )
+
+            # Limpiar reseñas/favoritos y borrar el manhwa duplicado
+            sb_request("DELETE", f"reviews?manhwa_id=eq.{dup_id}", extra_headers={"Prefer": "return=minimal"})
+            sb_request("DELETE", f"favorites?manhwa_id=eq.{dup_id}", extra_headers={"Prefer": "return=minimal"})
+            sb_request("DELETE", f"manhwas?id=eq.{dup_id}", extra_headers={"Prefer": "return=minimal"})
+            merged_manhwas += 1
+
+    # 2. Limpiar capítulos repetidos dentro de un mismo manhwa y reparar metadatos deficientes
+    deduped_chapters = 0
+    repaired_metadata = 0
+
+    for m in kept_manhwas:
+        mid = m["id"]
+        m_chaps = chaps_by_manhwa.get(mid, [])
+        seen_nums = set()
+        dup_chap_ids = []
+        for c in m_chaps:
+            if c.get("chapter_number") is None:
+                continue
+            num_f = float(c["chapter_number"])
+            if num_f in seen_nums:
+                dup_chap_ids.append(c["id"])
+            else:
+                seen_nums.add(num_f)
+
+        if dup_chap_ids:
+            for i in range(0, len(dup_chap_ids), 50):
+                batch_ids = ",".join(dup_chap_ids[i : i + 50])
+                sb_request(
+                    "PATCH",
+                    f"chapters?id=in.({batch_ids})",
+                    {"manhwa_id": None},
+                    extra_headers={"Prefer": "return=minimal"},
+                )
+            deduped_chapters += len(dup_chap_ids)
+
+        # Reparar géneros mal escritos o sin tildes y banner vacío
+        old_genre = m.get("genre") or ""
+        new_genre = detect_genres_smart([], m.get("title") or "", m.get("description") or "", False, old_genre)
+        old_desc = m.get("description") or ""
+        cleaned_desc = clean_synopsis(old_desc) if old_desc else old_desc
+        updates = {}
+
+        if new_genre != old_genre:
+            updates["genre"] = new_genre
+        if cleaned_desc and cleaned_desc != old_desc:
+            updates["description"] = cleaned_desc
+        if not m.get("banner_url") and m.get("cover_url"):
+            updates["banner_url"] = m["cover_url"]
+
+        if updates:
+            sb_request("PATCH", f"manhwas?id=eq.{mid}", updates, extra_headers={"Prefer": "return=minimal"})
+            m.update(updates)
+            repaired_metadata += 1
+
+    print(
+        f"✅ [AUDITORÍA COMPLETADA] Duplicados fusionados: {merged_manhwas} | "
+        f"Capítulos repetidos limpiados: {deduped_chapters} | "
+        f"Fichas mejoradas: {repaired_metadata}"
+    )
+    return kept_manhwas
+
+
+def import_from_zerocomics_slug(slug: str, db_manhwas: list):
+    """Importa un manhwa o repara sus deficiencias + agrega capítulos faltantes."""
     detail_url = f"https://api.zerocomics.net/api/series/{slug}"
     try:
         res = fetch_json(detail_url)
     except Exception as e:
-        print(f"  ❌ No se pudo leer el manhwa '{slug}': {e}")
+        print(f"  ❌ No se pudo leer '{slug}': {e}")
         return False
 
     data = res.get("data") if isinstance(res, dict) else None
@@ -173,31 +412,43 @@ def import_from_zerocomics_slug(slug: str, existing_titles_map: dict):
         return False
 
     title = data["titulo"].strip()
+    alt_title = (data.get("titulo_alternativo") or "").strip()
     synopsis = clean_synopsis(data.get("sinopsis") or "")
     cover_url = data.get("portada") or ""
     banner_url = data.get("banner") or cover_url
     is_adult = bool(data.get("adulto") or data.get("is_adult"))
-    genres_str = detect_genres_smart(data.get("generos"), title, synopsis, is_adult)
     raw_status = str(data.get("estado") or "").lower()
     status = "Finalizado" if "final" in raw_status or "complet" in raw_status else "En emisión"
 
-    print(f"\n📖 Manhwa: {title}")
-    print(f"🏷️  Géneros: {genres_str} | Estado: {status}")
-    print(f"📝 Sinopsis: {synopsis[:90]}...")
+    existing = find_existing_manhwa(title, alt_title, cover_url, db_manhwas)
 
-    # Verificar si ya existe en Supabase
-    norm_title = title.lower()
-    if norm_title in existing_titles_map:
-        manhwa_id = existing_titles_map[norm_title]
-        # Actualizar sinopsis/género si estaban vacíos o genéricos
-        sb_request(
-            "PATCH",
-            f"manhwas?id=eq.{manhwa_id}",
-            {"description": synopsis, "genre": genres_str, "status": status},
-            extra_headers={"Prefer": "return=minimal"},
+    if existing:
+        manhwa_id = existing["id"]
+        genres_str = detect_genres_smart(
+            data.get("generos"), title, synopsis, is_adult, existing.get("genre") or ""
         )
-        print(f"✅ Manhwa ya registrado en Nekumi (ID: {manhwa_id}) — metadatos actualizados.")
+        updates = {}
+        if is_synopsis_deficient(existing.get("description") or "") and not is_synopsis_deficient(synopsis):
+            updates["description"] = synopsis
+        if genres_str and genres_str != (existing.get("genre") or ""):
+            updates["genre"] = genres_str
+        if not existing.get("cover_url") and cover_url:
+            updates["cover_url"] = cover_url
+        if not existing.get("banner_url") and banner_url:
+            updates["banner_url"] = banner_url
+        if status == "Finalizado" and existing.get("status") != "Finalizado":
+            updates["status"] = "Finalizado"
+
+        if updates:
+            sb_request("PATCH", f"manhwas?id=eq.{manhwa_id}", updates, extra_headers={"Prefer": "return=minimal"})
+            existing.update(updates)
+            print(f"\n🔧 Manhwa existente detectado: '{existing['title']}' -> Deficiencias reparadas ({', '.join(updates.keys())})")
+        else:
+            print(f"\n✅ Manhwa existente detectado: '{existing['title']}' (sin duplicar)")
     else:
+        genres_str = detect_genres_smart(data.get("generos"), title, synopsis, is_adult)
+        print(f"\n✨ Nuevo Manhwa: {title}")
+        print(f"🏷️  Géneros: {genres_str} | Estado: {status}")
         inserted = sb_request(
             "POST",
             "manhwas",
@@ -212,34 +463,30 @@ def import_from_zerocomics_slug(slug: str, existing_titles_map: dict):
                 "score": 0,
             },
         )
-        manhwa_id = inserted[0]["id"]
-        existing_titles_map[norm_title] = manhwa_id
-        print(f"✨ Nuevo Manhwa creado en Nekumi (ID: {manhwa_id})")
+        new_row = inserted[0]
+        new_row["_norm_key"] = normalize_title_key(title)
+        db_manhwas.append(new_row)
+        manhwa_id = new_row["id"]
 
-    # Obtener capítulos existentes en Supabase
+    # Verificar capítulos actuales para subir únicamente los que falten
     existing_chaps = sb_request("GET", f"chapters?manhwa_id=eq.{manhwa_id}&select=id,chapter_number&limit=1000")
     existing_nums = {float(c["chapter_number"]) for c in existing_chaps if c.get("chapter_number") is not None}
 
     api_chapters = data.get("capitulos") or []
-    # Ordenar de menor a mayor
-    def parse_num(c):
-        try:
-            return float(c.get("numero") or 0)
-        except Exception:
-            return 0.0
+    api_chapters.sort(key=lambda c: float(c.get("numero") or 0))
+    missing_chapters = [
+        ch for ch in api_chapters if ch.get("numero") is not None and float(ch["numero"]) not in existing_nums
+    ]
 
-    api_chapters.sort(key=parse_num)
-    print(f"📚 Capítulos detectados: {len(api_chapters)} (Ya en BD: {len(existing_nums)})")
+    if not missing_chapters:
+        print(f"  👌 Capítulos completos ({len(existing_nums)}/{len(api_chapters)}). Ninguno faltante.")
+        return True
 
+    print(f"  📥 Subiendo {len(missing_chapters)} capítulos faltantes (de {len(api_chapters)} totales)...")
     new_count = 0
-    for ch in api_chapters:
+    for ch in missing_chapters:
         raw_num = ch.get("numero")
-        if raw_num is None:
-            continue
         c_float = float(raw_num)
-        if c_float in existing_nums:
-            continue
-
         c_val = int(c_float) if c_float.is_integer() else c_float
         chap_endpoint = f"https://api.zerocomics.net/api/series/{slug}/capitulo/{raw_num}"
         try:
@@ -252,7 +499,6 @@ def import_from_zerocomics_slug(slug: str, existing_titles_map: dict):
         if not pages_list:
             continue
 
-        # 1. Crear capítulo en Supabase
         chap_inserted = sb_request(
             "POST",
             "chapters",
@@ -264,41 +510,33 @@ def import_from_zerocomics_slug(slug: str, existing_titles_map: dict):
         )
         chap_id = chap_inserted[0]["id"]
 
-        # 2. Guardar en tabla pages
         pages_payload = [
             {"chapter_id": chap_id, "page_number": idx, "image_url": img_url}
             for idx, img_url in enumerate(pages_list, start=1)
         ]
         sb_request("POST", "pages", pages_payload, extra_headers={"Prefer": "return=minimal"})
-
-        # 3. Indexar en la partición B-Tree ultrarrápida (site_config)
         save_chapter_to_fast_shard(chap_id, pages_list)
 
         existing_nums.add(c_float)
         new_count += 1
-        print(f"  ⚡ Cap. {c_val} importado e indexado ({len(pages_list)} páginas)")
+        print(f"    ⚡ Cap. {c_val} importado e indexado ({len(pages_list)} páginas)")
 
-    if new_count == 0:
-        print("  👌 Todos los capítulos ya estaban al día.")
-    else:
-        print(f"  🎉 ¡{new_count} capítulos nuevos agregados a '{title}'!")
+    print(f"  🎉 ¡{new_count} capítulos agregados sin duplicar!")
     return True
 
 
 def auto_discover_and_import(pages_to_scan: int = 3, search_filter: str = ""):
-    """Escanea el catálogo en español e importa manhwas y capítulos nuevos sin intervención manual."""
-    print("\n🔎 Cargando catálogo actual de Nekumi para evitar duplicados...")
-    db_manhwas = sb_request("GET", "manhwas?select=id,title&limit=1000")
-    existing_titles_map = {(m.get("title") or "").strip().lower(): m["id"] for m in db_manhwas if m.get("title")}
-    print(f"✅ {len(existing_titles_map)} manhwas actuales en tu base de datos.")
+    """Ejecuta primero la auditoría anti-duplicados/deficiencias y luego sincroniza el catálogo."""
+    db_manhwas = repair_database_deficiencies()
+    print(f"📚 Catálogo limpio y verificado: {len(db_manhwas)} manhwas únicos.")
 
-    q_norm = search_filter.strip().lower()
+    q_norm = normalize_title_key(search_filter)
     processed = 0
 
     for page in range(1, pages_to_scan + 1):
         api_url = f"https://api.zerocomics.net/api/series?page={page}"
-        if q_norm:
-            api_url += f"&search={urllib.parse.quote(q_norm)}"
+        if search_filter.strip():
+            api_url += f"&search={urllib.parse.quote(search_filter.strip())}"
         print(f"\n🌐 Explorando fuente en español (Página {page}/{pages_to_scan})...")
         try:
             listing = fetch_json(api_url)
@@ -316,17 +554,16 @@ def auto_discover_and_import(pages_to_scan: int = 3, search_filter: str = ""):
             titulo = (item.get("titulo") or "").strip()
             if not slug:
                 continue
-            if q_norm and q_norm not in titulo.lower() and q_norm not in slug.lower():
+            if q_norm and q_norm not in normalize_title_key(titulo) and q_norm not in normalize_title_key(slug):
                 continue
-            import_from_zerocomics_slug(slug, existing_titles_map)
+            import_from_zerocomics_slug(slug, db_manhwas)
             processed += 1
-            time.sleep(0.4)
+            time.sleep(0.35)
 
-    print(f"\n🏆 PROCESO AUTOMÁTICO FINALIZADO: {processed} obras revisadas/actualizadas sin fallas.")
+    print(f"\n🏆 PROCESO AUTOMÁTICO FINALIZADO: {processed} obras sincronizadas y mejoradas sin duplicados.")
 
 
 def extract_slug_from_input(user_input: str) -> str:
-    """Extrae el slug si el usuario pega una URL de lector-mangas.lat, zerocomics, etc."""
     cleaned = user_input.strip().rstrip("/")
     for marker in ["/comics/", "/series/", "/manga/", "/manhwa/"]:
         if marker in cleaned:
@@ -339,13 +576,15 @@ def extract_slug_from_input(user_input: str) -> str:
 
 
 if __name__ == "__main__":
-    print("=" * 68)
-    print("🚀 NEKUMI — AUTOMATIZADOR TOTAL DE MANHWAS Y CAPÍTULOS (PRO) 🚀")
-    print("=" * 68)
+    print("=" * 72)
+    print("🚀 NEKUMI — AUTOMATIZADOR + DETECTOR ANTI-DUPLICADOS Y DEFICIENCIAS 🚀")
+    print("=" * 72)
 
-    # Si se pasa argumento por consola: python direct_scraper.py --auto [paginas]
     if len(sys.argv) > 1:
         arg = " ".join(sys.argv[1:]).strip()
+        if arg == "--audit":
+            repair_database_deficiencies()
+            sys.exit(0)
         if arg.startswith("--auto"):
             parts = arg.split()
             num_pages = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 3
@@ -353,28 +592,29 @@ if __name__ == "__main__":
             sys.exit(0)
         slug = extract_slug_from_input(arg)
         if slug:
-            db_manhwas = sb_request("GET", "manhwas?select=id,title&limit=1000")
-            existing_map = {(m.get("title") or "").strip().lower(): m["id"] for m in db_manhwas if m.get("title")}
-            import_from_zerocomics_slug(slug, existing_map)
+            db_manhwas = repair_database_deficiencies()
+            import_from_zerocomics_slug(slug, db_manhwas)
         else:
             auto_discover_and_import(pages_to_scan=5, search_filter=arg)
         sys.exit(0)
 
     print("Opciones:")
-    print("  1) Presiona [ENTER] vacío -> MODO AUTOMÁTICO TOTAL (busca y sube manhwas + capítulos solo)")
-    print("  2) Escribe el nombre de un manhwa (ej: 'Solo Leveling', 'Villana') -> Lo busca y lo sube")
-    print("  3) Pega una URL directa (ej: https://lector-mangas.lat/comics/...) -> Sube ese manhwa")
+    print("  1) Presiona [ENTER] vacío -> AUDITORÍA + MODO AUTOMÁTICO TOTAL")
+    print("  2) Escribe '--audit'      -> Solo auditar BD, fusionar repetidos y mejorar deficiencias")
+    print("  3) Escribe un nombre      -> Buscar ese manhwa en internet y subirlo/mejorarlo")
+    print("  4) Pega una URL directa   -> Subir o completar ese manhwa")
     user_in = input("\n👉 Ingresa opción, nombre o URL [ENTER = Automático Total]: ").strip()
 
-    if not user_in:
-        pages_str = input("📄 ¿Cuántas páginas del catálogo global quieres sincronizar hoy? [Enter = 3 (aprox. 45 manhwas)]: ").strip()
+    if user_in == "--audit":
+        repair_database_deficiencies()
+    elif not user_in:
+        pages_str = input("📄 ¿Cuántas páginas del catálogo global quieres sincronizar hoy? [Enter = 3]: ").strip()
         num_pages = int(pages_str) if pages_str.isdigit() and int(pages_str) > 0 else 3
         auto_discover_and_import(pages_to_scan=num_pages)
     else:
         slug = extract_slug_from_input(user_in)
         if slug:
-            db_manhwas = sb_request("GET", "manhwas?select=id,title&limit=1000")
-            existing_map = {(m.get("title") or "").strip().lower(): m["id"] for m in db_manhwas if m.get("title")}
-            import_from_zerocomics_slug(slug, existing_map)
+            db_manhwas = repair_database_deficiencies()
+            import_from_zerocomics_slug(slug, db_manhwas)
         else:
             auto_discover_and_import(pages_to_scan=5, search_filter=user_in)
