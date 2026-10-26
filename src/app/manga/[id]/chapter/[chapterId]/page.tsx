@@ -3,7 +3,7 @@
 import NekuLoading from "@/components/NekuLoading";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { createClient, fetchChapterPagesFast } from "@/lib/supabase";
 import {
   ArrowLeft,
   ArrowRight,
@@ -79,11 +79,23 @@ export default function ChapterReader() {
     setCurrentPageIndex(0);
 
     async function loadData() {
-      // Instant RAM cache check
+      // 1. Instant RAM cache check (0ms!)
       let usedCache = false;
+      let cachedChapsList: Chapter[] | null = null;
       try {
+        const rawChapsList = sessionStorage.getItem(`nekumi_manhwa_chaps_${manhwaId}`);
+        if (rawChapsList) {
+          const parsedList = JSON.parse(rawChapsList);
+          if (Array.isArray(parsedList) && parsedList.length > 0) {
+            cachedChapsList = parsedList;
+          }
+        }
+
         const cachedPages = sessionStorage.getItem(`nekumi_chap_${chapterId}`);
-        const cachedMeta = sessionStorage.getItem(`nekumi_chap_meta_${chapterId}`);
+        const cachedMeta =
+          sessionStorage.getItem(`nekumi_chap_meta_${chapterId}`) ||
+          (cachedChapsList ? JSON.stringify(cachedChapsList.find((c) => c.id === chapterId)) : null);
+
         if (cachedPages && cachedMeta) {
           const parsedPages = JSON.parse(cachedPages);
           const parsedMeta = JSON.parse(cachedMeta);
@@ -96,9 +108,13 @@ export default function ChapterReader() {
         }
       } catch {}
 
-      const [cRes, pRes] = await Promise.all([
-        supabase.from("chapters").select("*").eq("id", chapterId).single(),
-        supabase.from("pages").select("*").eq("chapter_id", chapterId).order("page_number", { ascending: true }),
+      // 2. Fetch chapter metadata (if not in cached list) and fast B-Tree sharded pages in parallel (~120ms!)
+      const localChapMeta = cachedChapsList?.find((c) => c.id === chapterId) || null;
+      const [cRes, pData] = await Promise.all([
+        localChapMeta
+          ? Promise.resolve({ data: localChapMeta })
+          : supabase.from("chapters").select("*").eq("id", chapterId).single(),
+        fetchChapterPagesFast(supabase, chapterId),
       ]);
 
       if (isCancelled) return;
@@ -113,41 +129,76 @@ export default function ChapterReader() {
           localStorage.setItem(`nekumi_last_read_num_${manhwaId}`, String(cData.chapter_number));
         } catch {}
 
-        // Fetch prev, next chapters and manhwa info (if not cached) in parallel
+        // Resolve prev & next chapters immediately from cached list if available
+        if (cachedChapsList && cachedChapsList.length > 0) {
+          const sortedAsc = [...cachedChapsList].sort((a, b) => a.chapter_number - b.chapter_number);
+          const idx = sortedAsc.findIndex((c) => c.id === chapterId || c.chapter_number === cData.chapter_number);
+          const prevC = idx > 0 ? sortedAsc[idx - 1] : null;
+          const nextC = idx >= 0 && idx < sortedAsc.length - 1 ? sortedAsc[idx + 1] : null;
+          setPrevChapter(prevC);
+          setNextChapter(nextC);
+
+          // Prefetch next chapter pages in background for 0ms transitions!
+          if (nextC) {
+            fetchChapterPagesFast(supabase, nextC.id).then((nextPages) => {
+              if (nextPages.length > 0) {
+                try {
+                  sessionStorage.setItem(`nekumi_chap_${nextC.id}`, JSON.stringify(nextPages));
+                  sessionStorage.setItem(`nekumi_chap_meta_${nextC.id}`, JSON.stringify(nextC));
+                } catch {}
+              }
+            });
+          }
+        } else {
+          const [prevRes, nextRes] = await Promise.all([
+            supabase
+              .from("chapters")
+              .select("*")
+              .eq("manhwa_id", manhwaId)
+              .lt("chapter_number", cData.chapter_number)
+              .order("chapter_number", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from("chapters")
+              .select("*")
+              .eq("manhwa_id", manhwaId)
+              .gt("chapter_number", cData.chapter_number)
+              .order("chapter_number", { ascending: true })
+              .limit(1)
+              .maybeSingle(),
+          ]);
+          if (!isCancelled) {
+            setPrevChapter(prevRes.data || null);
+            setNextChapter(nextRes.data || null);
+            if (nextRes.data) {
+              fetchChapterPagesFast(supabase, nextRes.data.id).then((nextPages) => {
+                if (nextPages.length > 0) {
+                  try {
+                    sessionStorage.setItem(`nekumi_chap_${nextRes.data.id}`, JSON.stringify(nextPages));
+                    sessionStorage.setItem(`nekumi_chap_meta_${nextRes.data.id}`, JSON.stringify(nextRes.data));
+                  } catch {}
+                }
+              });
+            }
+          }
+        }
+
+        // Update reading history in background
         let cachedManhwa: any = null;
         try {
-          const rawM = sessionStorage.getItem(`nekumi_manhwa_${manhwaId}`);
+          const rawM =
+            sessionStorage.getItem(`nekumi_manhwa_${manhwaId}`) ||
+            sessionStorage.getItem(`nekumi_manhwa_full_${manhwaId}`);
           if (rawM) cachedManhwa = JSON.parse(rawM);
         } catch {}
 
-        const [prevRes, nextRes, manhwaRes] = await Promise.all([
-          supabase
-            .from("chapters")
-            .select("*")
-            .eq("manhwa_id", manhwaId)
-            .lt("chapter_number", cData.chapter_number)
-            .order("chapter_number", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          supabase
-            .from("chapters")
-            .select("*")
-            .eq("manhwa_id", manhwaId)
-            .gt("chapter_number", cData.chapter_number)
-            .order("chapter_number", { ascending: true })
-            .limit(1)
-            .maybeSingle(),
-          cachedManhwa
-            ? Promise.resolve({ data: cachedManhwa })
-            : supabase.from("manhwas").select("id, title, cover_url").eq("id", manhwaId).maybeSingle(),
-        ]);
+        const manhwaPromise = cachedManhwa
+          ? Promise.resolve({ data: cachedManhwa })
+          : supabase.from("manhwas").select("id, title, cover_url").eq("id", manhwaId).maybeSingle();
 
-        if (!isCancelled) {
-          setPrevChapter(prevRes.data || null);
-          setNextChapter(nextRes.data || null);
-
-          const mInfo = manhwaRes.data;
-          if (mInfo) {
+        manhwaPromise.then(({ data: mInfo }) => {
+          if (mInfo && !isCancelled) {
             try {
               const historyRaw = localStorage.getItem("nekumi_reading_history") || "[]";
               const historyList = Array.isArray(JSON.parse(historyRaw)) ? JSON.parse(historyRaw) : [];
@@ -166,10 +217,9 @@ export default function ChapterReader() {
               localStorage.setItem("nekumi_reading_history", JSON.stringify(updated));
             } catch {}
           }
-        }
+        });
       }
 
-      const pData = pRes.data;
       if (pData && pData.length > 0) {
         setPages(pData);
         setLoading(false);
@@ -177,10 +227,10 @@ export default function ChapterReader() {
           sessionStorage.setItem(`nekumi_chap_${chapterId}`, JSON.stringify(pData));
         } catch {}
       } else if (!usedCache) {
-        if (retryCount < 3) {
+        if (retryCount < 2) {
           retryTimer = setTimeout(() => {
             if (!isCancelled) setRetryCount((prev) => prev + 1);
-          }, 1500);
+          }, 800);
         } else {
           setLoading(false);
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { createClient, saveChapterPagesToShard } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -284,6 +284,7 @@ export default function AdminProDashboard() {
         }));
         const { error } = await supabase.from("pages").insert(pagesToInsert);
         if (error) throw error;
+        await saveChapterPagesToShard(supabase, selectedChapterId, pagesToInsert.map((p: any) => p.image_url));
       } else {
         const urls = manualUrls.split('\n').map(u => u.trim()).filter(u => u);
         const pagesToInsert = urls.map((url, idx) => ({
@@ -291,6 +292,7 @@ export default function AdminProDashboard() {
         }));
         const { error } = await supabase.from("pages").insert(pagesToInsert);
         if (error) throw error;
+        await saveChapterPagesToShard(supabase, selectedChapterId, urls);
       }
       setSuccessMsg(`Páginas agregadas con éxito`);
       setGhFolder(""); setManualUrls("");
@@ -348,6 +350,7 @@ export default function AdminProDashboard() {
           image_url: `https://cdn.jsdelivr.net/gh/Nexotvofficial/${bulkRepo}@main/${path}`
         }));
         await supabase.from("pages").insert(pagesToInsert);
+        await saveChapterPagesToShard(supabase, chapData.id, pagesToInsert.map((p) => p.image_url));
       }
       setSuccessMsg(`¡Magia completa! ${folderNames.length} capítulos importados.`);
       setTimeout(() => setSuccessMsg(""), 5000);

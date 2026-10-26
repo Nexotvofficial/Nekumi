@@ -2,6 +2,8 @@ import ClientPage from "./ClientPage";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL_DEFAULT, SUPABASE_ANON_KEY_DEFAULT } from "@/lib/supabase";
 
+export const revalidate = 30;
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
@@ -41,6 +43,36 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function MangaDetailServer({ params }: { params: Promise<{ id: string }> }) {
-  await params;
-  return <ClientPage />;
+  const { id } = await params;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_DEFAULT;
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const [manhwaRes, chaptersRes, reviewsRes] = await Promise.all([
+      supabase.from("manhwas").select("*").eq("id", id).maybeSingle(),
+      supabase
+        .from("chapters")
+        .select("id, chapter_number, title, created_at")
+        .eq("manhwa_id", id)
+        .order("chapter_number", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("reviews")
+        .select("*")
+        .eq("manhwa_id", id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    return (
+      <ClientPage
+        initialManhwa={manhwaRes.data || null}
+        initialChapters={chaptersRes.data || []}
+        initialReviews={reviewsRes.data || []}
+      />
+    );
+  } catch {
+    return <ClientPage />;
+  }
 }

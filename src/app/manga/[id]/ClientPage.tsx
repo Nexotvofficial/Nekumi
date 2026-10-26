@@ -3,7 +3,7 @@
 import NekuLoading from "@/components/NekuLoading";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { createClient, fetchChapterPagesFast } from "@/lib/supabase";
 import Link from "next/link";
 import {
   Heart,
@@ -48,17 +48,26 @@ interface Review {
   created_at: string;
 }
 
-export default function ClientPage() {
+export default function ClientPage({
+  initialManhwa = null,
+  initialChapters = [],
+  initialReviews = [],
+}: {
+  initialManhwa?: Manhwa | null;
+  initialChapters?: Chapter[];
+  initialReviews?: Review[];
+}) {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const supabase = createClient();
 
-  const [manhwa, setManhwa] = useState<Manhwa | null>(null);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [manhwa, setManhwa] = useState<Manhwa | null>(initialManhwa);
+  const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialManhwa);
+  const [chaptersLoading, setChaptersLoading] = useState(initialChapters.length === 0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [lastReadChapter, setLastReadChapter] = useState<{ id: string; num: string } | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -85,7 +94,7 @@ export default function ClientPage() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 2200);
   };
 
-  // Preload chapter pages on hover/touch for instant reading
+  // Preload chapter pages on hover/touch using the 100ms B-Tree shard index
   const handlePrefetch = async (chapter: Chapter) => {
     if (typeof window === "undefined") return;
     try {
@@ -95,11 +104,7 @@ export default function ClientPage() {
       return;
     }
 
-    const { data } = await supabase
-      .from("pages")
-      .select("*")
-      .eq("chapter_id", chapter.id)
-      .order("page_number", { ascending: true });
+    const data = await fetchChapterPagesFast(supabase, chapter.id);
 
     if (data && data.length > 0) {
       try {
@@ -115,7 +120,7 @@ export default function ClientPage() {
   useEffect(() => {
     if (!id) return;
 
-    // Load local bookmark & local favorite status immediately
+    // Load local bookmark, favorite status, and cached manhwa/chapters immediately (0ms!)
     try {
       const lastId = localStorage.getItem(`nekumi_last_read_${id}`);
       const lastNum = localStorage.getItem(`nekumi_last_read_num_${id}`);
@@ -125,6 +130,25 @@ export default function ClientPage() {
       const savedFavs = new Set<string>(JSON.parse(localStorage.getItem("nekutoon:favorites") || "[]"));
       if (savedFavs.has(String(id))) {
         setIsFavorite(true);
+      }
+      if (!manhwa) {
+        const cachedFull = sessionStorage.getItem(`nekumi_manhwa_full_${id}`);
+        if (cachedFull) {
+          setManhwa(JSON.parse(cachedFull));
+          setLoading(false);
+        }
+      }
+      if (chapters.length === 0) {
+        const cachedChaps = sessionStorage.getItem(`nekumi_manhwa_chaps_${id}`);
+        if (cachedChaps) {
+          const parsed = JSON.parse(cachedChaps);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setChapters(parsed);
+            setChaptersLoading(false);
+          }
+        }
+      } else {
+        sessionStorage.setItem(`nekumi_manhwa_chaps_${id}`, JSON.stringify(chapters));
       }
     } catch {}
 
@@ -140,9 +164,20 @@ export default function ClientPage() {
       // Fetch Manhwa, Chapters, Reviews, and Session in parallel (no waterfall!)
       const [sessionRes, manhwaRes, chaptersRes, reviewsRes] = await Promise.all([
         supabase.auth.getSession(),
-        supabase.from("manhwas").select("*").eq("id", id).single(),
-        supabase.from("chapters").select("*").eq("manhwa_id", id).order("chapter_number", { ascending: false }),
-        supabase.from("reviews").select("*").eq("manhwa_id", id).order("created_at", { ascending: false }),
+        initialManhwa
+          ? Promise.resolve({ data: initialManhwa })
+          : supabase.from("manhwas").select("*").eq("id", id).single(),
+        initialChapters.length > 0
+          ? Promise.resolve({ data: initialChapters })
+          : supabase
+              .from("chapters")
+              .select("id, chapter_number, title, created_at")
+              .eq("manhwa_id", id)
+              .order("chapter_number", { ascending: false })
+              .limit(1000),
+        initialReviews.length > 0
+          ? Promise.resolve({ data: initialReviews })
+          : supabase.from("reviews").select("*").eq("manhwa_id", id).order("created_at", { ascending: false }).limit(50),
       ]);
 
       const sessionUser = sessionRes.data?.session?.user ?? null;
@@ -159,13 +194,23 @@ export default function ClientPage() {
               cover_url: manhwaRes.data.cover_url,
             })
           );
+          sessionStorage.setItem(`nekumi_manhwa_full_${id}`, JSON.stringify(manhwaRes.data));
         } catch {}
       }
 
-      if (chaptersRes.data) setChapters(chaptersRes.data);
+      if (chaptersRes.data) {
+        setChapters(chaptersRes.data);
+        try {
+          sessionStorage.setItem(`nekumi_manhwa_chaps_${id}`, JSON.stringify(chaptersRes.data));
+        } catch {}
+        // Prefetch first chapter and last-read chapter automatically in background
+        const sortedAsc = [...chaptersRes.data].sort((a, b) => a.chapter_number - b.chapter_number);
+        if (sortedAsc[0]) handlePrefetch(sortedAsc[0]);
+      }
       if (reviewsRes.data) setReviews(reviewsRes.data);
 
       setLoading(false);
+      setChaptersLoading(false);
 
       if (sessionUser) {
         const [profRes, favRes] = await Promise.all([

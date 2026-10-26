@@ -1034,6 +1034,11 @@ export default function Home({
                             href={`/manga/${item.id}`}
                             className="absolute inset-0 z-[2]"
                             aria-label={`Leer ${item.title}`}
+                            onClick={() => {
+                              try {
+                                sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                              } catch {}
+                            }}
                           />
                           <span className="card-badge score pointer-events-none z-[3]">
                             <Star />
@@ -1063,7 +1068,15 @@ export default function Home({
                             <Heart />
                           </button>
                         </div>
-                        <Link href={`/manga/${item.id}`} className="card-info p-2.5 block">
+                        <Link
+                          href={`/manga/${item.id}`}
+                          className="card-info p-2.5 block"
+                          onClick={() => {
+                            try {
+                              sessionStorage.setItem(`nekumi_manhwa_full_${item.id}`, JSON.stringify(item));
+                            } catch {}
+                          }}
+                        >
                           <h3 className="card-title line-clamp-1 group-hover:text-[#c084fc] transition-colors">{item.title}</h3>
                           <p className="card-meta">{item.genre}</p>
                         </Link>
