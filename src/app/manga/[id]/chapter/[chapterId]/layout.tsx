@@ -1,8 +1,22 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL_DEFAULT, SUPABASE_ANON_KEY_DEFAULT } from "@/lib/supabase";
 
 export const revalidate = 3600;
+
+const getChapterSeoInfo = cache(async (id: string, chapterId: string) => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_DEFAULT;
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  const [{ data: manhwa }, { data: chapter }] = await Promise.all([
+    supabase.from("manhwas").select("title, cover_url, banner_url, genre").eq("id", id).maybeSingle(),
+    supabase.from("chapters").select("chapter_number, title").eq("id", chapterId).maybeSingle(),
+  ]);
+
+  return { manhwa, chapter };
+});
 
 export async function generateMetadata({
   params,
@@ -10,15 +24,9 @@ export async function generateMetadata({
   params: Promise<{ id: string; chapterId: string }>;
 }): Promise<Metadata> {
   const { id, chapterId } = await params;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_DEFAULT;
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const [{ data: manhwa }, { data: chapter }] = await Promise.all([
-      supabase.from("manhwas").select("title, cover_url, banner_url, genre").eq("id", id).maybeSingle(),
-      supabase.from("chapters").select("chapter_number, title").eq("id", chapterId).maybeSingle(),
-    ]);
+    const { manhwa, chapter } = await getChapterSeoInfo(id, chapterId);
 
     if (!manhwa || !chapter) {
       return {
@@ -68,16 +76,10 @@ export default async function ChapterLayout({
   params: Promise<{ id: string; chapterId: string }>;
 }) {
   const { id, chapterId } = await params;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_DEFAULT;
 
   let breadcrumbJsonLd: Record<string, any> | null = null;
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const [{ data: manhwa }, { data: chapter }] = await Promise.all([
-      supabase.from("manhwas").select("title").eq("id", id).maybeSingle(),
-      supabase.from("chapters").select("chapter_number").eq("id", chapterId).maybeSingle(),
-    ]);
+    const { manhwa, chapter } = await getChapterSeoInfo(id, chapterId);
     if (manhwa && chapter) {
       breadcrumbJsonLd = {
         "@context": "https://schema.org",

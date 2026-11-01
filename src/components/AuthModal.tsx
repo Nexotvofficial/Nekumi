@@ -185,7 +185,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
                 type="button"
                 onClick={async () => {
                   if (!email) {
-                    showToast("Primero escribe tu correo arriba para recuperar la contraseña");
+                    showToast?.("Primero escribe tu correo arriba para recuperar la contraseña");
                     return;
                   }
                   try {
@@ -194,9 +194,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
                       redirectTo: `${window.location.origin}/reset-password`,
                     });
                     if (error) throw error;
-                    showToast("Te hemos enviado un correo para restablecer tu contraseña");
+                    showToast?.("Te hemos enviado un correo para restablecer tu contraseña");
                   } catch {
-                    showToast("Envía un correo a diazmowi07@gmail.com para asistencia con tu cuenta.");
+                    showToast?.("Envía un correo a diazmowi07@gmail.com para asistencia con tu cuenta.");
                   } finally {
                     setLoading(false);
                   }
