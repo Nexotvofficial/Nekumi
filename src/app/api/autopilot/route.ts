@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
-import { SUPABASE_URL_DEFAULT, SUPABASE_ANON_KEY_DEFAULT, getChapterShardId } from "@/lib/supabase";
+import { SUPABASE_URL_DEFAULT, SUPABASE_ANON_KEY_DEFAULT, getChapterShardId, normalizeCdnUrl } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -445,11 +445,11 @@ async function importZeroComicsSlug(
   }
 
   const synopsis = cleanSynopsis(data.sinopsis, title);
-  const coverUrl = String(data.portada || "");
+  const coverUrl = normalizeCdnUrl(String(data.portada || ""));
   if (!coverUrl) {
     return { manhwaAdded: false, chaptersAdded: 0, title, manhwaId: null, newUrls: [] };
   }
-  const bannerUrl = String(data.banner || coverUrl);
+  const bannerUrl = normalizeCdnUrl(String(data.banner || coverUrl));
   const rawStatus = String(data.estado || "").toLowerCase();
   const status = rawStatus.includes("final") || rawStatus.includes("complet") ? "Finalizado" : "En emisión";
   const scoreVal = Number(data.puntuacion) > 0 ? Math.min(5, Math.round(Number(data.puntuacion) * 10) / 10) : 4.7;
@@ -537,7 +537,8 @@ async function importZeroComicsSlug(
     const cNum = Number(rawNum);
     try {
       const chapJson = await fetchJson(`https://api.zerocomics.net/api/series/${slug}/capitulo/${rawNum}`, 5000);
-      const pagesList: string[] = Array.isArray(chapJson?.data?.paginas) ? chapJson.data.paginas : [];
+      const rawPagesList: string[] = Array.isArray(chapJson?.data?.paginas) ? chapJson.data.paginas : [];
+      const pagesList = rawPagesList.map((u) => normalizeCdnUrl(u)).filter(Boolean);
       if (pagesList.length === 0) continue;
 
       const { data: chapIns } = await supabase
@@ -569,6 +570,11 @@ async function importZeroComicsSlug(
     } catch {
       continue;
     }
+  }
+
+  if (manhwaAdded && chaptersAdded === 0) {
+    await supabase.from("manhwas").delete().eq("id", manhwaId);
+    return { manhwaAdded: false, chaptersAdded: 0, title, manhwaId: null, newUrls: [] };
   }
 
   return { manhwaAdded, chaptersAdded, title, manhwaId, newUrls };
@@ -755,7 +761,7 @@ export async function POST(req: NextRequest) {
 
     if (!slug) {
       const searchRes = await fetchJson(
-        `https://api.zerocomics.net/api/series?search=${encodeURIComponent(rawQuery)}&page=1`
+        `https://api.zerocomics.net/api/series?q=${encodeURIComponent(rawQuery)}&page=1`
       );
       const list = Array.isArray(searchRes?.data) ? searchRes.data : [];
       if (list.length === 0) {

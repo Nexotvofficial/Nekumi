@@ -62,6 +62,7 @@ interface Manhwa {
   genre: string;
   is_hero?: boolean;
   isNew?: boolean;
+  latest_chapter?: number;
 }
 
 interface ReadingHistoryItem {
@@ -1868,7 +1869,7 @@ export default function Home({
               <>
                 <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 mt-6">
                   {filteredManhwas.slice(0, visibleCount).map((item, idx) => {
-                    const latestChapNum = latestChapByManhwa.get(item.id);
+                    const latestChapNum = item.latest_chapter ?? latestChapByManhwa.get(item.id);
                     const hasRating = Number(item.score) > 0;
                     const isFinished = item.status === "Finalizado";
                     const cleanGenre = (item.genre || "Acción")

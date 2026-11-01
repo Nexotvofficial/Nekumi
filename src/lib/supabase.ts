@@ -21,6 +21,15 @@ export function createClient(): SupabaseClient {
   return browserClient
 }
 
+export function normalizeCdnUrl(url?: string | null): string {
+  if (!url) return ''
+  return url
+    .replace('https://media.ikigaicomics.lat/capitulos/', 'https://store.loscomics.lat/m/capitulos/')
+    .replace('http://media.ikigaicomics.lat/capitulos/', 'https://store.loscomics.lat/m/capitulos/')
+    .replace('https://api.zerocomics.net/storage/series/', 'https://store.loscomics.lat/a/series/')
+    .replace('http://api.zerocomics.net/storage/series/', 'https://store.loscomics.lat/a/series/')
+}
+
 export function getChapterShardId(chapterId: string): number {
   const cleanHex = chapterId.replace(/-/g, '').slice(0, 6)
   const num = parseInt(cleanHex, 16)
@@ -56,7 +65,7 @@ export async function fetchChapterPagesFast(
       return entry.p.map((suffix: string, idx: number) => ({
         id: `${chapterId}_${idx + 1}`,
         page_number: idx + 1,
-        image_url: base + suffix,
+        image_url: normalizeCdnUrl(base + suffix),
       }))
     }
   } catch {}
@@ -69,7 +78,9 @@ export async function fetchChapterPagesFast(
     .limit(300)
 
   if (data && data.length > 0) {
-    return [...data].sort((a, b) => (a.page_number || 0) - (b.page_number || 0))
+    return [...data]
+      .sort((a, b) => (a.page_number || 0) - (b.page_number || 0))
+      .map((p) => ({ ...p, image_url: normalizeCdnUrl(p.image_url) }))
   }
 
   return []
@@ -85,6 +96,7 @@ export async function saveChapterPagesToShard(
 ): Promise<void> {
   if (!chapterId || imageUrls.length === 0) return
   try {
+    const normalizedUrls = imageUrls.map((u) => normalizeCdnUrl(u))
     const shardId = getChapterShardId(chapterId)
     const { data: existing } = await supabase
       .from('site_config')
@@ -97,14 +109,14 @@ export async function saveChapterPagesToShard(
         ? { ...(existing.category_images as Record<string, any>) }
         : {}
 
-    const firstSlash = imageUrls[0].lastIndexOf('/')
+    const firstSlash = normalizedUrls[0].lastIndexOf('/')
     let b = ''
-    let p = imageUrls
+    let p = normalizedUrls
     if (firstSlash !== -1) {
-      const candidate = imageUrls[0].slice(0, firstSlash + 1)
-      if (imageUrls.every((u) => u.startsWith(candidate))) {
+      const candidate = normalizedUrls[0].slice(0, firstSlash + 1)
+      if (normalizedUrls.every((u) => u.startsWith(candidate))) {
         b = candidate
-        p = imageUrls.map((u) => u.slice(candidate.length))
+        p = normalizedUrls.map((u) => u.slice(candidate.length))
       }
     }
 

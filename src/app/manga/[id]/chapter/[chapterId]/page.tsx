@@ -3,7 +3,7 @@
 import NekuLoading from "@/components/NekuLoading";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient, fetchChapterPagesFast } from "@/lib/supabase";
+import { createClient, fetchChapterPagesFast, normalizeCdnUrl } from "@/lib/supabase";
 import {
   ArrowLeft,
   ArrowRight,
@@ -361,7 +361,7 @@ export default function ChapterReader() {
           const parsedPages = JSON.parse(cachedPages);
           const parsedMeta = JSON.parse(cachedMeta);
           if (Array.isArray(parsedPages) && parsedPages.length > 0 && parsedMeta) {
-            setPages(parsedPages);
+            setPages(parsedPages.map((p: any) => ({ ...p, image_url: normalizeCdnUrl(p.image_url) })));
             setChapter(parsedMeta);
             setLoading(false);
             usedCache = true;
@@ -983,7 +983,7 @@ export default function ChapterReader() {
             <img
               referrerPolicy="no-referrer"
               key={page.id}
-              src={page.image_url}
+              src={normalizeCdnUrl(page.image_url)}
               alt={`Página ${page.page_number}`}
               className="w-full h-auto block select-none"
               fetchPriority={index < 3 ? "high" : "auto"}
@@ -996,7 +996,7 @@ export default function ChapterReader() {
             <img
               referrerPolicy="no-referrer"
               key={pages[currentPageIndex]?.id}
-              src={pages[currentPageIndex]?.image_url}
+              src={normalizeCdnUrl(pages[currentPageIndex]?.image_url)}
               alt={`Página ${pages[currentPageIndex]?.page_number}`}
               className="w-full h-auto block select-none"
               fetchPriority="high"

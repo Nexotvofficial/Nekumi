@@ -322,6 +322,18 @@ def clean_synopsis(raw: str, title: str, slug: str = "") -> str:
     return text
 
 
+def normalize_cdn_url(u: str) -> str:
+    if not u:
+        return ""
+    return (
+        str(u)
+        .replace("https://media.ikigaicomics.lat/capitulos/", "https://store.loscomics.lat/m/capitulos/")
+        .replace("http://media.ikigaicomics.lat/capitulos/", "https://store.loscomics.lat/m/capitulos/")
+        .replace("https://api.zerocomics.net/storage/series/", "https://store.loscomics.lat/a/series/")
+        .replace("http://api.zerocomics.net/storage/series/", "https://store.loscomics.lat/a/series/")
+    )
+
+
 def get_shard_id(chapter_id: str) -> int:
     clean_hex = chapter_id.replace("-", "")[:6]
     try:
@@ -333,6 +345,7 @@ def get_shard_id(chapter_id: str) -> int:
 def save_chapter_to_fast_shard(chapter_id: str, page_urls: list):
     if not chapter_id or not page_urls:
         return
+    page_urls = [normalize_cdn_url(u) for u in page_urls if u]
     shard_id = get_shard_id(chapter_id)
     existing = sb_request("GET", f"site_config?id=eq.{shard_id}&select=category_images")
     current_map = {}
@@ -446,7 +459,7 @@ def fetch_chapter_pages_worker(slug: str, ch_item: dict):
     raw_num = ch_item.get("numero")
     try:
         cj = fetch_json(f"https://api.zerocomics.net/api/series/{slug}/capitulo/{raw_num}", timeout=15)
-        pages = (cj.get("data") or {}).get("paginas") or []
+        pages = [normalize_cdn_url(u) for u in ((cj.get("data") or {}).get("paginas") or []) if u]
         return ch_item, pages
     except Exception:
         return ch_item, []
@@ -470,10 +483,10 @@ def sync_manhwa_slug(slug: str, db_manhwas: list, allow_adult: bool = True, max_
     if is_adult and not allow_adult:
         return False, 0, title, []
 
-    cover_url = str(data.get("portada") or "").strip()
+    cover_url = normalize_cdn_url(str(data.get("portada") or "").strip())
     if not cover_url:
         return False, 0, title, []
-    banner_url = str(data.get("banner") or cover_url).strip()
+    banner_url = normalize_cdn_url(str(data.get("banner") or cover_url).strip())
     synopsis = clean_synopsis(data.get("sinopsis") or "", title, slug)
     raw_status = str(data.get("estado") or "").lower()
     status = "Finalizado" if ("final" in raw_status or "complet" in raw_status) else "En emisión"
@@ -567,6 +580,11 @@ def sync_manhwa_slug(slug: str, db_manhwas: list, allow_adult: bool = True, max_
         existing_nums.add(c_float)
         chaps_added += 1
         new_urls.append(f"https://www.nekutoon.com/manga/{manhwa_id}/chapter/{chap_id}")
+
+    if manhwa_added and chaps_added == 0:
+        sb_request("DELETE", f"manhwas?id=eq.{manhwa_id}", extra_headers={"Prefer": "return=minimal"})
+        db_manhwas[:] = [m for m in db_manhwas if m.get("id") != manhwa_id]
+        return False, 0, title, []
 
     print(f"  ⚡ '{title}': +{chaps_added} capítulos listos en 0.15s B-Tree.")
     return manhwa_added, chaps_added, title, new_urls
@@ -692,7 +710,7 @@ def import_by_query(query: str):
             break
 
     if not slug:
-        res = fetch_json(f"https://api.zerocomics.net/api/series?search={urllib.parse.quote(cleaned)}&page=1")
+        res = fetch_json(f"https://api.zerocomics.net/api/series?q={urllib.parse.quote(cleaned)}&page=1")
         items = res.get("data") or []
         if not items:
             print(f"❌ No se encontró '{query}'.")
@@ -746,7 +764,7 @@ def menu_search_import():
     if "/" in q:
         import_by_query(q)
         return
-    res = fetch_json(f"https://api.zerocomics.net/api/series?search={urllib.parse.quote(q)}&page=1")
+    res = fetch_json(f"https://api.zerocomics.net/api/series?q={urllib.parse.quote(q)}&page=1")
     items = (res.get("data") or [])[:10]
     if not items:
         print(f"❌ No se encontró '{q}'.")
@@ -800,7 +818,50 @@ def menu_by_category():
     print(f"🏆 {added} obras nuevas de '{label}' subidas.")
 
 
+def repair_missing_chapters_and_urls():
+    print("\n🔧 Escaneando catálogo en busca de obras sin capítulos o URLs antiguas...")
+    manhwas = sb_request("GET", "manhwas?select=id,title,cover_url,banner_url,chapters(id)&chapters.limit=1&limit=2000")
+    fixed_urls = 0
+    empty_ms = []
+    for m in manhwas:
+        c_url = m.get("cover_url") or ""
+        b_url = m.get("banner_url") or ""
+        nc = normalize_cdn_url(c_url)
+        nb = normalize_cdn_url(b_url)
+        if nc != c_url or nb != b_url:
+            sb_request("PATCH", f"manhwas?id=eq.{m['id']}", {"cover_url": nc, "banner_url": nb}, {"Prefer": "return=minimal"})
+            fixed_urls += 1
+        if not m.get("chapters"):
+            empty_ms.append(m)
+
+    if fixed_urls:
+        print(f"  ✅ {fixed_urls} portadas/banners actualizados al CDN rápido.")
+
+    if not empty_ms:
+        print("  ✅ 100% de las obras del catálogo tienen capítulos publicados.")
+        return
+
+    print(f"  ⚠️ Encontradas {len(empty_ms)} obras sin capítulos. Buscando capítulos o limpiando fichas vacías...")
+    db_manhwas = sb_request("GET", "manhwas?select=id,title,genre,cover_url,banner_url,status&limit=2000")
+    for dm in db_manhwas:
+        dm["_norm_key"] = norm_key(dm.get("title") or "")
+
+    for m in empty_ms:
+        mid = m["id"]
+        title = m["title"]
+        s0 = unicodedata.normalize("NFD", title.lower())
+        s0 = "".join(ch for ch in s0 if unicodedata.category(ch) != "Mn")
+        slug_cand = re.sub(r"[^a-z0-9]+", "-", s0).strip("-")
+        _, c_added, _, _ = sync_manhwa_slug(slug_cand, db_manhwas, allow_adult=True, max_chapters=80)
+        if c_added == 0:
+            sb_request("DELETE", f"reviews?manhwa_id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
+            sb_request("DELETE", f"favorites?manhwa_id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
+            sb_request("DELETE", f"manhwas?id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
+            print(f"  🗑️ Eliminada ficha vacía sin capítulos: '{title}'")
+
+
 def menu_audit():
+    repair_missing_chapters_and_urls()
     script = Path(__file__).resolve().parent / "audit_and_reclassify.py"
     if script.exists():
         import subprocess
@@ -851,6 +912,7 @@ def interactive_menu():
 ║ [5] Auditar categorías + limpiar duplicados  ║
 ║ [6] Tarea automática de Windows / filtro +18 ║
 ║ [7] Ver estadísticas y últimos subidos       ║
+║ [8] Reparar obras sin capítulos / imágenes   ║
 ║ [0] Salir                                    ║
 ╚══════════════════════════════════════════════╝""")
         op = ask("👉 Elige una opción: ", "0")
@@ -881,6 +943,8 @@ def interactive_menu():
                 menu_windows_task()
             elif op == "7":
                 menu_stats()
+            elif op == "8":
+                repair_missing_chapters_and_urls()
             elif op == "0":
                 print("👋 Hasta luego.")
                 return
