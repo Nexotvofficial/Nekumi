@@ -783,7 +783,10 @@ export async function POST(req: NextRequest) {
       lastRunAt: nowIso,
       totalManhwasAdded: state.totalManhwasAdded + (res.manhwaAdded ? 1 : 0),
       totalChaptersAdded: state.totalChaptersAdded + res.chaptersAdded,
-      recentLogs: [{ time: nowIso, type: res.manhwaAdded ? "manhwa" : "chapter", message: logMsg }, ...state.recentLogs].slice(0, 40),
+      recentLogs: [
+        { time: nowIso, type: (res.manhwaAdded ? "manhwa" : "chapter") as AutopilotLog["type"], message: logMsg },
+        ...state.recentLogs,
+      ].slice(0, 40),
     };
 
     await saveAutopilotState(supabase, nextState);
@@ -820,7 +823,7 @@ export async function POST(req: NextRequest) {
       recentLogs: [
         {
           time: nowIso,
-          type: "audit",
+          type: "audit" as const,
           message: `Auditoría de categorías completada: ${updated} fichas reclasificadas.`,
         },
         ...state.recentLogs,

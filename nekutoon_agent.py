@@ -715,9 +715,192 @@ def import_by_query(query: str):
     print(f"🎉 '{title}' listo (+{c_added} capítulos).")
 
 
+CATEGORY_MENU = [
+    ("Acción", "accion"), ("Murim / Artes Marciales", "murim"), ("Sistema", "sistema"),
+    ("Fantasía", "fantasia"), ("Isekai", "isekai"), ("Romance", "romance"),
+    ("Comedia", "comedia"), ("Terror", "terror"), ("BL", "bl"), ("+18", "+18"),
+]
+
+TASK_NAME = "NekutoonTitanAgent"
+
+
+def ask(prompt: str, default: str = "") -> str:
+    try:
+        val = input(prompt).strip()
+    except EOFError:
+        return default
+    return val or default
+
+
+def ask_int(prompt: str, default: int) -> int:
+    try:
+        return max(1, int(ask(prompt, str(default))))
+    except ValueError:
+        return default
+
+
+def menu_search_import():
+    q = ask("\n🔎 Escribe el nombre o pega la URL del manhwa: ")
+    if not q:
+        return
+    if "/" in q:
+        import_by_query(q)
+        return
+    res = fetch_json(f"https://api.zerocomics.net/api/series?search={urllib.parse.quote(q)}&page=1")
+    items = (res.get("data") or [])[:10]
+    if not items:
+        print(f"❌ No se encontró '{q}'.")
+        return
+    for i, it in enumerate(items, 1):
+        print(f"  [{i}] {it.get('titulo')}  ({it.get('capitulos_total') or '?'} caps)")
+    sel = ask("Elige número (Enter = 1, 0 = cancelar): ", "1")
+    if sel == "0" or not sel.isdigit() or not (1 <= int(sel) <= len(items)):
+        return
+    import_by_query(f"https://x/series/{items[int(sel) - 1]['slug']}")
+
+
+def menu_by_category():
+    print("\n📂 Categoría:")
+    for i, (label, _) in enumerate(CATEGORY_MENU, 1):
+        print(f"  [{i}] {label}")
+    sel = ask("Elige número: ")
+    if not sel.isdigit() or not (1 <= int(sel) <= len(CATEGORY_MENU)):
+        return
+    label, key = CATEGORY_MENU[int(sel) - 1]
+    cuantos = ask_int("¿Cuántas obras nuevas subir? (Enter = 5): ", 5)
+    manhwas = sb_request("GET", "manhwas?select=id,title,genre,cover_url,banner_url,status&limit=1500")
+    for m in manhwas:
+        m["_norm_key"] = norm_key(m.get("title") or "")
+    added, page, urls = 0, 1, []
+    print(f"🚀 Buscando obras nuevas de '{label}'...")
+    while added < cuantos and page <= 40:
+        try:
+            listing = fetch_json(f"https://api.zerocomics.net/api/series?page={page}&orden=populares&tipo=Comics")
+        except Exception as e:
+            print(f"  ⚠️ {e}")
+            break
+        for it in listing.get("data") or []:
+            if added >= cuantos:
+                break
+            title = it.get("titulo") or ""
+            if find_existing_manhwa(title, it.get("titulo_alternativo") or "", it.get("portada") or "", manhwas):
+                continue
+            genres = " ".join(norm_key(g.get("nombre") if isinstance(g, dict) else str(g)) for g in (it.get("generos") or []))
+            guess = norm_key(classify_manhwa_smart(title, it.get("sinopsis") or "", "", it.get("generos"), bool(it.get("adulto"))))
+            hay = f"{genres} {guess}"
+            ok = ("18" in hay) if key == "+18" else (key in hay or (key == "murim" and "artes marciales" in hay))
+            if not ok:
+                continue
+            m_added, c_added, t, u = sync_manhwa_slug(it["slug"], manhwas, allow_adult=True, max_chapters=80)
+            if m_added:
+                added += 1
+                urls.extend(u)
+        page += 1
+    ping_indexnow(urls)
+    print(f"🏆 {added} obras nuevas de '{label}' subidas.")
+
+
+def menu_audit():
+    script = Path(__file__).resolve().parent / "audit_and_reclassify.py"
+    if script.exists():
+        import subprocess
+        subprocess.run([sys.executable, str(script)])
+    else:
+        reclassify_all()
+
+
+def menu_windows_task():
+    import subprocess
+    print("\n⚙️  [1] Activar cada 20 min   [2] Eliminar tarea   [3] Alternar +18 Sí/No   [0] Volver")
+    sel = ask("Elige: ")
+    if sel == "1":
+        cmd = f'"{sys.executable}" "{Path(__file__).resolve()}" --cycle'
+        subprocess.run(["schtasks", "/Create", "/F", "/SC", "MINUTE", "/MO", "20", "/TN", TASK_NAME, "/TR", cmd])
+    elif sel == "2":
+        subprocess.run(["schtasks", "/Delete", "/F", "/TN", TASK_NAME])
+    elif sel == "3":
+        st = get_autopilot_state()
+        st["allowAdult"] = not st.get("allowAdult", True)
+        save_autopilot_state(st)
+        print(f"🔞 +18 ahora: {'PERMITIDO' if st['allowAdult'] else 'BLOQUEADO'}")
+
+
+def menu_stats():
+    st = get_autopilot_state()
+    rows = sb_request("GET", "manhwas?select=title,genre&order=created_at.desc&limit=10")
+    total = sb_request("GET", "manhwas?select=id&limit=5000")
+    print(f"\n📊 Obras en catálogo: {len(total)}")
+    print(f"   Auto-subidas: {st.get('totalManhwasAdded', 0)} obras | {st.get('totalChaptersAdded', 0)} caps")
+    print(f"   Piloto: {'ACTIVO' if st.get('enabled', True) else 'PAUSADO'} | +18: {'Sí' if st.get('allowAdult', True) else 'No'} | Radar pág. #{st.get('discoveryCursorPage')}")
+    print("   Últimos subidos:")
+    for r in rows:
+        print(f"   • {r['title']}  [{r.get('genre')}]")
+
+
+def interactive_menu():
+    os.system("")  # habilita colores ANSI en Windows
+    while True:
+        print("""
+╔══════════════════════════════════════════════╗
+║        NEKUTOON TITAN AGENT — MENÚ           ║
+╠══════════════════════════════════════════════╣
+║ [1] Modo automático 24/7 (sin parar)         ║
+║ [2] Escaneo rápido ahora mismo               ║
+║ [3] Subir manhwa por nombre o URL            ║
+║ [4] Subir manhwas nuevos por categoría       ║
+║ [5] Auditar categorías + limpiar duplicados  ║
+║ [6] Tarea automática de Windows / filtro +18 ║
+║ [7] Ver estadísticas y últimos subidos       ║
+║ [0] Salir                                    ║
+╚══════════════════════════════════════════════╝""")
+        op = ask("👉 Elige una opción: ", "0")
+        try:
+            if op == "1":
+                mins = ask_int("¿Cada cuántos minutos? (Enter = 15): ", 15)
+                print("♾️  Modo 24/7 activo. Ctrl+C para volver al menú.")
+                try:
+                    while True:
+                        try:
+                            run_smart_cycle(max_series_to_update=6, max_chaps_per_series=35)
+                        except Exception as err:
+                            print(f"⚠️ Error recuperable: {err}")
+                        print(f"⏳ Próximo escaneo en {mins} min...")
+                        time.sleep(mins * 60)
+                except KeyboardInterrupt:
+                    print("\n⏹️  Modo 24/7 detenido.")
+            elif op == "2":
+                n = ask_int("¿Cuántas obras actualizar/subir? (Enter = 8): ", 8)
+                run_smart_cycle(max_series_to_update=n, max_chaps_per_series=60)
+            elif op == "3":
+                menu_search_import()
+            elif op == "4":
+                menu_by_category()
+            elif op == "5":
+                menu_audit()
+            elif op == "6":
+                menu_windows_task()
+            elif op == "7":
+                menu_stats()
+            elif op == "0":
+                print("👋 Hasta luego.")
+                return
+            else:
+                print("Opción no válida.")
+        except KeyboardInterrupt:
+            print("\n↩️  Volviendo al menú.")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+
+
 if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     arg = " ".join(sys.argv[1:]).strip()
-    if arg in ("", "--cycle"):
+    if arg == "":
+        interactive_menu()
+    elif arg == "--cycle":
         run_smart_cycle(max_series_to_update=6, max_chaps_per_series=35)
     elif arg == "--daemon":
         print("♾️ NEKUTOON TITAN AGENT EN MODO DEMONIO 24/7 (escaneo cada 15 min)...")
