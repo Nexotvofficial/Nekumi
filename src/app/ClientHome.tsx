@@ -399,6 +399,18 @@ export default function Home({
     removeHistoryRemote(supabase, user?.id, manhwaId);
   };
 
+  const isAdultGenre = (genreStr?: string) => {
+    const g = (genreStr || "").toLowerCase();
+    return (
+      g.includes("+18") ||
+      g.includes("+19") ||
+      g.includes("sin censura") ||
+      g.includes("smut") ||
+      g.includes("hentai") ||
+      g.includes("erotico")
+    );
+  };
+
   const filteredManhwas = useMemo(() => {
     const norm = (s: string) =>
       (s || "")
@@ -413,43 +425,50 @@ export default function Home({
       const titleNorm = norm(m.title);
       const genreNorm = norm(m.genre);
       const matchesSearch = !q || titleNorm.includes(q) || genreNorm.includes(q);
+      const isAdult = isAdultGenre(m.genre);
+      const isBL =
+        /\bbl\b/.test(genreNorm) ||
+        genreNorm.includes("boys love") ||
+        genreNorm.includes("yaoi") ||
+        genreNorm.includes("shonen ai");
 
       if (activeCategory === "Favoritos") {
         return matchesSearch && favorites.has(m.id);
+      }
+
+      if (activeCategory === "+18") {
+        return matchesSearch && isAdult;
+      }
+
+      if (cat === "bl" || cat === "boys love") {
+        if (isAdult && !isAdultConfirmed) return false;
+        return matchesSearch && isBL;
+      }
+
+      // Aislar estrictamente obras +18 fuera de categorías generales salvo búsqueda explícita confirmada
+      if (isAdult && !(q.length > 0 && isAdultConfirmed)) {
+        return false;
       }
 
       if (!cat) {
         return matchesSearch;
       }
 
-      if (activeCategory === "+18") {
-        const isAdult =
-          genreNorm.includes("+18") ||
-          genreNorm.includes("+19") ||
-          genreNorm.includes("sin censura") ||
-          genreNorm.includes("maduro") ||
-          genreNorm.includes("adulto") ||
-          genreNorm.includes("ecchi") ||
-          genreNorm.includes("smut") ||
-          genreNorm.includes("hentai") ||
-          genreNorm.includes("erotico");
-        return matchesSearch && isAdult;
-      }
-
-      if (cat === "bl" || cat === "boys love") {
-        const isBL =
-          /\bbl\b/.test(genreNorm) ||
-          genreNorm.includes("boys love") ||
-          genreNorm.includes("yaoi") ||
-          genreNorm.includes("shonen ai");
-        return matchesSearch && isBL;
-      }
-
       if (cat === "accion") {
+        return matchesSearch && (genreNorm.includes("accion") || genreNorm.includes("action"));
+      }
+
+      if (cat === "murim") {
         return (
           matchesSearch &&
-          (genreNorm.includes("accion") || genreNorm.includes("action") || genreNorm.includes("artes marciales"))
+          (genreNorm.includes("murim") ||
+            genreNorm.includes("artes marciales") ||
+            genreNorm.includes("cultivacion"))
         );
+      }
+
+      if (cat === "sistema") {
+        return matchesSearch && genreNorm.includes("sistema");
       }
 
       if (cat === "fantasia") {
@@ -469,6 +488,20 @@ export default function Home({
         );
       }
 
+      if (cat === "romance") {
+        return matchesSearch && genreNorm.includes("romance") && !isBL;
+      }
+
+      if (cat === "terror") {
+        return (
+          matchesSearch &&
+          (genreNorm.includes("terror") ||
+            genreNorm.includes("horror") ||
+            genreNorm.includes("misterio") ||
+            genreNorm.includes("psicologico"))
+        );
+      }
+
       return matchesSearch && genreNorm.includes(cat);
     });
 
@@ -485,7 +518,7 @@ export default function Home({
       return [...list].sort((a, b) => (a.title || "").localeCompare(b.title || "", "es"));
     }
     return list;
-  }, [manhwas, searchQuery, activeCategory, favorites, sortBy]);
+  }, [manhwas, searchQuery, activeCategory, favorites, sortBy, isAdultConfirmed]);
 
   const handleAvatarClick = () => {
     setShowProfileMenu(!showProfileMenu);
@@ -494,8 +527,9 @@ export default function Home({
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
   const displayHeroes = useMemo(() => {
-    const heroManhwas = manhwas.filter((m) => m.is_hero);
-    return heroManhwas.length > 0 ? heroManhwas : manhwas.slice(0, 4);
+    const sfwPool = manhwas.filter((m) => !isAdultGenre(m.genre));
+    const heroManhwas = sfwPool.filter((m) => m.is_hero);
+    return heroManhwas.length > 0 ? heroManhwas : sfwPool.slice(0, 4);
   }, [manhwas]);
 
   // Olympus Scanlation style: group recent chapters by manhwa (up to 2 latest chapters per series)
@@ -517,6 +551,8 @@ export default function Home({
       if (!latestSingle.has(mid) || Number(ch.chapter_number) > (latestSingle.get(mid) || 0)) {
         latestSingle.set(mid, Number(ch.chapter_number));
       }
+
+      if (!isAdultConfirmed && isAdultGenre(mObj.genre)) continue;
 
       if (!grouped.has(mid)) {
         grouped.set(mid, { manhwa: mObj, chapters: [] });
@@ -544,7 +580,7 @@ export default function Home({
       recentUpdatedManhwas: list.slice(0, maxEven),
       latestChapByManhwa: latestSingle,
     };
-  }, [manhwas, recentChaptersRaw]);
+  }, [manhwas, recentChaptersRaw, isAdultConfirmed]);
 
   const unreadFavIds = useMemo(() => {
     const unread = new Set<string>();
@@ -559,7 +595,7 @@ export default function Home({
   }, [favorites, latestChapByManhwa, lastReadNums]);
 
   const sidebarRanked = useMemo(() => {
-    const base = manhwas.length > 0 ? manhwas : trending;
+    const base = (manhwas.length > 0 ? manhwas : trending).filter((m) => !isAdultGenre(m.genre));
     if (rankTab === "ongoing") {
       return base.filter((m) => m.status !== "Finalizado").slice(0, 5);
     }
@@ -1739,11 +1775,14 @@ export default function Home({
               {[
                 { label: "Todos", value: "" },
                 { label: "Acción", value: "Acción" },
+                { label: "Murim", value: "Murim" },
+                { label: "Sistema", value: "Sistema" },
                 { label: "Fantasía", value: "Fantasía" },
-                { label: "Romance", value: "Romance" },
                 { label: "Isekai", value: "Isekai" },
+                { label: "Romance", value: "Romance" },
                 { label: "Drama", value: "Drama" },
                 { label: "Comedia", value: "Comedia" },
+                { label: "Terror", value: "Terror" },
                 { label: "BL", value: "BL" },
                 { label: "+18", value: "+18" },
                 { label: `Favoritos (${favorites.size})`, value: "Favoritos" },
@@ -1774,6 +1813,24 @@ export default function Home({
                 );
               })}
             </div>
+
+            {(activeCategory === "BL" || activeCategory === "Boys Love") && !isAdultConfirmed && (
+              <div className="mb-5 p-3.5 rounded-xl bg-[#a855f7]/10 border border-[#a855f7]/25 flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs text-white/80">
+                  Mostrando obras BL aptas para todo público. Confirma mayoría de edad para desbloquear el catálogo BL +18 completo.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingCategory("BL");
+                    setShowAdultModal(true);
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#a855f7] hover:bg-[#9333ea] text-white text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Desbloquear BL +18
+                </button>
+              </div>
+            )}
 
             {isLoading ? (
               <div className="catalog-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 mt-5">

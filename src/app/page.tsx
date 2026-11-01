@@ -32,6 +32,7 @@ export default async function HomePage() {
       supabase
         .from("manhwas")
         .select("id, title, description, cover_url, banner_url, score, status, genre, is_hero")
+        .not("genre", "ilike", "%+18%")
         .order("score", { ascending: false })
         .limit(6),
       supabase

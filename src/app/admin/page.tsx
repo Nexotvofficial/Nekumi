@@ -11,7 +11,7 @@ import {
   Menu, X, Upload, Calendar, ArrowUpRight, Clock
 } from "lucide-react";
 
-const ALL_GENRES = ['Acción', 'Romance', 'Fantasía', 'Comedia', 'Drama', 'Aventura', 'Misterio', 'Terror', 'Suspenso', 'Ciencia Ficción', 'Harem', 'Isekai', 'Reencarnación', 'Cultivación', '+18', 'Escolar', 'Recuentos de la vida', 'Sobrenatural', 'Deportes', 'Psicológico', 'Sistema'];
+const ALL_GENRES = ['Acción', 'Murim', 'Artes Marciales', 'Sistema', 'Fantasía', 'Isekai', 'Romance', 'Drama', 'Comedia', 'Aventura', 'Misterio', 'Terror', 'Psicológico', 'Ciencia Ficción', 'Apocalíptico', 'Histórico', 'Harem', 'Escolar', 'Recuentos de la vida', 'Sobrenatural', 'Deportes', 'BL', 'GL', '+18'];
 
 export default function AdminProDashboard() {
   const router = useRouter();
@@ -68,6 +68,18 @@ export default function AdminProDashboard() {
   const [bulkPath, setBulkPath] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState("");
+  const [autopilotState, setAutopilotState] = useState<any>({
+    enabled: true,
+    allowAdult: true,
+    discoveryCursorPage: 1,
+    lastRunAt: null,
+    totalManhwasAdded: 0,
+    totalChaptersAdded: 0,
+    totalReclassified: 0,
+    recentLogs: [],
+  });
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [agentSearchQuery, setAgentSearchQuery] = useState("");
 
   // UI States
   const [loading, setLoading] = useState(false);
@@ -91,6 +103,7 @@ export default function AdminProDashboard() {
       { count: cCount },
       { count: uCount },
       adminSum,
+      autopilotRes,
       { data: recent },
       { data: mData },
       { data: uData },
@@ -102,6 +115,9 @@ export default function AdminProDashboard() {
       fetch("/api/community?type=admin_summary")
         .then((r) => r.json())
         .catch(() => ({ totalVisits: 0, reports: [] })),
+      fetch("/api/autopilot")
+        .then((r) => r.json())
+        .catch(() => null),
       supabase.from("chapters").select("*, manhwa:manhwas(title)").not("manhwa_id", "is", null).order("created_at", { ascending: false }).limit(5),
       supabase.from("manhwas").select("*").order("created_at", { ascending: false }).limit(1000),
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
@@ -115,6 +131,7 @@ export default function AdminProDashboard() {
       views: Number(adminSum?.totalVisits) || 0,
     });
     if (Array.isArray(adminSum?.reports)) setReportsList(adminSum.reports);
+    if (autopilotRes?.state) setAutopilotState(autopilotRes.state);
     if (recent) setRecentChapters(recent);
     if (mData) setManhwas(mData);
     if (uData) setUsersList(uData);
@@ -132,6 +149,80 @@ export default function AdminProDashboard() {
       setSuccessMsg("Reporte marcado como resuelto");
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch {}
+  };
+
+  const handleToggleAutopilotSetting = async (field: "enabled" | "allowAdult") => {
+    const nextVal = !autopilotState[field];
+    setAutopilotState((prev: any) => ({ ...prev, [field]: nextVal }));
+    try {
+      const res = await fetch("/api/autopilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_settings", [field]: nextVal }),
+      });
+      const json = await res.json();
+      if (json.state) setAutopilotState(json.state);
+    } catch {}
+  };
+
+  const handleRunAutopilotNow = async () => {
+    setAgentBusy(true);
+    try {
+      const res = await fetch("/api/autopilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "run_now" }),
+      });
+      const json = await res.json();
+      if (json.state) setAutopilotState(json.state);
+      setSuccessMsg(
+        `Ciclo completado: +${json.addedManhwas || 0} obras nuevas y +${json.addedChapters || 0} capítulos`
+      );
+      setTimeout(() => setSuccessMsg(""), 4000);
+      loadDashboardData();
+    } catch {}
+    setAgentBusy(false);
+  };
+
+  const handleSearchAndImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agentSearchQuery.trim()) return;
+    setAgentBusy(true);
+    try {
+      const res = await fetch("/api/autopilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "search_import", query: agentSearchQuery.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "No se pudo importar");
+      } else {
+        if (json.state) setAutopilotState(json.state);
+        setAgentSearchQuery("");
+        setSuccessMsg(`¡"${json.title}" sincronizado (+${json.chaptersAdded} capítulos)!`);
+        setTimeout(() => setSuccessMsg(""), 4000);
+        loadDashboardData();
+      }
+    } catch {}
+    setAgentBusy(false);
+  };
+
+  const handleReclassifyCatalog = async () => {
+    setAgentBusy(true);
+    try {
+      const res = await fetch("/api/autopilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reclassify_catalog" }),
+      });
+      const json = await res.json();
+      if (json.state) setAutopilotState(json.state);
+      setSuccessMsg(`Categorías auditadas: ${json.updated || 0} obras reclasificadas`);
+      setTimeout(() => setSuccessMsg(""), 4000);
+      loadDashboardData();
+    } catch {}
+    setAgentBusy(false);
   };
 
   const handleDeleteReview = async (id: string) => { if (!confirm('¿Borrar este comentario?')) return; await supabase.from('reviews').delete().eq('id', id); setReviewsList(prev => prev.filter(r => r.id !== id)); setSuccessMsg('Comentario eliminado'); setTimeout(() => setSuccessMsg(''), 3000); };
@@ -828,44 +919,187 @@ export default function AdminProDashboard() {
               </div>
             )}
 
-            {/* VISTA 5: AUTOMATIZADOR VIP */}
+            {/* VISTA 5: AUTOMATIZADOR VIP + AGENTE AUTÓNOMO TITAN 24/7 */}
             {activeView === "automator" && (
-              <div className="bg-[#121216] border border-[#a855f7]/30 rounded-2xl p-8 max-w-3xl relative overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.1)]">
-                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none"><Zap className="w-48 h-48 text-[#a855f7]" /></div>
-                
-                <h3 className="text-2xl font-bold text-white flex items-center gap-3 mb-2 relative z-10"><Zap className="w-6 h-6 text-[#a855f7]" /> Automatizador de Capítulos</h3>
-                <p className="text-[#a7a7b1] mb-8 relative z-10">Escanea tu repositorio de GitHub completo y crea automáticamente decenas de capítulos y páginas en segundos. Sube la carpeta entera y yo me encargo del resto.</p>
-                
-                <form onSubmit={handleBulkImport} className="space-y-6 relative z-10">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-white/80 block">1. Selecciona el Manhwa destino</label>
-                    <select required value={bulkManhwaId} onChange={e => setBulkManhwaId(e.target.value)} className="w-full h-12 rounded-xl border border-white/10 bg-black/50 text-white px-4 focus:border-[#a855f7] outline-none transition-colors">
-                      <option value="" className="bg-[#121216]">-- Elige un manhwa --</option>
-                      {manhwas.map(m => <option key={m.id} value={m.id} className="bg-[#121216]">{m.title}</option>)}
-                    </select>
+              <div className="space-y-8 max-w-5xl">
+                <div className="bg-[#121216] border border-[#a855f7]/40 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.12)]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <Zap className="w-6 h-6 text-[#c084fc]" />
+                        <h3 className="text-2xl font-bold text-white">Agente Autónomo Titan 24/7</h3>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
+                            autopilotState.enabled
+                              ? "bg-[#10b981]/15 border-[#10b981]/40 text-[#34d399]"
+                              : "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                          }`}
+                        >
+                          {autopilotState.enabled ? "ACTIVO 24/7" : "PAUSADO"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#a7a7b1]">
+                        Rastrea estrenos al minuto y explora el ranking global en español cada 20-30 min sin duplicar, clasificando categorías con precisión e indexando páginas en 0.15s.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAutopilotSetting("enabled")}
+                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white cursor-pointer"
+                      >
+                        {autopilotState.enabled ? "Pausar Piloto" : "Activar Piloto"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAutopilotSetting("allowAdult")}
+                        className={`px-3.5 py-2 rounded-xl border text-xs font-bold cursor-pointer ${
+                          autopilotState.allowAdult
+                            ? "bg-[#ec4899]/15 border-[#ec4899]/40 text-[#f472b6]"
+                            : "bg-white/5 border-white/10 text-white/60"
+                        }`}
+                      >
+                        +18: {autopilotState.allowAdult ? "Permitido" : "Bloqueado"}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-white/80 block">2. Repositorio (CDN)</label>
-                      <input required type="text" value={bulkRepo} onChange={e => setBulkRepo(e.target.value)} className="w-full h-12 rounded-xl border border-white/10 bg-black/50 text-white px-4 font-mono text-sm focus:border-[#a855f7] outline-none transition-colors" placeholder="Nekumi-Catalog-05" />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    <div className="p-4 rounded-xl bg-black/40 border border-white/5">
+                      <p className="text-xs text-[#a7a7b1] mb-1">Obras auto-subidas</p>
+                      <p className="text-2xl font-black text-white">{autopilotState.totalManhwasAdded || 0}</p>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-white/80 block">3. Ruta raíz del Manhwa</label>
-                      <input required type="text" value={bulkPath} onChange={e => setBulkPath(e.target.value)} className="w-full h-12 rounded-xl border border-white/10 bg-black/50 text-white px-4 font-mono text-sm focus:border-[#a855f7] outline-none transition-colors" placeholder="img/solo-leveling" />
+                    <div className="p-4 rounded-xl bg-black/40 border border-white/5">
+                      <p className="text-xs text-[#a7a7b1] mb-1">Capítulos auto-subidos</p>
+                      <p className="text-2xl font-black text-[#c084fc]">{autopilotState.totalChaptersAdded || 0}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-black/40 border border-white/5">
+                      <p className="text-xs text-[#a7a7b1] mb-1">Radar Popular</p>
+                      <p className="text-2xl font-black text-[#34d399]">Pág. #{autopilotState.discoveryCursorPage || 1}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-black/40 border border-white/5">
+                      <p className="text-xs text-[#a7a7b1] mb-1">Último ciclo</p>
+                      <p className="text-xs font-bold text-white mt-1.5">
+                        {autopilotState.lastRunAt
+                          ? new Date(autopilotState.lastRunAt).toLocaleString()
+                          : "Listo para escanear"}
+                      </p>
                     </div>
                   </div>
 
-                  {bulkProgress && (
-                    <div className="p-4 bg-[#a855f7]/10 border border-[#a855f7]/30 rounded-xl flex items-center gap-3 text-[#c084fc] font-mono text-sm">
-                      <Loader2 className="w-5 h-5 animate-spin shrink-0" /> {bulkProgress}
+                  <form onSubmit={handleSearchAndImport} className="flex flex-col sm:flex-row gap-3 mb-5">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-[#a7a7b1] absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={agentSearchQuery}
+                        onChange={(e) => setAgentSearchQuery(e.target.value)}
+                        placeholder="Escribe el nombre de cualquier manhwa o pega su URL para subirlo al instante..."
+                        className="w-full h-12 rounded-xl border border-white/10 bg-black/50 text-white pl-11 pr-4 text-sm focus:border-[#a855f7] outline-none"
+                      />
                     </div>
-                  )}
+                    <button
+                      type="submit"
+                      disabled={agentBusy || !agentSearchQuery.trim()}
+                      className="h-12 px-6 rounded-xl bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-50 text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {agentBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      Importar Obra
+                    </button>
+                  </form>
 
-                  <button type="submit" disabled={bulkLoading} className="w-full h-14 mt-4 rounded-xl bg-gradient-to-r from-[#a855f7] to-[#ec4899] hover:from-[#9333ea] hover:to-[#db2777] text-white font-bold text-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
-                    {bulkLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6" />} ¡Importar Masivamente!
-                  </button>
-                </form>
+                  <div className="flex flex-wrap gap-3 mb-6">
+                    <button
+                      type="button"
+                      disabled={agentBusy}
+                      onClick={handleRunAutopilotNow}
+                      className="h-12 px-6 rounded-xl bg-gradient-to-r from-[#a855f7] to-[#ec4899] hover:from-[#9333ea] hover:to-[#db2777] disabled:opacity-50 text-white font-bold text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.35)] cursor-pointer"
+                    >
+                      {agentBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                      Buscar y Subir Manhwas Nuevos Ahora
+                    </button>
+                    <button
+                      type="button"
+                      disabled={agentBusy}
+                      onClick={handleReclassifyCatalog}
+                      className="h-12 px-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-50 text-white font-bold text-sm flex items-center gap-2 cursor-pointer"
+                    >
+                      <CheckCircle className="w-4 h-4 text-[#34d399]" />
+                      Auditar y Corregir Categorías
+                    </button>
+                  </div>
+
+                  <div className="rounded-xl bg-black/50 border border-white/10 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-[#c084fc] flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" /> Registro de Actividad Autónoma
+                      </span>
+                      <span className="text-[11px] text-[#a7a7b1]">Últimos eventos</span>
+                    </div>
+                    {Array.isArray(autopilotState.recentLogs) && autopilotState.recentLogs.length > 0 ? (
+                      <div className="space-y-2 max-h-60 overflow-y-auto font-mono text-xs">
+                        {autopilotState.recentLogs.slice(0, 15).map((log: any, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2.5 text-white/85 border-b border-white/5 pb-1.5 last:border-0">
+                            <span className="text-[#a7a7b1] shrink-0">
+                              {log.time ? new Date(log.time).toLocaleTimeString() : "--:--"}
+                            </span>
+                            <span
+                              className={
+                                log.type === "manhwa"
+                                  ? "text-[#34d399] font-bold"
+                                  : log.type === "chapter"
+                                  ? "text-[#c084fc]"
+                                  : "text-white/75"
+                              }
+                            >
+                              {log.message}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[#a7a7b1]">El registro mostrará cada nuevo manhwa y capítulo detectado.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-[#121216] border border-white/10 rounded-2xl p-8 max-w-3xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none"><Zap className="w-48 h-48 text-[#a855f7]" /></div>
+                  
+                  <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-2 relative z-10"><Upload className="w-5 h-5 text-[#a855f7]" /> Importador Masivo desde GitHub CDN</h3>
+                  <p className="text-[#a7a7b1] text-sm mb-6 relative z-10">Escanea un repositorio propio de GitHub y crea capítulos manualmente desde carpetas.</p>
+                  
+                  <form onSubmit={handleBulkImport} className="space-y-6 relative z-10">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-white/80 block">1. Selecciona el Manhwa destino</label>
+                      <select required value={bulkManhwaId} onChange={e => setBulkManhwaId(e.target.value)} className="w-full h-12 rounded-xl border border-white/10 bg-black/50 text-white px-4 focus:border-[#a855f7] outline-none transition-colors">
+                        <option value="" className="bg-[#121216]">-- Elige un manhwa --</option>
+                        {manhwas.map(m => <option key={m.id} value={m.id} className="bg-[#121216]">{m.title}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-white/80 block">2. Repositorio (CDN)</label>
+                        <input required type="text" value={bulkRepo} onChange={e => setBulkRepo(e.target.value)} className="w-full h-12 rounded-xl border border-white/10 bg-black/50 text-white px-4 font-mono text-sm focus:border-[#a855f7] outline-none transition-colors" placeholder="Nekumi-Catalog-05" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-white/80 block">3. Ruta raíz del Manhwa</label>
+                        <input required type="text" value={bulkPath} onChange={e => setBulkPath(e.target.value)} className="w-full h-12 rounded-xl border border-white/10 bg-black/50 text-white px-4 font-mono text-sm focus:border-[#a855f7] outline-none transition-colors" placeholder="img/solo-leveling" />
+                      </div>
+                    </div>
+
+                    {bulkProgress && (
+                      <div className="p-4 bg-[#a855f7]/10 border border-[#a855f7]/30 rounded-xl flex items-center gap-3 text-[#c084fc] font-mono text-sm">
+                        <Loader2 className="w-5 h-5 animate-spin shrink-0" /> {bulkProgress}
+                      </div>
+                    )}
+
+                    <button type="submit" disabled={bulkLoading} className="w-full h-12 mt-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
+                      {bulkLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />} Importar desde GitHub
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
 

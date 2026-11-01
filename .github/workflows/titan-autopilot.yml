@@ -1,0 +1,17 @@
+name: Nekutoon Titan 24/7 Manhwa Autopilot
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  autopilot-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger Nekutoon Autonomous Discovery & Chapter Sync
+        run: |
+          echo "Triggering Nekutoon Titan Autopilot cycle..."
+          RESPONSE=$(curl -sS --max-time 75 "https://www.nekutoon.com/api/autopilot?trigger=cron")
+          echo "Result: $RESPONSE"
