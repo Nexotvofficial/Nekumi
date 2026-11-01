@@ -4,7 +4,6 @@ import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_URL_DEFAULT, SUPABASE_ANON_KEY_DEFAULT, getChapterShardId } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 const AUTOPILOT_CONFIG_ID = 290;
 const ADMIN_EMAIL = "diazmowi07@gmail.com";
@@ -420,7 +419,7 @@ async function importZeroComicsSlug(
   supabase: any,
   slug: string,
   dbManhwas: any[],
-  options: { allowAdult: boolean; maxNewChapters: number }
+  options: { allowAdult: boolean; maxNewChapters: number; deadlineMs?: number }
 ): Promise<{
   manhwaAdded: boolean;
   chaptersAdded: number;
@@ -428,7 +427,10 @@ async function importZeroComicsSlug(
   manhwaId: string | null;
   newUrls: string[];
 }> {
-  const res = await fetchJson(`https://api.zerocomics.net/api/series/${slug}`);
+  if (options.deadlineMs && Date.now() > options.deadlineMs) {
+    return { manhwaAdded: false, chaptersAdded: 0, title: slug, manhwaId: null, newUrls: [] };
+  }
+  const res = await fetchJson(`https://api.zerocomics.net/api/series/${slug}`, 6000);
   const data = res?.data;
   if (!data || !data.titulo) {
     return { manhwaAdded: false, chaptersAdded: 0, title: slug, manhwaId: null, newUrls: [] };
@@ -530,10 +532,11 @@ async function importZeroComicsSlug(
 
   let chaptersAdded = 0;
   for (const ch of missing) {
+    if (options.deadlineMs && Date.now() > options.deadlineMs) break;
     const rawNum = ch.numero;
     const cNum = Number(rawNum);
     try {
-      const chapJson = await fetchJson(`https://api.zerocomics.net/api/series/${slug}/capitulo/${rawNum}`);
+      const chapJson = await fetchJson(`https://api.zerocomics.net/api/series/${slug}/capitulo/${rawNum}`, 5000);
       const pagesList: string[] = Array.isArray(chapJson?.data?.paginas) ? chapJson.data.paginas : [];
       if (pagesList.length === 0) continue;
 
@@ -571,7 +574,8 @@ async function importZeroComicsSlug(
   return { manhwaAdded, chaptersAdded, title, manhwaId, newUrls };
 }
 
-async function runAutonomousCycle(supabase: any, state: AutopilotState, maxSeries = 4, maxChapsPerSeries = 8) {
+async function runAutonomousCycle(supabase: any, state: AutopilotState, maxSeries = 2, maxChapsPerSeries = 4) {
+  const deadlineMs = Date.now() + 7200;
   const { data: rawManhwas } = await supabase
     .from("manhwas")
     .select("id, title, genre, cover_url, banner_url, status")
@@ -586,8 +590,8 @@ async function runAutonomousCycle(supabase: any, state: AutopilotState, maxSerie
 
   // Radar 1: Estrenos recién subidos hoy + Radar 2: Explorador rotativo de manhwas populares
   const [latestRes, popularRes] = await Promise.allSettled([
-    fetchJson("https://api.zerocomics.net/api/series?page=1&tipo=Comics"),
-    fetchJson(`https://api.zerocomics.net/api/series?page=${cursorPage}&orden=populares&tipo=Comics`),
+    fetchJson("https://api.zerocomics.net/api/series?page=1&tipo=Comics", 5000),
+    fetchJson(`https://api.zerocomics.net/api/series?page=${cursorPage}&orden=populares&tipo=Comics`, 5000),
   ]);
 
   const candidates: any[] = [];
@@ -614,10 +618,11 @@ async function runAutonomousCycle(supabase: any, state: AutopilotState, maxSerie
 
   let touched = 0;
   for (const item of uniqueCandidates) {
-    if (touched >= maxSeries) break;
+    if (touched >= maxSeries || Date.now() > deadlineMs) break;
     const res = await importZeroComicsSlug(supabase, item.slug, dbManhwas, {
       allowAdult: state.allowAdult,
       maxNewChapters: maxChapsPerSeries,
+      deadlineMs,
     });
 
     if (res.manhwaAdded || res.chaptersAdded > 0) {
@@ -680,7 +685,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: "cooldown", state });
     }
     state.lastCronRunAt = new Date().toISOString();
-    const result = await runAutonomousCycle(supabase, state, 4, 8);
+    const result = await runAutonomousCycle(supabase, state, 2, 4);
     return NextResponse.json({
       ok: true,
       addedManhwas: result.addedManhwas,
@@ -714,7 +719,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "run_now") {
-    const result = await runAutonomousCycle(supabase, state, 5, 10);
+    const result = await runAutonomousCycle(supabase, state, 2, 5);
     return NextResponse.json({
       ok: true,
       addedManhwas: result.addedManhwas,
@@ -764,7 +769,8 @@ export async function POST(req: NextRequest) {
 
     const res = await importZeroComicsSlug(supabase, slug, dbManhwas, {
       allowAdult: true,
-      maxNewChapters: 30,
+      maxNewChapters: 12,
+      deadlineMs: Date.now() + 7200,
     });
 
     const nowIso = new Date().toISOString();
