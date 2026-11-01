@@ -35,6 +35,8 @@ import {
   Trophy,
   Coins,
   ShoppingBag,
+  ChevronUp,
+  Share2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -132,6 +134,9 @@ export default function Home({
   const [visibleCount, setVisibleCount] = useState<number>(36);
   const [readerStats, setReaderStats] = useState<ReaderStats | null>(null);
   const [showGuildShop, setShowGuildShop] = useState<boolean>(false);
+  const [lastReadNums, setLastReadNums] = useState<Record<string, number>>({});
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [showBackTop, setShowBackTop] = useState<boolean>(false);
 
   const router = useRouter();
   const supabase = createClient();
@@ -154,10 +159,33 @@ export default function Home({
   };
 
   useEffect(() => {
-    // Load local favorites & reading history
+    // Support Google Sitelinks Searchbox & direct URL search (?q=...)
+    try {
+      const urlQ = new URLSearchParams(window.location.search).get("q");
+      if (urlQ && urlQ.trim().length > 0) {
+        setSearchQuery(urlQ.trim());
+        setTimeout(() => {
+          document.getElementById("recomendados")?.scrollIntoView({ behavior: "smooth" });
+        }, 250);
+      }
+    } catch {}
+
+    // Load local favorites, last-read chapter numbers & reading history
+    const refreshLastReadMap = (favIds: Iterable<string>) => {
+      try {
+        const nextMap: Record<string, number> = {};
+        for (const fid of favIds) {
+          const n = Number(localStorage.getItem(`nekumi_last_read_num_${fid}`) || "0");
+          if (n > 0) nextMap[fid] = n;
+        }
+        setLastReadNums(nextMap);
+      } catch {}
+    };
+
     try {
       const savedFavs = new Set<string>(JSON.parse(localStorage.getItem("nekutoon:favorites") || "[]"));
       setFavorites(savedFavs);
+      refreshLastReadMap(savedFavs);
     } catch {}
 
     try {
@@ -237,13 +265,25 @@ export default function Home({
         });
     }
 
-    // Deduplicate visit tracking per browser session
+    // Deduplicate visit tracking per browser session via server metrics
     try {
       if (!sessionStorage.getItem("nekumi_visit_logged")) {
         sessionStorage.setItem("nekumi_visit_logged", "1");
-        supabase.from("visits").insert([{}]).then();
+        fetch("/api/community", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "log_visit" }),
+        }).catch(() => {});
       }
     } catch {}
+
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    const onScrollTop = () => setShowBackTop(window.scrollY > 750);
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("scroll", onScrollTop, { passive: true });
 
     const syncUserAndFavorites = async (sessionUser: any) => {
       setUser(sessionUser);
@@ -267,6 +307,7 @@ export default function Home({
             const merged = new Set([...prev, ...dbFavIds]);
             try {
               localStorage.setItem("nekutoon:favorites", JSON.stringify([...merged]));
+              refreshLastReadMap(merged);
             } catch {}
             return merged;
           });
@@ -288,6 +329,8 @@ export default function Home({
 
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("scroll", onScrollTop);
     };
   }, []);
 
@@ -502,6 +545,18 @@ export default function Home({
       latestChapByManhwa: latestSingle,
     };
   }, [manhwas, recentChaptersRaw]);
+
+  const unreadFavIds = useMemo(() => {
+    const unread = new Set<string>();
+    for (const fid of favorites) {
+      const latest = latestChapByManhwa.get(fid);
+      const lastRead = lastReadNums[fid] || 0;
+      if (latest !== undefined && lastRead > 0 && latest > lastRead) {
+        unread.add(fid);
+      }
+    }
+    return unread;
+  }, [favorites, latestChapByManhwa, lastReadNums]);
 
   const sidebarRanked = useMemo(() => {
     const base = manhwas.length > 0 ? manhwas : trending;
@@ -820,13 +875,20 @@ export default function Home({
               </button>
 
               <button
-                className={`icon-btn favorite-toggle ${activeCategory === "Favoritos" || favorites.size > 0 ? "active" : ""}`}
+                className={`icon-btn favorite-toggle relative ${activeCategory === "Favoritos" || favorites.size > 0 ? "active" : ""}`}
                 type="button"
                 aria-label="Ver mis favoritos"
-                title={`Mis favoritos (${favorites.size})`}
+                title={
+                  unreadFavIds.size > 0
+                    ? `Mis favoritos (${unreadFavIds.size} con capítulo nuevo)`
+                    : `Mis favoritos (${favorites.size})`
+                }
                 onClick={handleFavoritesFilterClick}
               >
                 <Heart />
+                {unreadFavIds.size > 0 && (
+                  <span className="notification-badge">{unreadFavIds.size}</span>
+                )}
               </button>
 
               {user?.email === "diazmowi07@gmail.com" && (
@@ -1548,7 +1610,7 @@ export default function Home({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black text-white truncate">
-                      {recentReviews[0]?.user_email?.split("@")[0] || "SungJinWoo"}
+                      {recentReviews[0]?.user_email?.split("@")[0] || "Equipo Nekutoon"}
                     </span>
                     <span className="text-[10px] font-bold text-[#c084fc]">· Lector destacado</span>
                   </div>
@@ -1577,7 +1639,7 @@ export default function Home({
                   >
                     <div
                       className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-black/40"
-                      dangerouslySetInnerHTML={{ __html: getAvatarSvg(item.avatar_key || "hunter") }}
+                      dangerouslySetInnerHTML={{ __html: getAvatarSvg(item.avatar_url || item.avatar_key || "hunter") }}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center gap-2 mb-1">
@@ -1786,6 +1848,12 @@ export default function Home({
                             </span>
                           )}
 
+                          {unreadFavIds.has(item.id) && (
+                            <span className="pointer-events-none absolute bottom-12 left-2 z-[4] bg-gradient-to-r from-[#a855f7] to-[#ec4899] text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-[0_0_15px_rgba(168,85,247,0.6)]">
+                              Nuevo Cap.
+                            </span>
+                          )}
+
                           <span
                             className={`pointer-events-none absolute top-2 right-2 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-lg z-[3] inline-flex items-center gap-1 ${
                               isFinished
@@ -1972,19 +2040,48 @@ export default function Home({
               )}
             </div>
             <div className="social-block">
-              <span>Síguenos en nuestras redes</span>
+              <span>Comparte y únete a la comunidad</span>
               <div className="social-row">
-                <a href="https://discord.gg" target="_blank" rel="noopener noreferrer" aria-label="Discord">
+                <a
+                  href="#muro-comunidad"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById("muro-comunidad")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  title="Muro de la Comunidad"
+                  aria-label="Muro de la Comunidad"
+                >
                   <MessageCircle />
                 </a>
-                <a href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="X">
-                  <span className="social-x">𝕏</span>
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent("¡Lee tus manhwas y webtoons favoritos en español gratis en Nekutoon! https://www.nekutoon.com")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Compartir en WhatsApp"
+                  aria-label="Compartir en WhatsApp"
+                >
+                  <MessagesSquare />
                 </a>
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                  <Camera />
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent("https://www.nekutoon.com")}&text=${encodeURIComponent("Lee manhwas y webtoons en español gratis en Nekutoon")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Compartir en Telegram"
+                  aria-label="Compartir en Telegram"
+                >
+                  <Sparkles />
                 </a>
-                <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
-                  <Video />
+                <a
+                  href="#compartir"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigator.clipboard?.writeText("https://www.nekutoon.com");
+                    showToastMessage("¡Enlace de Nekutoon copiado para compartir!");
+                  }}
+                  title="Copiar enlace de Nekutoon"
+                  aria-label="Copiar enlace de Nekutoon"
+                >
+                  <Share2 />
                 </a>
               </div>
             </div>
@@ -2203,9 +2300,17 @@ export default function Home({
             </a>
             <a
               href="#"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
-                showToastMessage("Usa 'Instalar aplicación' en el menú de Chrome");
+                if (deferredInstallPrompt) {
+                  try {
+                    deferredInstallPrompt.prompt();
+                    await deferredInstallPrompt.userChoice;
+                    setDeferredInstallPrompt(null);
+                    return;
+                  } catch {}
+                }
+                showToastMessage("Abre el menú de tu navegador y toca 'Instalar aplicación'");
               }}
             >
               <Play />
@@ -2239,6 +2344,18 @@ export default function Home({
           </div>
         </div>
       </footer>
+
+      {showBackTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Volver arriba"
+          title="Subir al inicio"
+          className="fixed bottom-24 right-5 z-40 w-11 h-11 rounded-full bg-[#151520]/90 hover:bg-[#a855f7] text-white border border-white/15 shadow-[0_10px_25px_rgba(0,0,0,0.65)] flex items-center justify-center transition-all cursor-pointer"
+        >
+          <ChevronUp className="w-5 h-5" />
+        </button>
+      )}
 
       <AuthModal
         isOpen={isAuthOpen}

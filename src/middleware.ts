@@ -2,65 +2,62 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  const { pathname } = request.nextUrl
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nfuvrtlhkvprjpzeepim.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_beZGsE6z0k_E-9SRi2jDmw_gExM4Oh_',
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // Obtener el usuario actual
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // 🛡️ TRAMPA PARA HACKERS: Bloquear rutas de escaneo malicioso
-  const maliciousPaths = ['.env', '.git', 'wp-admin', 'phpmyadmin', 'config.php', '.aws'];
-  if (maliciousPaths.some(path => request.nextUrl.pathname.includes(path))) {
-    // Si un bot intenta buscar vulnerabilidades, lo mandamos a un agujero negro
-    return new NextResponse("ACCESO DENEGADO - IP REGISTRADA", { status: 403 });
+  // 🛡️ TRAMPA PARA HACKERS: Bloquear rutas de escaneo malicioso (0ms, sin llamadas de red)
+  const maliciousPaths = ['.env', '.git', 'wp-admin', 'phpmyadmin', 'config.php', '.aws']
+  if (maliciousPaths.some((p) => pathname.includes(p))) {
+    return new NextResponse('ACCESO DENEGADO - IP REGISTRADA', { status: 403 })
   }
 
-  // 🛡️ Regla de Seguridad: Proteger la ruta /admin
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Si no hay usuario o el correo NO es el tuyo, patearlo al inicio
+  // 🛡️ Regla de Seguridad: Consultar sesión de Supabase ÚNICAMENTE en /admin
+  if (pathname.startsWith('/admin')) {
+    let supabaseResponse = NextResponse.next({ request })
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nfuvrtlhkvprjpzeepim.supabase.co',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_beZGsE6z0k_E-9SRi2jDmw_gExM4Oh_',
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            supabaseResponse = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user || user.email !== 'diazmowi07@gmail.com') {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
+
+    return supabaseResponse
   }
 
-  return supabaseResponse
+  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
-     * - images/svgs
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/admin/:path*',
+    '/.env/:path*',
+    '/.env',
+    '/.git/:path*',
+    '/wp-admin/:path*',
+    '/phpmyadmin/:path*',
+    '/config.php',
+    '/.aws/:path*',
   ],
 }

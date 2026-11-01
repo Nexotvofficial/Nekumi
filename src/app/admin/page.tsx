@@ -28,6 +28,7 @@ export default function AdminProDashboard() {
   // Estados Globales (Dashboard)
   const [usersList, setUsersList] = useState<any[]>([]);
   const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [reportsList, setReportsList] = useState<any[]>([]);
   const [stats, setStats] = useState({ manhwas: 0, chapters: 0, users: 0, views: 0 });
   const [recentChapters, setRecentChapters] = useState<any[]>([]);
 
@@ -89,7 +90,7 @@ export default function AdminProDashboard() {
       { count: mCount },
       { count: cCount },
       { count: uCount },
-      { count: vCount },
+      adminSum,
       { data: recent },
       { data: mData },
       { data: uData },
@@ -98,18 +99,39 @@ export default function AdminProDashboard() {
       supabase.from("manhwas").select("*", { count: "exact", head: true }),
       supabase.from("chapters").select("*", { count: "exact", head: true }).not("manhwa_id", "is", null),
       supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("visits").select("*", { count: "exact", head: true }),
+      fetch("/api/community?type=admin_summary")
+        .then((r) => r.json())
+        .catch(() => ({ totalVisits: 0, reports: [] })),
       supabase.from("chapters").select("*, manhwa:manhwas(title)").not("manhwa_id", "is", null).order("created_at", { ascending: false }).limit(5),
       supabase.from("manhwas").select("*").order("created_at", { ascending: false }).limit(1000),
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("reviews").select("*, manhwa:manhwas(title)").order("created_at", { ascending: false }),
     ]);
 
-    setStats({ manhwas: mCount || 0, chapters: cCount || 0, users: uCount || 0, views: vCount || 0 });
+    setStats({
+      manhwas: mCount || 0,
+      chapters: cCount || 0,
+      users: uCount || 0,
+      views: Number(adminSum?.totalVisits) || 0,
+    });
+    if (Array.isArray(adminSum?.reports)) setReportsList(adminSum.reports);
     if (recent) setRecentChapters(recent);
     if (mData) setManhwas(mData);
     if (uData) setUsersList(uData);
     if (rData) setReviewsList(rData);
+  };
+
+  const handleResolveReport = async (reportId: string) => {
+    setReportsList((prev) => prev.filter((r) => r.id !== reportId));
+    try {
+      await fetch("/api/community", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resolve_report", reportId }),
+      });
+      setSuccessMsg("Reporte marcado como resuelto");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch {}
   };
 
   const handleDeleteReview = async (id: string) => { if (!confirm('¿Borrar este comentario?')) return; await supabase.from('reviews').delete().eq('id', id); setReviewsList(prev => prev.filter(r => r.id !== id)); setSuccessMsg('Comentario eliminado'); setTimeout(() => setSuccessMsg(''), 3000); };
@@ -934,15 +956,58 @@ export default function AdminProDashboard() {
               <div className="bg-[#121216] border border-white/5 rounded-2xl p-6 max-w-4xl">
                 <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><AlertCircle className="w-5 h-5 text-[#ef4444]" /> Centro de Reportes</h3>
-                    <p className="text-sm text-[#a7a7b1]">Contenido reportado por la comunidad por inclumplimiento de normas.</p>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-[#ef4444]" /> Centro de Reportes ({reportsList.length})
+                    </h3>
+                    <p className="text-sm text-[#a7a7b1]">Capítulos o páginas con fallos reportados por los lectores.</p>
                   </div>
                 </div>
-                <div className="p-12 text-center text-[#a7a7b1] border-2 border-dashed border-white/5 rounded-2xl bg-black/20">
-                  <AlertCircle className="w-12 h-12 text-[#a7a7b1]/30 mx-auto mb-4" />
-                  <p className="text-lg font-semibold text-white mb-1">Todo está en orden</p>
-                  <p className="text-sm">No hay reportes pendientes de revisión. ¡Tu comunidad se está portando excelente!</p>
-                </div>
+                {reportsList.length === 0 ? (
+                  <div className="p-12 text-center text-[#a7a7b1] border-2 border-dashed border-white/5 rounded-2xl bg-black/20">
+                    <AlertCircle className="w-12 h-12 text-[#a7a7b1]/30 mx-auto mb-4" />
+                    <p className="text-lg font-semibold text-white mb-1">Todo está en orden</p>
+                    <p className="text-sm">No hay reportes pendientes de revisión. ¡Tu comunidad se está portando excelente!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {reportsList.map((rep) => (
+                      <div key={rep.id} className="p-4 rounded-xl bg-black/35 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 text-xs font-bold">
+                              {rep.reason}
+                            </span>
+                            <span className="font-bold text-white text-sm">
+                              {rep.manhwaTitle} · Cap. {rep.chapterNumber}
+                            </span>
+                            <span className="text-xs text-[#a7a7b1]">
+                              {rep.createdAt ? new Date(rep.createdAt).toLocaleString() : ""}
+                            </span>
+                          </div>
+                          {rep.details && <p className="text-xs text-white/75">{rep.details}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {rep.manhwaId && rep.chapterId && (
+                            <Link
+                              href={`/manga/${rep.manhwaId}/chapter/${rep.chapterId}`}
+                              target="_blank"
+                              className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-white inline-flex items-center gap-1"
+                            >
+                              Revisar <ArrowUpRight className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleResolveReport(rep.id)}
+                            className="px-3.5 py-2 rounded-lg bg-[#10b981]/20 hover:bg-[#10b981]/30 border border-[#10b981]/40 text-[#34d399] text-xs font-bold inline-flex items-center gap-1.5"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" /> Resuelto
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
         </main>

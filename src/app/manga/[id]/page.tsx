@@ -19,15 +19,21 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
     if (!manhwa) return { title: "Obra no encontrada | Nekutoon" };
 
-    const safeDesc = (manhwa.description || `Lee ${manhwa.title} online en español con la mejor calidad en Nekutoon.`).slice(0, 155);
+    const safeDesc = (
+      manhwa.description || `Lee ${manhwa.title} online en español con la mejor calidad en Nekutoon.`
+    ).slice(0, 155);
     const images = manhwa.cover_url ? [manhwa.cover_url] : [];
 
     return {
       title: `${manhwa.title} — Leer Online | Nekutoon`,
       description: safeDesc,
+      alternates: {
+        canonical: `https://www.nekutoon.com/manga/${id}`,
+      },
       openGraph: {
         title: `${manhwa.title} — Leer Online | Nekutoon`,
         description: safeDesc,
+        url: `https://www.nekutoon.com/manga/${id}`,
         images,
       },
       twitter: {
@@ -49,7 +55,7 @@ export default async function MangaDetailServer({ params }: { params: Promise<{ 
 
   try {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const [manhwaRes, chaptersRes, reviewsRes] = await Promise.all([
+    const [manhwaRes, chaptersRes, reviewsRes, candidatesRes] = await Promise.all([
       supabase.from("manhwas").select("*").eq("id", id).maybeSingle(),
       supabase
         .from("chapters")
@@ -63,14 +69,46 @@ export default async function MangaDetailServer({ params }: { params: Promise<{ 
         .eq("manhwa_id", id)
         .order("created_at", { ascending: false })
         .limit(50),
+      supabase
+        .from("manhwas")
+        .select("id, title, cover_url, genre, score, status")
+        .neq("id", id)
+        .order("score", { ascending: false })
+        .limit(80),
     ]);
 
     const manhwa = manhwaRes.data;
     const reviews = reviewsRes.data || [];
-    const ratingValue = Number(manhwa?.score) > 0 ? Number(manhwa.score).toFixed(1) : "4.8";
-    const reviewCount = Math.max(reviews.length, 7);
 
-    const jsonLd = {
+    // Calcular hasta 6 obras similares por coincidencia de géneros (respetando filtro +18)
+    const targetGenres = (manhwa?.genre || "")
+      .split(",")
+      .map((g: string) => g.trim().toLowerCase())
+      .filter(Boolean);
+    const isTargetAdult = targetGenres.includes("+18");
+
+    const relatedManhwas = (candidatesRes.data || [])
+      .filter((c: any) => {
+        const cGenres = (c.genre || "").toLowerCase();
+        if (!isTargetAdult && cGenres.includes("+18")) return false;
+        return true;
+      })
+      .map((c: any) => {
+        const cGenres = (c.genre || "")
+          .split(",")
+          .map((g: string) => g.trim().toLowerCase())
+          .filter(Boolean);
+        const overlap = cGenres.filter((g: string) => targetGenres.includes(g)).length;
+        return { item: c, rankScore: overlap * 10 + (Number(c.score) || 0) };
+      })
+      .sort((a, b) => b.rankScore - a.rankScore)
+      .slice(0, 6)
+      .map((x) => x.item);
+
+    const ratingValue = Number(manhwa?.score) > 0 ? Number(manhwa.score).toFixed(1) : "4.8";
+    const reviewCount = Math.max(reviews.length, 1);
+
+    const jsonLd: Record<string, any> = {
       "@context": "https://schema.org",
       "@type": "CreativeWorkSeries",
       name: manhwa?.title || "Manhwa",
@@ -80,19 +118,22 @@ export default async function MangaDetailServer({ params }: { params: Promise<{ 
       inLanguage: "es",
       genre: manhwa?.genre,
       url: `https://www.nekutoon.com/manga/${id}`,
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue,
-        bestRating: "5",
-        worstRating: "1",
-        ratingCount: reviewCount,
-      },
       publisher: {
         "@type": "Organization",
         name: "Nekutoon",
         url: "https://www.nekutoon.com",
       },
     };
+
+    if (Number(manhwa?.score) > 0 || reviews.length > 0) {
+      jsonLd.aggregateRating = {
+        "@type": "AggregateRating",
+        ratingValue,
+        bestRating: "5",
+        worstRating: "1",
+        ratingCount: reviewCount,
+      };
+    }
 
     return (
       <>
@@ -104,6 +145,7 @@ export default async function MangaDetailServer({ params }: { params: Promise<{ 
           initialManhwa={manhwaRes.data || null}
           initialChapters={chaptersRes.data || []}
           initialReviews={reviewsRes.data || []}
+          initialRelated={relatedManhwas}
         />
       </>
     );

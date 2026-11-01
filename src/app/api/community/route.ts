@@ -119,6 +119,23 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  if (type === "admin_summary") {
+    const [{ data: metricsRow }, { data: reportsRow }] = await Promise.all([
+      supabase.from("site_config").select("category_images").eq("id", 280).maybeSingle(),
+      supabase.from("site_config").select("category_images").eq("id", 270).maybeSingle(),
+    ]);
+
+    const metrics = (metricsRow?.category_images as any) || {};
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const totalVisits = Number(metrics.totalVisits) || 0;
+    const todayVisits = Number(metrics.daily?.[todayKey]) || 0;
+    const reports = Array.isArray((reportsRow?.category_images as any)?.reports)
+      ? (reportsRow?.category_images as any).reports
+      : [];
+
+    return NextResponse.json({ totalVisits, todayVisits, reports });
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -310,10 +327,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Cuenta no encontrada. Inicia sesión nuevamente." }, { status: 401 });
       }
 
-      const verifiedXp = calculateVerifiedXp(verifiedUser.reader_progress);
-      const readChaptersCount = Array.isArray(verifiedUser.reader_progress?.readChapters)
-        ? verifiedUser.reader_progress.readChapters.length
-        : 1;
+      const baseRp =
+        verifiedUser.reader_progress && typeof verifiedUser.reader_progress === "object"
+          ? { ...(verifiedUser.reader_progress as any) }
+          : {};
+      const readList: string[] = Array.isArray(baseRp.readChapters) ? [...baseRp.readChapters] : [];
+      if (chapterId && !readList.includes(chapterId)) {
+        readList.push(chapterId);
+      }
+      baseRp.readChapters = readList;
+      baseRp.comments = (typeof baseRp.comments === "number" ? Math.max(0, baseRp.comments) : 0) + 1;
+
+      const verifiedXp = calculateVerifiedXp(baseRp);
+      const readChaptersCount = Math.max(1, readList.length);
       const finalAuthorName = verifiedUser.username || (authorName ? String(authorName).slice(0, 28) : "Cazador");
       const finalAvatar = verifiedUser.avatar_url || avatarKey || "hunter";
 
@@ -350,7 +376,10 @@ export async function POST(req: NextRequest) {
       chapEntry.comments = updatedComments;
       shardData[chapterId] = chapEntry;
 
-      await supabase.from("site_config").upsert({ id: shardId, category_images: shardData });
+      await Promise.all([
+        supabase.from("site_config").upsert({ id: shardId, category_images: shardData }),
+        supabase.from("profiles").update({ reader_progress: baseRp }).eq("id", userId),
+      ]);
 
       return NextResponse.json({ comments: updatedComments });
     }
@@ -475,7 +504,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Cuenta no encontrada. Inicia sesión nuevamente." }, { status: 401 });
       }
 
-      const verifiedXp = calculateVerifiedXp(verifiedUser.reader_progress);
+      const baseRp =
+        verifiedUser.reader_progress && typeof verifiedUser.reader_progress === "object"
+          ? { ...(verifiedUser.reader_progress as any) }
+          : {};
+      baseRp.comments = (typeof baseRp.comments === "number" ? Math.max(0, baseRp.comments) : 0) + 1;
+
+      const verifiedXp = calculateVerifiedXp(baseRp);
       const finalAuthorName = verifiedUser.username || "Cazador";
       const finalAvatar = verifiedUser.avatar_url || avatarKey || "hunter";
 
@@ -508,10 +543,13 @@ export async function POST(req: NextRequest) {
       };
 
       const updatedPosts = [newPost, ...currentPosts].slice(0, 60);
-      await supabase.from("site_config").upsert({
-        id: 260,
-        category_images: { posts: updatedPosts },
-      });
+      await Promise.all([
+        supabase.from("site_config").upsert({
+          id: 260,
+          category_images: { posts: updatedPosts },
+        }),
+        supabase.from("profiles").update({ reader_progress: baseRp }).eq("id", userId),
+      ]);
 
       return NextResponse.json({ posts: updatedPosts, created: newPost });
     }
@@ -539,6 +577,94 @@ export async function POST(req: NextRequest) {
         });
       }
       return NextResponse.json({ posts: currentPosts });
+    }
+
+    if (action === "log_visit") {
+      const { data: existing } = await supabase
+        .from("site_config")
+        .select("category_images")
+        .eq("id", 280)
+        .maybeSingle();
+
+      const metrics: Record<string, any> =
+        existing?.category_images && typeof existing.category_images === "object"
+          ? { ...(existing.category_images as any) }
+          : {};
+
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const daily: Record<string, number> =
+        metrics.daily && typeof metrics.daily === "object" ? { ...metrics.daily } : {};
+
+      metrics.totalVisits = (Number(metrics.totalVisits) || 0) + 1;
+      daily[todayKey] = (Number(daily[todayKey]) || 0) + 1;
+
+      // Mantener solo los últimos 30 días para no inflar el JSON
+      const sortedDays = Object.keys(daily).sort().slice(-30);
+      const prunedDaily: Record<string, number> = {};
+      for (const d of sortedDays) prunedDaily[d] = daily[d];
+      metrics.daily = prunedDaily;
+
+      await supabase.from("site_config").upsert({ id: 280, category_images: metrics });
+      return NextResponse.json({ ok: true, totalVisits: metrics.totalVisits });
+    }
+
+    if (action === "report_chapter") {
+      const { manhwaId, manhwaTitle, chapterId, chapterNumber, reason, details } = body;
+      if (!chapterId || !reason) {
+        return NextResponse.json({ error: "Selecciona el motivo del reporte" }, { status: 400 });
+      }
+
+      const { data: existing } = await supabase
+        .from("site_config")
+        .select("category_images")
+        .eq("id", 270)
+        .maybeSingle();
+
+      const currentReports: any[] = Array.isArray((existing?.category_images as any)?.reports)
+        ? [...(existing?.category_images as any).reports]
+        : [];
+
+      const reportItem = {
+        id: `rep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        manhwaId: String(manhwaId || ""),
+        manhwaTitle: String(manhwaTitle || "Manhwa").slice(0, 100),
+        chapterId: String(chapterId),
+        chapterNumber: chapterNumber ?? "?",
+        reason: String(reason).slice(0, 80),
+        details: String(details || "").trim().slice(0, 300),
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedReports = [reportItem, ...currentReports].slice(0, 80);
+      await supabase.from("site_config").upsert({
+        id: 270,
+        category_images: { reports: updatedReports },
+      });
+
+      return NextResponse.json({ ok: true, report: reportItem });
+    }
+
+    if (action === "resolve_report") {
+      const { reportId } = body;
+      if (!reportId) return NextResponse.json({ ok: false }, { status: 400 });
+
+      const { data: existing } = await supabase
+        .from("site_config")
+        .select("category_images")
+        .eq("id", 270)
+        .maybeSingle();
+
+      const currentReports: any[] = Array.isArray((existing?.category_images as any)?.reports)
+        ? [...(existing?.category_images as any).reports]
+        : [];
+
+      const filtered = currentReports.filter((r) => r.id !== reportId);
+      await supabase.from("site_config").upsert({
+        id: 270,
+        category_images: { reports: filtered },
+      });
+
+      return NextResponse.json({ ok: true, reports: filtered });
     }
 
     return NextResponse.json({ error: "Acción no válida" }, { status: 400 });

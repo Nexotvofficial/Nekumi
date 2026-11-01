@@ -9,8 +9,8 @@ import { getAvatarSvg } from "@/lib/avatars";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (user: any) => void;
-  showToast: (msg: string) => void;
+  onSuccess?: (user: any) => void;
+  showToast?: (msg: string) => void;
 }
 
 export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: AuthModalProps) {
@@ -33,8 +33,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        showToast("¡Has iniciado sesión correctamente!");
-        onSuccess(data.user);
+        showToast?.("¡Has iniciado sesión correctamente!");
+        onSuccess?.(data.user);
         onClose();
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -52,11 +52,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess, showToast }: Aut
           });
         }
 
-        showToast("¡Registro exitoso! Ya puedes iniciar sesión.");
+        showToast?.("¡Registro exitoso! Ya puedes iniciar sesión.");
         setIsLogin(true);
       }
     } catch (err: any) {
-      showToast(err.message || "Ha ocurrido un error");
+      showToast?.(err.message || "Ha ocurrido un error");
     } finally {
       setLoading(false);
     }

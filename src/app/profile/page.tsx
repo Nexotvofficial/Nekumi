@@ -30,6 +30,7 @@ import {
   getShopItemById,
 } from "@/lib/readerRank";
 import GuildShopModal from "@/components/GuildShopModal";
+import { syncReaderProgress } from "@/lib/readerSync";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -66,6 +67,7 @@ export default function ProfilePage() {
       let userReviews: any[] = [];
       if (session?.user) {
         setUser(session.user);
+        await syncReaderProgress(supabase, session.user.id);
 
         const [{ data: prof }, { data: revs }] = await Promise.all([
           supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle(),

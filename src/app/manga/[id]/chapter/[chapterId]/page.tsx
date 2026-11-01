@@ -24,8 +24,13 @@ import {
   List,
   Lock,
   Share2,
+  AlertTriangle,
+  Sparkles,
+  Star,
+  X as XIcon,
 } from "lucide-react";
 import Link from "next/link";
+import AuthModal from "@/components/AuthModal";
 import { getAvatarSvg } from "@/lib/avatars";
 import {
   getLocalReaderStats,
@@ -92,6 +97,19 @@ export default function ChapterReader() {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [readerStats, setReaderStats] = useState<ReaderStats | null>(null);
   const [rankUpBanner, setRankUpBanner] = useState<string | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [manhwaTitle, setManhwaTitle] = useState("");
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("Páginas en blanco o caídas");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSending, setReportSending] = useState(false);
+  const [readerToast, setReaderToast] = useState("");
+  const [endRecs, setEndRecs] = useState<any[]>([]);
+
+  const showQuickToast = (msg: string) => {
+    setReaderToast(msg);
+    setTimeout(() => setReaderToast(""), 2600);
+  };
 
   const touchStartX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -200,6 +218,7 @@ export default function ChapterReader() {
     if (!alreadyActive) {
       const nextStats = recordReactionForRank();
       setReaderStats(nextStats);
+      if (sessionUser?.id) syncReaderProgress(supabase, sessionUser.id);
     }
 
     try {
@@ -224,7 +243,7 @@ export default function ChapterReader() {
   const handlePostChapterComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sessionUser) {
-      alert("Debes iniciar sesión para comentar en este capítulo.");
+      setIsAuthOpen(true);
       return;
     }
     if (!commentInput.trim()) return;
@@ -233,6 +252,7 @@ export default function ChapterReader() {
 
     const updatedStats = recordCommentForRank();
     setReaderStats(updatedStats);
+    syncReaderProgress(supabase, sessionUser.id);
 
     try {
       const res = await fetch("/api/community", {
@@ -261,7 +281,7 @@ export default function ChapterReader() {
 
   const handleShareChapter = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const title = `Capítulo ${chapter?.chapter_number || ""} en Nekutoon`;
+    const title = `${manhwaTitle ? `${manhwaTitle} — ` : ""}Capítulo ${chapter?.chapter_number || ""} en Nekutoon`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -274,8 +294,39 @@ export default function ChapterReader() {
     }
     try {
       await navigator.clipboard.writeText(url);
-      alert("¡Enlace del capítulo copiado al portapapeles!");
+      showQuickToast("¡Enlace del capítulo copiado al portapapeles!");
     } catch {}
+  };
+
+  const handleSendReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chapterId) return;
+    setReportSending(true);
+    try {
+      const res = await fetch("/api/community", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "report_chapter",
+          manhwaId,
+          manhwaTitle: manhwaTitle || "Manhwa",
+          chapterId,
+          chapterNumber: chapter?.chapter_number ?? "?",
+          reason: reportReason,
+          details: reportDetails,
+        }),
+      });
+      if (res.ok) {
+        setShowReportModal(false);
+        setReportDetails("");
+        showQuickToast("¡Reporte enviado al equipo de Nekutoon! Gracias por avisar.");
+      } else {
+        showQuickToast("No se pudo enviar el reporte. Intenta nuevamente.");
+      }
+    } catch {
+      showQuickToast("Error de conexión al enviar el reporte.");
+    }
+    setReportSending(false);
   };
 
   // Fetch chapter, pages, neighbors, and record reading history
@@ -339,6 +390,9 @@ export default function ChapterReader() {
           localStorage.setItem(`nekumi_last_read_num_${manhwaId}`, String(cData.chapter_number));
           const rankResult = recordChapterReadForRank(chapterId);
           setReaderStats(rankResult.stats);
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user?.id) syncReaderProgress(supabase, session.user.id);
+          });
           if (rankResult.rankedUp) {
             setRankUpBanner(
               `¡Ascenso de Rango! Ahora eres Rango ${rankResult.stats.currentRank.code} · ${rankResult.stats.currentRank.title}`
@@ -352,9 +406,9 @@ export default function ChapterReader() {
           }
         } catch {}
 
-        // Resolve prev & next chapters immediately from cached list if available
-        if (cachedChapsList && cachedChapsList.length > 0) {
-          const sortedAsc = [...cachedChapsList].sort((a, b) => a.chapter_number - b.chapter_number);
+        // Resolve full chapter list + prev & next chapters (works even on direct Google/WhatsApp entry!)
+        const resolveNeighborsFromList = (list: Chapter[]) => {
+          const sortedAsc = [...list].sort((a, b) => a.chapter_number - b.chapter_number);
           setAllChapters(sortedAsc);
           const idx = sortedAsc.findIndex((c) => c.id === chapterId || c.chapter_number === cData.chapter_number);
           const prevC = idx > 0 ? sortedAsc[idx - 1] : null;
@@ -362,7 +416,6 @@ export default function ChapterReader() {
           setPrevChapter(prevC);
           setNextChapter(nextC);
 
-          // Prefetch next chapter pages in background for 0ms transitions!
           if (nextC) {
             fetchChapterPagesFast(supabase, nextC.id).then((nextPages) => {
               if (nextPages.length > 0) {
@@ -372,40 +425,41 @@ export default function ChapterReader() {
                 } catch {}
               }
             });
-          }
-        } else {
-          const [prevRes, nextRes] = await Promise.all([
+          } else {
+            // Al estar al día con el último capítulo, cargar 4 obras recomendadas para retener al lector
             supabase
-              .from("chapters")
-              .select("*")
-              .eq("manhwa_id", manhwaId)
-              .lt("chapter_number", cData.chapter_number)
-              .order("chapter_number", { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-            supabase
-              .from("chapters")
-              .select("*")
-              .eq("manhwa_id", manhwaId)
-              .gt("chapter_number", cData.chapter_number)
-              .order("chapter_number", { ascending: true })
-              .limit(1)
-              .maybeSingle(),
-          ]);
-          if (!isCancelled) {
-            setPrevChapter(prevRes.data || null);
-            setNextChapter(nextRes.data || null);
-            if (nextRes.data) {
-              fetchChapterPagesFast(supabase, nextRes.data.id).then((nextPages) => {
-                if (nextPages.length > 0) {
-                  try {
-                    sessionStorage.setItem(`nekumi_chap_${nextRes.data.id}`, JSON.stringify(nextPages));
-                    sessionStorage.setItem(`nekumi_chap_meta_${nextRes.data.id}`, JSON.stringify(nextRes.data));
-                  } catch {}
+              .from("manhwas")
+              .select("id, title, cover_url, genre, score")
+              .neq("id", manhwaId)
+              .not("genre", "ilike", "%+18%")
+              .order("score", { ascending: false })
+              .limit(12)
+              .then(({ data: recList }) => {
+                if (recList && !isCancelled) {
+                  const shuffled = [...recList].sort(() => Math.random() - 0.5).slice(0, 4);
+                  setEndRecs(shuffled);
                 }
               });
-            }
           }
+        };
+
+        if (cachedChapsList && cachedChapsList.length > 0) {
+          resolveNeighborsFromList(cachedChapsList);
+        } else {
+          supabase
+            .from("chapters")
+            .select("id, chapter_number, title, manhwa_id")
+            .eq("manhwa_id", manhwaId)
+            .order("chapter_number", { ascending: true })
+            .limit(1000)
+            .then(({ data: fetchedList }) => {
+              if (!isCancelled && fetchedList && fetchedList.length > 0) {
+                try {
+                  sessionStorage.setItem(`nekumi_manhwa_chaps_${manhwaId}`, JSON.stringify(fetchedList));
+                } catch {}
+                resolveNeighborsFromList(fetchedList);
+              }
+            });
         }
 
         // Update reading history in background
@@ -423,6 +477,7 @@ export default function ChapterReader() {
 
         manhwaPromise.then(({ data: mInfo }) => {
           if (mInfo && !isCancelled) {
+            if (mInfo.title) setManhwaTitle(mInfo.title);
             try {
               const historyRaw = localStorage.getItem("nekumi_reading_history") || "[]";
               const historyList = Array.isArray(JSON.parse(historyRaw)) ? JSON.parse(historyRaw) : [];
@@ -520,16 +575,25 @@ export default function ChapterReader() {
     }
   }, [currentPageIndex, prevChapter, router, manhwaId]);
 
-  // Keyboard navigation in Paged Mode
+  // Keyboard navigation in both Paged & Cascade Mode (ignores form inputs)
   useEffect(() => {
-    if (readMode !== "paged") return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") goNextPage();
-      else if (e.key === "ArrowLeft") goPrevPage();
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (readMode === "paged") {
+        if (e.key === "ArrowRight") goNextPage();
+        else if (e.key === "ArrowLeft") goPrevPage();
+      } else {
+        if (e.key === "ArrowRight" && nextChapter) {
+          router.push(`/manga/${manhwaId}/chapter/${nextChapter.id}`);
+        } else if (e.key === "ArrowLeft" && prevChapter) {
+          router.push(`/manga/${manhwaId}/chapter/${prevChapter.id}`);
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [readMode, goNextPage, goPrevPage]);
+  }, [readMode, goNextPage, goPrevPage, nextChapter, prevChapter, router, manhwaId]);
 
   const toggleReadMode = (mode: "cascade" | "paged") => {
     setReadMode(mode);
@@ -1050,8 +1114,64 @@ export default function ChapterReader() {
                 <Share2 className="w-3.5 h-3.5 text-[#c084fc]" />
                 <span>Copiar Enlace</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setShowReportModal(true)}
+                className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                title="Reportar imágenes caídas o capítulo equivocado"
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Reportar fallo</span>
+              </button>
             </div>
           </div>
+
+          {/* Recomendaciones automáticas al estar al día con el último capítulo */}
+          {!nextChapter && endRecs.length > 0 && (
+            <div className="glass rounded-3xl p-6 border border-[#a855f7]/25">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-5 h-5 text-[#c084fc]" />
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">¡Llegaste al último capítulo disponible!</h3>
+                    <p className="text-xs text-white/50">Sigue leyendo una de estas obras recomendadas mientras sale el próximo episodio</p>
+                  </div>
+                </div>
+                <Link href="/#recomendados" className="text-xs font-bold text-[#c084fc] hover:text-white whitespace-nowrap">
+                  Ver más
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                {endRecs.map((rec: any) => (
+                  <Link
+                    key={rec.id}
+                    href={`/manga/${rec.id}`}
+                    className="group rounded-2xl bg-black/40 border border-white/10 hover:border-[#a855f7]/50 overflow-hidden transition-all"
+                  >
+                    <div className="relative aspect-[2/3] overflow-hidden">
+                      <img
+                        referrerPolicy="no-referrer"
+                        src={rec.cover_url}
+                        alt={rec.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {Number(rec.score) > 0 && (
+                        <span className="absolute top-2 left-2 bg-black/75 text-[#fbbf24] text-[10px] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5 fill-current" />
+                          {Number(rec.score).toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5">
+                      <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#c084fc]">{rec.title}</p>
+                      <p className="text-[10px] text-white/45 truncate mt-0.5">{rec.genre}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Reacciones Rápidas con Iconografía Vectorial (Cero Emojis) */}
           <div className="glass rounded-3xl p-6 text-center border border-white/10">
@@ -1161,12 +1281,13 @@ export default function ChapterReader() {
                     <p className="text-[11px] text-white/50">Solo los Cazadores registrados pueden participar en la comunidad y ganar +25 XP.</p>
                   </div>
                 </div>
-                <Link
-                  href="/profile"
-                  className="btn btn-primary px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap"
+                <button
+                  type="button"
+                  onClick={() => setIsAuthOpen(true)}
+                  className="btn btn-primary px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer"
                 >
                   Iniciar Sesión
-                </Link>
+                </button>
               </div>
             )}
 
@@ -1222,6 +1343,100 @@ export default function ChapterReader() {
           </div>
         </div>
       </div>
+
+      {/* Modal para reportar capítulo o imágenes caídas */}
+      {showReportModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setShowReportModal(false)}
+        >
+          <div
+            className="bg-[#111118] border border-white/15 rounded-3xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-extrabold text-white">
+                  Reportar Capítulo {chapter.chapter_number}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReportModal(false)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 cursor-pointer"
+                aria-label="Cerrar"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSendReport} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-white/70 mb-1.5">¿Qué problema encontraste?</label>
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full h-11 rounded-xl bg-black/50 border border-white/10 px-3 text-sm text-white outline-none focus:border-[#a855f7]"
+                >
+                  <option value="Páginas en blanco o caídas" className="bg-[#111118]">
+                    Páginas en blanco o imágenes caídas
+                  </option>
+                  <option value="Páginas desordenadas o cortadas" className="bg-[#111118]">
+                    Páginas desordenadas o cortadas
+                  </option>
+                  <option value="Capítulo equivocado / repetido" className="bg-[#111118]">
+                    Capítulo equivocado o repetido
+                  </option>
+                  <option value="Otro problema" className="bg-[#111118]">
+                    Otro problema
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-white/70 mb-1.5">Detalles opcionales</label>
+                <textarea
+                  rows={2}
+                  maxLength={250}
+                  value={reportDetails}
+                  onChange={(e) => setReportDetails(e.target.value)}
+                  placeholder="Ej: La página 4 y 5 no cargan..."
+                  className="w-full rounded-xl bg-black/50 border border-white/10 p-3 text-xs sm:text-sm text-white placeholder:text-white/35 outline-none focus:border-[#a855f7] resize-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReportModal(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-white/80 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={reportSending}
+                  className="btn btn-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  {reportSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  <span>Enviar Reporte</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={(u) => setSessionUser(u)}
+        showToast={showQuickToast}
+      />
+
+      {readerToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#14141d] border border-[#a855f7]/45 text-white text-xs sm:text-sm font-bold px-4 py-3 rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.8)]">
+          {readerToast}
+        </div>
+      )}
     </div>
   );
 }

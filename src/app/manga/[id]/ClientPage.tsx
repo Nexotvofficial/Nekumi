@@ -22,10 +22,13 @@ import {
   ArrowUpDown,
   Check,
   Sparkles,
+  ChevronUp,
 } from "lucide-react";
 import { getAvatarSvg } from "@/lib/avatars";
 import AvatarPicker from "@/components/AvatarPicker";
+import AuthModal from "@/components/AuthModal";
 import { ReaderRankBadge, getLocalReaderStats, recordCommentForRank } from "@/lib/readerRank";
+import { syncReaderProgress } from "@/lib/readerSync";
 
 interface Manhwa {
   id: string;
@@ -49,6 +52,7 @@ interface Review {
   id: string;
   user_id?: string;
   user_email?: string;
+  avatar_url?: string;
   avatar_key?: string;
   rating: number;
   content: string;
@@ -59,10 +63,12 @@ export default function ClientPage({
   initialManhwa = null,
   initialChapters = [],
   initialReviews = [],
+  initialRelated = [],
 }: {
   initialManhwa?: Manhwa | null;
   initialChapters?: Chapter[];
   initialReviews?: Review[];
+  initialRelated?: Manhwa[];
 }) {
   const params = useParams();
   const router = useRouter();
@@ -78,6 +84,9 @@ export default function ClientPage({
   const [isFavorite, setIsFavorite] = useState(false);
   const [lastReadChapter, setLastReadChapter] = useState<{ id: string; num: string } | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [profileUsername, setProfileUsername] = useState<string>("");
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [showBackTop, setShowBackTop] = useState(false);
   const [sortDesc, setSortDesc] = useState(true);
   const [chapterPage, setChapterPage] = useState(1);
   const [chapterSearch, setChapterSearch] = useState("");
@@ -175,11 +184,15 @@ export default function ClientPage({
     } catch {}
 
     async function loadData() {
-      // Deduplicate visit logging per session
+      // Deduplicate visit logging per session via server metrics
       try {
         if (!sessionStorage.getItem("nekumi_visit_logged")) {
           sessionStorage.setItem("nekumi_visit_logged", "1");
-          supabase.from("visits").insert([{}]).then();
+          fetch("/api/community", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "log_visit" }),
+          }).catch(() => {});
         }
       } catch {}
 
@@ -254,6 +267,7 @@ export default function ClientPage({
 
         if (profRes.data) {
           setSelectedAvatar(profRes.data.avatar_url || "hunter");
+          if (profRes.data.username) setProfileUsername(profRes.data.username);
         }
         if (favRes.data) {
           setIsFavorite(true);
@@ -267,6 +281,32 @@ export default function ClientPage({
     }
 
     loadData();
+
+    const onScroll = () => setShowBackTop(window.scrollY > 550);
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_ev, session) => {
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
+        supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", nextUser.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.username) setProfileUsername(data.username);
+            if (data?.avatar_url) setSelectedAvatar(data.avatar_url);
+          });
+      }
+    });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      subscription.unsubscribe();
+    };
   }, [id]);
 
   const toggleFavorite = async () => {
@@ -297,25 +337,25 @@ export default function ClientPage({
   const submitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      triggerToast("Inicia sesión para dejar una reseña");
+      setIsAuthOpen(true);
       return;
     }
 
     setReviewLoading(true);
+    const safeDisplayName = profileUsername || user.email?.split("@")[0] || "Cazador";
     const reviewPayload: Record<string, any> = {
       manhwa_id: id,
       user_id: user.id,
-      user_email: user.email,
-      avatar_key: selectedAvatar,
+      user_email: safeDisplayName,
+      avatar_url: selectedAvatar,
       rating: newRating,
       content: newReview.trim() || "Excelente obra",
     };
 
     let { data, error } = await supabase.from("reviews").insert([reviewPayload]).select();
 
-    // Fallback in case avatar_key column isn't present in an older DB schema
-    if (error && error.message?.includes("avatar_key")) {
-      const { avatar_key, ...fallbackPayload } = reviewPayload;
+    if (error && error.message?.includes("avatar_url")) {
+      const { avatar_url, ...fallbackPayload } = reviewPayload;
       const retry = await supabase.from("reviews").insert([fallbackPayload]).select();
       data = retry.data;
       error = retry.error;
@@ -329,7 +369,7 @@ export default function ClientPage({
       setNewRating(5);
 
       if (data && data[0]) {
-        const inserted = { ...data[0], avatar_key: selectedAvatar };
+        const inserted = { ...data[0], avatar_url: selectedAvatar };
         const updatedReviews = [inserted, ...reviews];
         setReviews(updatedReviews);
 
@@ -358,6 +398,7 @@ export default function ClientPage({
           });
       }
       recordCommentForRank();
+      if (user?.id) syncReaderProgress(supabase, user.id);
       triggerToast("¡Reseña publicada con éxito! (+25 XP de Cazador)");
       setReviewLoading(false);
     }
@@ -841,6 +882,56 @@ export default function ClientPage({
           </div>
         </div>
 
+        {/* Related / Similar Manhwas Section */}
+        {initialRelated.length > 0 && (
+          <div className="mt-16 border-t border-white/10 pt-14">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-[#a855f7]" />
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Obras Similares</h2>
+                  <p className="text-xs text-white/50">Recomendadas según los géneros de {manhwa.title}</p>
+                </div>
+              </div>
+              <Link href="/#recomendados" className="text-xs font-bold text-[#c084fc] hover:text-white inline-flex items-center gap-1">
+                Ver catálogo <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+              {initialRelated.map((rel) => (
+                <Link
+                  key={rel.id}
+                  href={`/manga/${rel.id}`}
+                  className="group block rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#a855f7]/50 overflow-hidden transition-all"
+                >
+                  <div className="relative aspect-[2/3] overflow-hidden">
+                    <img
+                      referrerPolicy="no-referrer"
+                      src={rel.cover_url}
+                      alt={rel.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    {Number(rel.score) > 0 && (
+                      <span className="absolute top-2 left-2 bg-black/75 backdrop-blur-md text-[#fbbf24] text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-white/10 inline-flex items-center gap-1">
+                        <Star className="w-2.5 h-2.5 fill-current" />
+                        {Number(rel.score).toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2.5">
+                    <h3 className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#c084fc] transition-colors">
+                      {rel.title}
+                    </h3>
+                    <p className="text-[10px] text-white/45 truncate mt-0.5">{rel.genre}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Reviews Section */}
         <div id="reseñas-section" className="mt-16 border-t border-white/10 pt-14 detail-reviews">
           <div className="flex items-center gap-3 mb-8">
@@ -860,7 +951,9 @@ export default function ClientPage({
                 />
                 <div>
                   <p className="text-xs text-white/50">Comentando como</p>
-                  <p className="text-sm font-semibold text-white">{user.email?.split("@")[0]}</p>
+                  <p className="text-sm font-semibold text-white">
+                    {profileUsername || user.email?.split("@")[0] || "Cazador"}
+                  </p>
                   <button
                     type="button"
                     onClick={() => setShowAvatarPicker(!showAvatarPicker)}
@@ -918,10 +1011,14 @@ export default function ClientPage({
             </form>
           ) : (
             <div className="glass rounded-[22px] p-8 text-center mb-12">
-              <p className="text-white/80 mb-3 text-sm">Inicia sesión en Nekutoon para calificar y dejar tu reseña.</p>
-              <Link href="/" className="btn btn-secondary text-xs">
-                Ir a Iniciar Sesión
-              </Link>
+              <p className="text-white/80 mb-4 text-sm">Inicia sesión en Nekutoon para calificar, dejar tu reseña y ganar +25 XP de Cazador.</p>
+              <button
+                type="button"
+                onClick={() => setIsAuthOpen(true)}
+                className="btn btn-primary text-xs px-6 py-2.5 cursor-pointer"
+              >
+                Iniciar Sesión / Crear Cuenta
+              </button>
             </div>
           )}
 
@@ -936,13 +1033,17 @@ export default function ClientPage({
                   <div className="flex items-start gap-4 mb-2.5">
                     <div
                       className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 bg-black/40"
-                      dangerouslySetInnerHTML={{ __html: getAvatarSvg(review.avatar_key || "hunter") }}
+                      dangerouslySetInnerHTML={{
+                        __html: getAvatarSvg(review.avatar_url || review.avatar_key || "hunter"),
+                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-bold text-white text-sm">{review.user_email?.split("@")[0] || "Cazador"}</p>
+                            <p className="font-bold text-white text-sm">
+                              {(review.user_email || "Cazador").split("@")[0]}
+                            </p>
                             <ReaderRankBadge
                               xp={
                                 review.user_id && user?.id === review.user_id
@@ -971,6 +1072,25 @@ export default function ClientPage({
           </div>
         </div>
       </div>
+
+      {showBackTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Volver arriba"
+          title="Subir arriba"
+          className="fixed bottom-24 right-5 z-40 w-11 h-11 rounded-full bg-[#151520]/90 hover:bg-[#a855f7] text-white border border-white/15 shadow-[0_10px_25px_rgba(0,0,0,0.65)] flex items-center justify-center transition-all cursor-pointer"
+        >
+          <ChevronUp className="w-5 h-5" />
+        </button>
+      )}
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={(u) => setUser(u)}
+        showToast={triggerToast}
+      />
 
       <div className={`toast ${showToast ? "show" : ""}`} role="status" aria-live="polite">
         {toastMessage}

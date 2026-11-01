@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ShieldAlert, Mail, AlertTriangle } from "lucide-react";
 
 export const metadata = {
-  title: "Aviso Legal y DMCA | Nekumi",
+  title: "Aviso Legal y DMCA | Nekutoon",
   robots: "noindex, nofollow",
 };
 
@@ -12,7 +12,7 @@ export default function DMCA() {
       <header className="sticky top-0 z-50 bg-[#0a0a0c]/80 backdrop-blur-md border-b border-white/5 py-4">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-black text-2xl tracking-tighter">
-            NEKU<span className="text-[#a855f7]">MI</span>
+            NEKU<span className="text-[#a855f7]">TOON</span>
           </Link>
           <Link href="/" className="text-sm font-medium text-white/60 hover:text-white transition-colors">
             Volver al inicio
@@ -29,7 +29,7 @@ export default function DMCA() {
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-2">
               Legal Disclaimer & DMCA
             </h1>
-            <p className="text-white/50">Aviso Legal de Derechos de Autor</p>
+            <p className="text-white/50">Aviso Legal de Derechos de Autor — Nekutoon</p>
           </div>
         </div>
 
@@ -42,11 +42,11 @@ export default function DMCA() {
             <div className="space-y-4 text-sm md:text-base">
               <p>
                 <strong>
-                  Nekumi does NOT store any image files, manga, manhwa, or copyrighted media files on our servers.
+                  Nekutoon does NOT store any image files, manga, manhwa, or copyrighted media files on our servers.
                 </strong>
               </p>
               <p>
-                Nekumi funciona exclusivamente como un <strong>motor de búsqueda y agregador de enlaces</strong>{" "}
+                Nekutoon funciona exclusivamente como un <strong>motor de búsqueda y agregador de enlaces</strong>{" "}
                 (similar a Google). Todo el contenido visual e imágenes que se muestran en esta plataforma están
                 alojados en servidores externos de terceros (Third-party servers) mediante técnicas de inserción de
                 enlaces directos (Hotlinking).
@@ -62,7 +62,7 @@ export default function DMCA() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-white">Digital Millennium Copyright Act (DMCA)</h2>
             <p>
-              Nekumi respeta plenamente la propiedad intelectual de terceros. Si usted es el legítimo propietario de
+              Nekutoon respeta plenamente la propiedad intelectual de terceros. Si usted es el legítimo propietario de
               los derechos de autor de algún material y desea que desvinculemos las URLs que apuntan a sus imágenes,
               cumpliremos de inmediato procesando una solicitud de retiro (Takedown Notice).
             </p>
