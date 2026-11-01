@@ -50,14 +50,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/admin/:path*',
-    '/.env/:path*',
-    '/.env',
-    '/.git/:path*',
-    '/wp-admin/:path*',
-    '/phpmyadmin/:path*',
-    '/config.php',
-    '/.aws/:path*',
-  ],
+  matcher: ['/admin/:path*', '/wp-admin/:path*', '/phpmyadmin/:path*'],
 }
