@@ -381,14 +381,40 @@ def get_autopilot_state() -> dict:
         "totalManhwasAdded": 0,
         "totalChaptersAdded": 0,
         "totalReclassified": 0,
+        "pendingRepairs": [],
         "recentLogs": [],
     }
     if rows and isinstance(rows[0].get("category_images"), dict):
         merged = {**default_state, **rows[0]["category_images"]}
         if not isinstance(merged.get("recentLogs"), list):
             merged["recentLogs"] = []
+        if not isinstance(merged.get("pendingRepairs"), list):
+            merged["pendingRepairs"] = []
         return merged
     return default_state
+
+
+def add_pending_repair(manhwa_id: str, title: str, reason: str, slug_hint: str = ""):
+    state = get_autopilot_state()
+    pending = [p for p in (state.get("pendingRepairs") or []) if p.get("id") != manhwa_id and norm_key(p.get("title") or "") != norm_key(title)]
+    pending.insert(0, {
+        "id": manhwa_id,
+        "title": title,
+        "reason": reason,
+        "slug": slug_hint,
+        "detectedAt": datetime.now(timezone.utc).isoformat(),
+    })
+    state["pendingRepairs"] = pending[:100]
+    save_autopilot_state(state)
+
+
+def remove_pending_repair(manhwa_id: str, title: str = ""):
+    state = get_autopilot_state()
+    before = state.get("pendingRepairs") or []
+    after = [p for p in before if p.get("id") != manhwa_id and (not title or norm_key(p.get("title") or "") != norm_key(title))]
+    if len(after) != len(before):
+        state["pendingRepairs"] = after
+        save_autopilot_state(state)
 
 
 def save_autopilot_state(state: dict):
@@ -587,6 +613,7 @@ def sync_manhwa_slug(slug: str, db_manhwas: list, allow_adult: bool = True, max_
         return False, 0, title, []
 
     print(f"  ⚡ '{title}': +{chaps_added} capítulos listos en 0.15s B-Tree.")
+    remove_pending_repair(manhwa_id, title)
     return manhwa_added, chaps_added, title, new_urls
 
 
@@ -679,6 +706,11 @@ def run_smart_cycle(max_series_to_update: int = 8, max_chaps_per_series: int = 4
 
     if all_new_urls:
         ping_indexnow(all_new_urls)
+
+    try:
+        repair_missing_chapters_and_urls(silent=True)
+    except Exception:
+        pass
 
     print(
         f"🏆 Ciclo finalizado: +{added_manhwas} manhwas nuevos | +{added_chapters} capítulos nuevos | "
@@ -818,11 +850,47 @@ def menu_by_category():
     print(f"🏆 {added} obras nuevas de '{label}' subidas.")
 
 
-def repair_missing_chapters_and_urls():
-    print("\n🔧 Escaneando catálogo en busca de obras sin capítulos o URLs antiguas...")
-    manhwas = sb_request("GET", "manhwas?select=id,title,cover_url,banner_url,chapters(id)&chapters.limit=1&limit=2000")
+def guess_slug(title: str) -> str:
+    s0 = unicodedata.normalize("NFD", (title or "").lower())
+    s0 = "".join(ch for ch in s0 if unicodedata.category(ch) != "Mn")
+    return re.sub(r"[^a-z0-9]+", "-", s0).strip("-")
+
+
+def resolve_slug_for_title(title: str, db_manhwas: list, max_chapters: int = 80) -> int:
+    cand1 = guess_slug(title)
+    cand2 = re.sub(r"-(fxs|sin-censura)$", "", cand1)
+    for cand in [cand1, cand2]:
+        if not cand:
+            continue
+        _, c_added, _, _ = sync_manhwa_slug(cand, db_manhwas, allow_adult=True, max_chapters=max_chapters)
+        if c_added > 0:
+            return c_added
+
+    clean_q = re.sub(r"\s*-\s*(FxS|Sin Censura)$", "", title, flags=re.I).strip()
+    for q in [clean_q, " ".join(clean_q.split()[:4])]:
+        if not q:
+            continue
+        try:
+            res = fetch_json(f"https://api.zerocomics.net/api/series?q={urllib.parse.quote(q)}&page=1", timeout=10)
+            for it in (res.get("data") or [])[:5]:
+                sl = it.get("slug")
+                if sl and int(it.get("capitulos_total") or 0) > 0:
+                    _, c_added, _, _ = sync_manhwa_slug(sl, db_manhwas, allow_adult=True, max_chapters=max_chapters)
+                    if c_added > 0:
+                        return c_added
+        except Exception:
+            pass
+    return 0
+
+
+def repair_missing_chapters_and_urls(silent: bool = False):
+    t0 = time.time()
+    if not silent:
+        print("\n⚡ [ANALIZADOR ULTRA-RÁPIDO] Escaneando obras, capítulos, shards e imágenes...")
+    manhwas = sb_request("GET", "manhwas?select=id,title,cover_url,banner_url,chapters(id,chapter_number)&chapters.order=chapter_number.desc&chapters.limit=1&limit=2000")
     fixed_urls = 0
     empty_ms = []
+    sample_chaps = []
     for m in manhwas:
         c_url = m.get("cover_url") or ""
         b_url = m.get("banner_url") or ""
@@ -831,33 +899,131 @@ def repair_missing_chapters_and_urls():
         if nc != c_url or nb != b_url:
             sb_request("PATCH", f"manhwas?id=eq.{m['id']}", {"cover_url": nc, "banner_url": nb}, {"Prefer": "return=minimal"})
             fixed_urls += 1
-        if not m.get("chapters"):
+        chaps = m.get("chapters") or []
+        if not chaps:
             empty_ms.append(m)
+        else:
+            sample_chaps.append((m, chaps[0]["id"]))
 
-    if fixed_urls:
-        print(f"  ✅ {fixed_urls} portadas/banners actualizados al CDN rápido.")
+    # Verificar que los últimos 40 capítulos subidos tengan su shard B-Tree intacto y CDN rápido (1 sola consulta IN)
+    broken_shards = []
+    shard_groups = {}
+    for m, cid in sample_chaps[:40]:
+        sid = get_shard_id(cid)
+        shard_groups.setdefault(sid, []).append((m, cid))
 
-    if not empty_ms:
-        print("  ✅ 100% de las obras del catálogo tienen capítulos publicados.")
+    if shard_groups:
+        sids_csv = ",".join(str(s) for s in shard_groups.keys())
+        rows = sb_request("GET", f"site_config?id=in.({sids_csv})&select=id,category_images")
+        row_map = {r["id"]: (r.get("category_images") or {}) for r in (rows or [])}
+        for sid, pairs in shard_groups.items():
+            cmap = row_map.get(sid) or {}
+            dirty = False
+            for m, cid in pairs:
+                entry = cmap.get(cid)
+                if not entry or not entry.get("p"):
+                    pgs = sb_request("GET", f"pages?chapter_id=eq.{cid}&select=image_url&order=page_number.asc&limit=500")
+                    urls = [normalize_cdn_url(p["image_url"]) for p in (pgs or []) if p.get("image_url")]
+                    if urls:
+                        save_chapter_to_fast_shard(cid, urls)
+                        fixed_urls += 1
+                    else:
+                        broken_shards.append(m)
+                else:
+                    b = entry.get("b") or ""
+                    nb = normalize_cdn_url(b)
+                    if nb != b:
+                        entry["b"] = nb
+                        cmap[cid] = entry
+                        dirty = True
+                        fixed_urls += 1
+            if dirty:
+                sb_request("POST", "site_config", {"id": sid, "category_images": cmap}, {"Prefer": "resolution=merge-duplicates,return=minimal"})
+
+    targets = {m["id"]: (m, "0 capítulos publicados") for m in empty_ms}
+    for m in broken_shards:
+        targets.setdefault(m["id"], (m, "Capítulo sin páginas en lector"))
+
+    elapsed = time.time() - t0
+    if fixed_urls and not silent:
+        print(f"  ✅ {fixed_urls} portadas/capítulos reparados al CDN rápido.")
+
+    if not targets:
+        if not silent:
+            st = get_autopilot_state()
+            pend = st.get("pendingRepairs") or []
+            print(f"  ✅ Diagnóstico en {elapsed:.2f}s: {len(manhwas)} obras sanas (0 rotas) | Pendientes en cola: {len(pend)}.")
         return
 
-    print(f"  ⚠️ Encontradas {len(empty_ms)} obras sin capítulos. Buscando capítulos o limpiando fichas vacías...")
+    print(f"  ⚠️ Detectadas {len(targets)} obras rotas en {elapsed:.2f}s. Intentando auto-reparación inmediata...")
     db_manhwas = sb_request("GET", "manhwas?select=id,title,genre,cover_url,banner_url,status&limit=2000")
     for dm in db_manhwas:
         dm["_norm_key"] = norm_key(dm.get("title") or "")
 
-    for m in empty_ms:
-        mid = m["id"]
+    repaired_count = 0
+    queued_count = 0
+    for mid, (m, reason) in targets.items():
         title = m["title"]
-        s0 = unicodedata.normalize("NFD", title.lower())
-        s0 = "".join(ch for ch in s0 if unicodedata.category(ch) != "Mn")
-        slug_cand = re.sub(r"[^a-z0-9]+", "-", s0).strip("-")
-        _, c_added, _, _ = sync_manhwa_slug(slug_cand, db_manhwas, allow_adult=True, max_chapters=80)
-        if c_added == 0:
-            sb_request("DELETE", f"reviews?manhwa_id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
-            sb_request("DELETE", f"favorites?manhwa_id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
-            sb_request("DELETE", f"manhwas?id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
-            print(f"  🗑️ Eliminada ficha vacía sin capítulos: '{title}'")
+        c_added = resolve_slug_for_title(title, db_manhwas, max_chapters=80)
+        if c_added > 0:
+            repaired_count += 1
+            remove_pending_repair(mid, title)
+            print(f"  🔧 Auto-reparada: '{title}' (+{c_added} capítulos).")
+        else:
+            add_pending_repair(mid, title, reason, guess_slug(title))
+            queued_count += 1
+            print(f"  📌 Puesta en PENDIENTES para re-subir o reparar: '{title}' ({reason})")
+
+    print(f"  📊 Resultado: {repaired_count} auto-reparadas | {queued_count} en cola de pendientes (Opción [9]).")
+
+
+def menu_pending_queue():
+    while True:
+        st = get_autopilot_state()
+        pending = st.get("pendingRepairs") or []
+        print(f"\n📋 COLA DE OBRAS PENDIENTES / ROTAS ({len(pending)}):")
+        if not pending:
+            print("  🎉 ¡No hay ninguna obra pendiente ni rota! Todo el catálogo está al 100%.")
+            return
+        for i, p in enumerate(pending, 1):
+            print(f"  [{i}] {p.get('title')}  —  ⚠️ {p.get('reason', 'Incompleta')}")
+        print("\n  [A] Intentar auto-reparar TODAS ahora mismo")
+        print("  [L] Limpiar/eliminar de la base de datos las que no tengan fuente")
+        print("  [Número] Elegir una obra para subirle nueva URL / buscarla manualmente")
+        print("  [0] Volver al menú")
+        sel = ask("👉 Elige acción o número de obra: ", "0").strip()
+        if sel == "0":
+            return
+        elif sel.upper() == "A":
+            db_manhwas = sb_request("GET", "manhwas?select=id,title,genre,cover_url,banner_url,status&limit=2000")
+            for dm in db_manhwas:
+                dm["_norm_key"] = norm_key(dm.get("title") or "")
+            for p in list(pending):
+                c_added = resolve_slug_for_title(p.get("title") or "", db_manhwas, max_chapters=100)
+                if c_added > 0:
+                    remove_pending_repair(p.get("id") or "", p.get("title") or "")
+                    print(f"  ✅ Reparada '{p.get('title')}' (+{c_added} caps).")
+                else:
+                    print(f"  ❌ Sigue pendiente '{p.get('title')}' (usa su número para pegarle URL o nombre nuevo).")
+        elif sel.upper() == "L":
+            for p in list(pending):
+                mid = p.get("id")
+                if mid:
+                    try:
+                        sb_request("DELETE", f"reviews?manhwa_id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
+                        sb_request("DELETE", f"favorites?manhwa_id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
+                        sb_request("DELETE", f"manhwas?id=eq.{mid}", extra_headers={"Prefer": "return=minimal"})
+                    except Exception:
+                        pass
+                remove_pending_repair(mid or "", p.get("title") or "")
+                print(f"  🗑️ Eliminada ficha rota: '{p.get('title')}'")
+        elif sel.isdigit() and 1 <= int(sel) <= len(pending):
+            chosen = pending[int(sel) - 1]
+            print(f"\n🔨 Reparando: {chosen.get('title')}")
+            q = ask("Pega la URL o escribe el nombre con el que buscarla (Enter = buscar automático): ", chosen.get("title") or "")
+            if q:
+                import_by_query(q)
+                remove_pending_repair(chosen.get("id") or "", chosen.get("title") or "")
 
 
 def menu_audit():
@@ -890,7 +1056,8 @@ def menu_stats():
     st = get_autopilot_state()
     rows = sb_request("GET", "manhwas?select=title,genre&order=created_at.desc&limit=10")
     total = sb_request("GET", "manhwas?select=id&limit=5000")
-    print(f"\n📊 Obras en catálogo: {len(total)}")
+    pend = st.get("pendingRepairs") or []
+    print(f"\n📊 Obras en catálogo: {len(total)} | Pendientes de reparar: {len(pend)}")
     print(f"   Auto-subidas: {st.get('totalManhwasAdded', 0)} obras | {st.get('totalChaptersAdded', 0)} caps")
     print(f"   Piloto: {'ACTIVO' if st.get('enabled', True) else 'PAUSADO'} | +18: {'Sí' if st.get('allowAdult', True) else 'No'} | Radar pág. #{st.get('discoveryCursorPage')}")
     print("   Últimos subidos:")
@@ -901,7 +1068,12 @@ def menu_stats():
 def interactive_menu():
     os.system("")  # habilita colores ANSI en Windows
     while True:
-        print("""
+        try:
+            pend_count = len((get_autopilot_state().get("pendingRepairs") or []))
+        except Exception:
+            pend_count = 0
+        pend_label = f"║ [9] Cola de pendientes ({pend_count} obras por revisar)    ║"[:48].ljust(47) + "║"
+        print(f"""
 ╔══════════════════════════════════════════════╗
 ║        NEKUTOON TITAN AGENT — MENÚ           ║
 ╠══════════════════════════════════════════════╣
@@ -912,7 +1084,8 @@ def interactive_menu():
 ║ [5] Auditar categorías + limpiar duplicados  ║
 ║ [6] Tarea automática de Windows / filtro +18 ║
 ║ [7] Ver estadísticas y últimos subidos       ║
-║ [8] Reparar obras sin capítulos / imágenes   ║
+║ [8] Analizador ultra-rápido y auto-reparar   ║
+{pend_label}
 ║ [0] Salir                                    ║
 ╚══════════════════════════════════════════════╝""")
         op = ask("👉 Elige una opción: ", "0")
@@ -945,6 +1118,8 @@ def interactive_menu():
                 menu_stats()
             elif op == "8":
                 repair_missing_chapters_and_urls()
+            elif op == "9":
+                menu_pending_queue()
             elif op == "0":
                 print("👋 Hasta luego.")
                 return
