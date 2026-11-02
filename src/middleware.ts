@@ -5,8 +5,19 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 🛡️ TRAMPA PARA HACKERS: Bloquear rutas de escaneo malicioso (0ms, sin llamadas de red)
-  const maliciousPaths = ['.env', '.git', 'wp-admin', 'phpmyadmin', 'config.php', '.aws']
-  if (maliciousPaths.some((p) => pathname.includes(p))) {
+  const lowerPath = pathname.toLowerCase()
+  const maliciousPaths = [
+    '.env',
+    '.git',
+    'wp-admin',
+    'wp-login',
+    'phpmyadmin',
+    'config.php',
+    '.aws',
+    'xmlrpc.php',
+    'actuator',
+  ]
+  if (maliciousPaths.some((p) => lowerPath.includes(p))) {
     return new NextResponse('ACCESO DENEGADO - IP REGISTRADA', { status: 403 })
   }
 
@@ -50,5 +61,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/wp-admin/:path*', '/phpmyadmin/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/wp-admin/:path*',
+    '/wp-login.php',
+    '/phpmyadmin/:path*',
+    '/xmlrpc.php',
+    '/.env/:path*',
+    '/.git/:path*',
+  ],
 }

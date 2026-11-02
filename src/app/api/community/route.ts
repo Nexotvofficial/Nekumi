@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_URL_DEFAULT } from "@/lib/supabase";
+import { createServerClient } from "@supabase/ssr";
+import { SUPABASE_URL_DEFAULT, SUPABASE_ANON_KEY_DEFAULT } from "@/lib/supabase";
 
+const ADMIN_EMAIL = "diazmowi07@gmail.com";
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT;
@@ -9,6 +11,29 @@ function getAdminClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   if (!key) throw new Error("Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno");
   return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function getSessionUser(req: NextRequest) {
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_DEFAULT,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_DEFAULT,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll();
+          },
+          setAll() {},
+        },
+      }
+    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 function getSocialShardId(chapterId: string): number {
@@ -234,6 +259,10 @@ export async function POST(req: NextRequest) {
 
     if (action === "change_username") {
       const { userId, newUsername } = body;
+      const sessionUser = await getSessionUser(req);
+      if (!sessionUser || (sessionUser.id !== userId && sessionUser.email !== ADMIN_EMAIL)) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      }
       if (!userId || !newUsername?.trim()) {
         return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
       }
@@ -614,11 +643,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Selecciona el motivo del reporte" }, { status: 400 });
       }
 
-      const { data: existing } = await supabase
-        .from("site_config")
-        .select("category_images")
-        .eq("id", 270)
-        .maybeSingle();
+      const [{ data: existing }, { data: agentRow }] = await Promise.all([
+        supabase.from("site_config").select("category_images").eq("id", 270).maybeSingle(),
+        supabase.from("site_config").select("category_images").eq("id", 290).maybeSingle(),
+      ]);
 
       const currentReports: any[] = Array.isArray((existing?.category_images as any)?.reports)
         ? [...(existing?.category_images as any).reports]
@@ -636,15 +664,43 @@ export async function POST(req: NextRequest) {
       };
 
       const updatedReports = [reportItem, ...currentReports].slice(0, 80);
-      await supabase.from("site_config").upsert({
-        id: 270,
-        category_images: { reports: updatedReports },
+
+      // Encolar también en la Cola de Pendientes [9] del Nekutoon Titan Agent (id 290)
+      const agentState: Record<string, any> =
+        agentRow?.category_images && typeof agentRow.category_images === "object"
+          ? { ...(agentRow.category_images as any) }
+          : {};
+      const pendingRepairs: any[] = Array.isArray(agentState.pendingRepairs)
+        ? [...agentState.pendingRepairs].filter((p) => p?.id !== reportItem.manhwaId)
+        : [];
+      pendingRepairs.unshift({
+        id: reportItem.manhwaId,
+        title: reportItem.manhwaTitle,
+        reason: `Reporte lector (Cap. ${reportItem.chapterNumber}): ${reportItem.reason}`,
+        slug: "",
+        detectedAt: reportItem.createdAt,
       });
+      agentState.pendingRepairs = pendingRepairs.slice(0, 100);
+
+      await Promise.all([
+        supabase.from("site_config").upsert({
+          id: 270,
+          category_images: { reports: updatedReports },
+        }),
+        supabase.from("site_config").upsert({
+          id: 290,
+          category_images: agentState,
+        }),
+      ]);
 
       return NextResponse.json({ ok: true, report: reportItem });
     }
 
     if (action === "resolve_report") {
+      const sessionUser = await getSessionUser(req);
+      if (!sessionUser || sessionUser.email !== ADMIN_EMAIL) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      }
       const { reportId } = body;
       if (!reportId) return NextResponse.json({ ok: false }, { status: 400 });
 

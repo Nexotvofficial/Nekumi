@@ -72,7 +72,7 @@ export default function ClientPage({
 }) {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const id = (initialManhwa?.id || (params.id as string));
   const supabase = createClient();
 
   const [manhwa, setManhwa] = useState<Manhwa | null>(initialManhwa);

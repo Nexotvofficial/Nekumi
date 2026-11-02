@@ -586,14 +586,49 @@ export default function Home({
   const unreadFavIds = useMemo(() => {
     const unread = new Set<string>();
     for (const fid of favorites) {
-      const latest = latestChapByManhwa.get(fid);
+      const m = manhwas.find((x) => x.id === fid);
+      const latest = m?.latest_chapter ?? latestChapByManhwa.get(fid);
       const lastRead = lastReadNums[fid] || 0;
-      if (latest !== undefined && lastRead > 0 && latest > lastRead) {
+      if (latest !== undefined && latest > lastRead) {
         unread.add(fid);
       }
     }
     return unread;
-  }, [favorites, latestChapByManhwa, lastReadNums]);
+  }, [favorites, manhwas, latestChapByManhwa, lastReadNums]);
+
+  const prioritizedNotifications = useMemo(() => {
+    const favList: any[] = [];
+    const generalList: any[] = [];
+    const seenManhwas = new Set<string>();
+
+    // Primero inyectar cualquier favorito que tenga capítulo nuevo sin leer
+    for (const fid of unreadFavIds) {
+      const m = manhwas.find((x) => x.id === fid);
+      if (!m) continue;
+      const chapNum = m.latest_chapter ?? latestChapByManhwa.get(fid);
+      if (!chapNum) continue;
+      favList.push({
+        id: `fav_${fid}_${chapNum}`,
+        chapter_number: chapNum,
+        created_at: new Date().toISOString(),
+        isFavoriteUpdate: true,
+        manhwa: { id: m.id, title: m.title },
+      });
+      seenManhwas.add(fid);
+    }
+
+    for (const n of realNotifications) {
+      const mid = n.manhwa?.id || n.manhwa_id;
+      if (mid && seenManhwas.has(mid)) continue;
+      if (mid) seenManhwas.add(mid);
+      generalList.push({
+        ...n,
+        isFavoriteUpdate: Boolean(mid && favorites.has(mid)),
+      });
+    }
+
+    return [...favList, ...generalList].slice(0, 7);
+  }, [unreadFavIds, manhwas, latestChapByManhwa, realNotifications, favorites]);
 
   const sidebarRanked = useMemo(() => {
     const base = (manhwas.length > 0 ? manhwas : trending).filter((m) => !isAdultGenre(m.genre));
@@ -854,20 +889,22 @@ export default function Home({
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
                 >
                   <Bell />
-                  {!notificationsRead && realNotifications.length > 0 && (
-                    <span className="notification-badge">{realNotifications.length}</span>
+                  {(!notificationsRead || unreadFavIds.size > 0) && prioritizedNotifications.length > 0 && (
+                    <span className="notification-badge">
+                      {unreadFavIds.size > 0 ? unreadFavIds.size : prioritizedNotifications.length}
+                    </span>
                   )}
                 </button>
                 <div className={`notification-dropdown glass ${notificationsOpen ? "open" : ""}`}>
                   <div className="notification-head">
                     <strong>Notificaciones</strong>
-                    {realNotifications.length > 0 && (
+                    {prioritizedNotifications.length > 0 && (
                       <button
                         type="button"
                         onClick={() => {
                           setNotificationsRead(true);
                           try {
-                            localStorage.setItem("lastReadNotification", realNotifications[0].id);
+                            localStorage.setItem("lastReadNotification", prioritizedNotifications[0].id);
                           } catch {}
                           showToastMessage("Notificaciones marcadas como leídas");
                         }}
@@ -876,10 +913,10 @@ export default function Home({
                       </button>
                     )}
                   </div>
-                  {realNotifications.length === 0 ? (
+                  {prioritizedNotifications.length === 0 ? (
                     <div className="p-4 text-center text-white/50 text-sm">No hay notificaciones recientes</div>
                   ) : (
-                    realNotifications.map((notif) => (
+                    prioritizedNotifications.map((notif) => (
                       <Link
                         href={`/manga/${notif.manhwa?.id}`}
                         key={notif.id}
@@ -887,12 +924,15 @@ export default function Home({
                         className="notification-item"
                       >
                         <span className="notification-icon">
-                          <Sparkles />
+                          {notif.isFavoriteUpdate ? <Heart className="text-pink-400 fill-current" /> : <Sparkles />}
                         </span>
                         <span>
-                          <b>{notif.manhwa?.title}</b>
+                          <b>
+                            {notif.isFavoriteUpdate ? "★ TU FAVORITO: " : ""}
+                            {notif.manhwa?.title}
+                          </b>
                           <small>
-                            Capítulo {notif.chapter_number} · {formatRelativeDate(notif.created_at)}
+                            Capítulo {notif.chapter_number} disponible · {formatRelativeDate(notif.created_at)}
                           </small>
                         </span>
                       </Link>
